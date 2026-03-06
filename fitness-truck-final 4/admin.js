@@ -1,5 +1,156 @@
-const ADMIN_PASSWORD = 'fitnesstruck2026';
-const SESSION_KEY = 'ft_admin_session';
+const CONFIG = {
+  SUPABASE_URL: 'https://xqmwipogfcfjmqsiqdbu.supabase.co',
+  SUPABASE_KEY: 'sb_publishable_acr4jKu8IG-THTIn40q3eA_uOiEaOCj'
+};
+
+const supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+
+let events = [];
+let editingEventId = null;
+let sessionForms = [];
+let currentAdminUser = null;
+
+async function isCurrentUserAdmin(user) {
+  if (!user?.id) return false;
+
+  const { data, error } = await supabaseClient
+    .from('admin_users')
+    .select('id, email')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Admin check failed:', error);
+    throw error;
+  }
+
+  return !!data;
+}
+
+function showLoginError(message) {
+  const errorDiv = document.getElementById('loginError');
+  if (!errorDiv) return;
+  errorDiv.textContent = message;
+  errorDiv.classList.add('visible');
+}
+
+function clearLoginError() {
+  const errorDiv = document.getElementById('loginError');
+  if (!errorDiv) return;
+  errorDiv.textContent = 'Login failed';
+  errorDiv.classList.remove('visible');
+}
+
+async function initializeAdminAuth() {
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+
+    const session = data?.session;
+    if (!session?.user) {
+      showLoginScreen();
+      return;
+    }
+
+    const allowed = await isCurrentUserAdmin(session.user);
+    if (!allowed) {
+      await supabaseClient.auth.signOut();
+      showLoginScreen();
+      showLoginError('This account is not allowed to use the admin area.');
+      return;
+    }
+
+    currentAdminUser = session.user;
+    showAdminInterface();
+    await loadEvents();
+  } catch (error) {
+    console.error('Auth startup failed:', error);
+    showLoginScreen();
+    showLoginError('Could not check admin access.');
+  }
+}
+
+async function attemptLogin() {
+  const emailInput = document.getElementById('adminEmail');
+  const passwordInput = document.getElementById('adminPassword');
+  const email = emailInput?.value.trim() || '';
+  const password = passwordInput?.value || '';
+
+  clearLoginError();
+
+  if (!email || !password) {
+    showLoginError('Enter your admin email and password.');
+    return;
+  }
+
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) throw error;
+
+    const user = data?.user;
+    const allowed = await isCurrentUserAdmin(user);
+
+    if (!allowed) {
+      await supabaseClient.auth.signOut();
+      showLoginError('This account is not allowed to use the admin area.');
+      return;
+    }
+
+    currentAdminUser = user;
+    passwordInput.value = '';
+    showAdminInterface();
+    await loadEvents();
+  } catch (error) {
+    console.error('Login failed:', error);
+    showLoginError(error.message || 'Login failed');
+  }
+}
+
+async function logout() {
+  await supabaseClient.auth.signOut();
+  currentAdminUser = null;
+  location.reload();
+}
+
+function showLoginScreen() {
+  document.getElementById('loginScreen')?.classList.remove('hidden');
+  document.getElementById('adminInterface').style.display = 'none';
+}
+
+function showAdminInterface() {
+  document.getElementById('loginScreen')?.classList.add('hidden');
+  document.getElementById('adminInterface').style.display = 'block';
+
+  const demoBanner = document.querySelector('.demo-banner');
+  if (demoBanner) {
+    demoBanner.innerHTML = '<strong>AUTH IS LIVE:</strong> Admin login now uses Supabase. Event editing still saves to localStorage only for now.';
+  }
+}
+
+async function loadEvents() {
+  try {
+    const savedEvents = safeStorage.get('ft_events');
+    if (savedEvents && Array.isArray(savedEvents) && savedEvents.length) {
+      events = savedEvents;
+    } else {
+      const response = await fetch('data/events.json');
+      if (!response.ok) throw new Error('Failed to fetch events');
+      events = await response.json();
+      safeStorage.set('ft_events', events);
+    }
+  } catch (error) {
+    console.error(error);
+    events = [];
+    showToast('Failed to load events. Using empty list.', 'error');
+  }
+
+  renderEvents();
+  updateStats();
+}
 
 const safeStorage = {
   get(key, defaultValue = null) {
@@ -27,70 +178,6 @@ const safeStorage = {
     }
   }
 };
-
-let events = [];
-let editingEventId = null;
-let sessionForms = [];
-
-function checkAuth() {
-  const session = safeStorage.get(SESSION_KEY);
-  const now = Date.now();
-  if (session && session.expires > now) {
-    showAdminInterface();
-    return true;
-  }
-  showLoginScreen();
-  return false;
-}
-
-function attemptLogin() {
-  const password = document.getElementById('adminPassword').value;
-  const errorDiv = document.getElementById('loginError');
-  if (password === ADMIN_PASSWORD) {
-    errorDiv.classList.remove('visible');
-    safeStorage.set(SESSION_KEY, { loggedIn: true, expires: Date.now() + 24 * 60 * 60 * 1000 });
-    showAdminInterface();
-    loadEvents();
-  } else {
-    errorDiv.classList.add('visible');
-    document.getElementById('adminPassword').value = '';
-    document.getElementById('adminPassword').focus();
-  }
-}
-
-function logout() {
-  safeStorage.remove(SESSION_KEY);
-  location.reload();
-}
-function showLoginScreen() {
-  document.getElementById('loginScreen').classList.remove('hidden');
-  document.getElementById('adminInterface').style.display = 'none';
-}
-function showAdminInterface() {
-  document.getElementById('loginScreen').classList.add('hidden');
-  document.getElementById('adminInterface').style.display = 'block';
-}
-
-async function loadEvents() {
-  if (!checkAuth()) return;
-  try {
-    const savedEvents = safeStorage.get('ft_events');
-    if (savedEvents && Array.isArray(savedEvents) && savedEvents.length) {
-      events = savedEvents;
-    } else {
-      const response = await fetch('data/events.json');
-      if (!response.ok) throw new Error('Failed to fetch events');
-      events = await response.json();
-      safeStorage.set('ft_events', events);
-    }
-  } catch (error) {
-    console.error(error);
-    events = [];
-    showToast('Failed to load events. Using empty list.', 'error');
-  }
-  renderEvents();
-  updateStats();
-}
 
 function saveEvents() {
   safeStorage.set('ft_events', events);
@@ -349,12 +436,17 @@ function showToast(message, type = 'success') {
   }, 3500);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initForm();
   addSessionForm();
+
+  const emailInput = document.getElementById('adminEmail');
   const passwordInput = document.getElementById('adminPassword');
+
+  emailInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter') attemptLogin(); });
   passwordInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter') attemptLogin(); });
-  if (checkAuth()) loadEvents();
+
+  await initializeAdminAuth();
 });
 
 window.attemptLogin = attemptLogin;
