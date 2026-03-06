@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fitness Truck | The Gym That Moves</title>
+  <meta name="description" content="Premium outdoor fitness sessions in unique Swiss locations. Limited-capacity classes, expert coaching, and an exclusive community experience." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="noise-overlay"></div>
+
+  <div class="nav-container" id="navbar">
+    <nav>
+      <a href="#top" class="logo">
+        <img src="assets/logo.png" alt="Fitness Truck - The Gym That Moves" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="logo-fallback" style="display:none;">
+          <div class="logo-icon">FT</div>
+          <span>FITNESS TRUCK</span>
+        </div>
+      </a>
+      <div class="nav-links" id="navLinks">
+        <a href="#events">Events</a>
+        <a href="#experience">Experience</a>
+        <a href="#team">Team</a>
+        <a href="#contact">Contact</a>
+        <a href="#newsletter" class="nav-cta">Join Movement</a>
+      </div>
+      <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="navLinks">
+        <span></span>
+        <span></span>
+      </button>
+    </nav>
+  </div>
+
+  <main>
+    <section class="hero" id="top">
+      <div class="hero-bg">
+        <div class="hero-image" style="background-image:url('assets/hero.jpg');" role="img" aria-label="Fitness Truck outdoor training session"></div>
+        <div class="hero-grid-pattern"></div>
+      </div>
+
+      <div class="hero-content">
+        <div class="hero-left">
+          <div class="hero-badge">
+            <span class="pulse-dot" aria-hidden="true"></span>
+            Now Accepting Members
+          </div>
+          <h1 class="hero-title">THE GYM<br>THAT <span class="text-accent">MOVES</span></h1>
+          <p class="hero-subtitle">Premium outdoor training in Switzerland's most iconic locations. Limited capacity. Maximum intensity. Unforgettable community.</p>
+          <div class="hero-stats">
+            <div class="stat"><span class="stat-number">4</span><span class="stat-label">Cities</span></div>
+            <div class="stat"><span class="stat-number">50</span><span class="stat-label">Spots/Session</span></div>
+            <div class="stat"><span class="stat-number">35</span><span class="stat-label">Weekends/Year</span></div>
+          </div>
+          <div class="hero-actions">
+            <a href="#events" class="btn btn-primary"><span>View Schedule</span></a>
+            <a href="#experience" class="btn btn-secondary">How It Works</a>
+          </div>
+        </div>
+
+        <div class="hero-right">
+          <div class="floating-card" id="newsletter">
+            <div class="card-glow"></div>
+            <h3>Join the Priority List</h3>
+            <p>Get early access to premium sessions before they sell out.</p>
+            <form name="newsletter" method="POST" data-netlify="true" action="/thank-you.html?form=newsletter" class="newsletter-form" id="newsletterForm">
+              <input type="hidden" name="form-name" value="newsletter" />
+              <div class="input-group">
+                <label for="newsletterEmail" class="visually-hidden">Email address for newsletter</label>
+                <input type="email" name="email" id="newsletterEmail" placeholder="Enter your email" required autocomplete="email" />
+                <button type="submit" class="btn-submit" aria-label="Subscribe to newsletter">→</button>
+              </div>
+            </form>
+            <div class="trust-badges">
+              <span>✓ No spam</span>
+              <span>✓ Cancel anytime</span>
+            </div>
+          </div>
+
+          <div class="location-badges">
+            <div class="badge">Zurich</div>
+            <div class="badge">Geneva</div>
+            <div class="badge">Lugano</div>
+            <div class="badge">Lausanne</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="scroll-indicator">
+        <div class="mouse" aria-hidden="true"><div class="wheel"></div></div>
+        <span>Scroll to explore</span>
+      </div>
+    </section>
+
+    <section id="events" class="section section-events">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-eyebrow">Upcoming Activations</span>
+          <h2 class="section-title">Secure Your <span class="text-accent">Spot</span></h2>
+          <p class="section-desc">Limited capacity events across Switzerland. Book early—sessions sell out fast.</p>
+        </div>
+
+        <div class="events-showcase" id="featured-events"></div>
+
+        <div class="empty-state-events" id="emptyStateEvents" hidden>
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          <h3>No Upcoming Events</h3>
+          <p>We're planning our next activations. Join the priority list to be first to know.</p>
+          <a href="#newsletter" class="btn btn-primary">Get Notified</a>
+        </div>
+
+        <div class="calendar-section" id="calendarSection">
+          <h3 class="calendar-title">Full Calendar</h3>
+          <div class="calendar-grid" id="calendar-grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="experience" class="section section-dark">
+      <div class="container">
+        <div class="section-header centered">
+          <span class="section-eyebrow">The Experience</span>
+          <h2 class="section-title">How It <span class="text-accent">Works</span></h2>
+        </div>
+        <div class="process-grid">
+          <div class="process-card" data-step="01">
+            <div class="process-icon">⌕</div>
+            <h3>Choose Your Session</h3>
+            <p>Browse our curated calendar of premium outdoor training experiences across Swiss cities and alpine locations.</p>
+          </div>
+          <div class="process-card" data-step="02">
+            <div class="process-icon">▦</div>
+            <h3>Reserve Your Spot</h3>
+            <p>Limited to 50 participants per session. Once full, registration closes. Early booking guarantees your place.</p>
+          </div>
+          <div class="process-card" data-step="03">
+            <div class="process-icon">▲</div>
+            <h3>Train & Connect</h3>
+            <p>Show up ready. We provide premium equipment, expert coaching, and an electric community atmosphere.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="expect" class="section">
+      <div class="container">
+        <div class="section-header centered">
+          <span class="section-eyebrow">What to Expect</span>
+          <h2 class="section-title">Premium <span class="text-accent">Everything</span></h2>
+        </div>
+        <div class="features-grid">
+          <div class="feature-item"><span class="feature-label">Functional Performance</span></div>
+          <div class="feature-item"><span class="feature-label">Mobility & Recovery</span></div>
+          <div class="feature-item"><span class="feature-label">Strength Training</span></div>
+          <div class="feature-item"><span class="feature-label">Endurance</span></div>
+          <div class="feature-item"><span class="feature-label">Expert Coaching</span></div>
+          <div class="feature-item"><span class="feature-label">Premium Equipment</span></div>
+        </div>
+        <div class="expect-cards">
+          <div class="expect-card">
+            <h4>Session Format</h4>
+            <p>Each event features multiple independent sessions—morning strength, afternoon mobility, or specialized workshops. Book the sessions that fit your schedule and goals.</p>
+          </div>
+          <div class="expect-card">
+            <h4>For Participants</h4>
+            <p>Bring training clothes, water, and energy. We handle the rest: premium equipment, expert coaching, and an unforgettable outdoor atmosphere.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="team" class="section section-dark">
+      <div class="container">
+        <div class="section-header centered">
+          <span class="section-eyebrow">The Team</span>
+          <h2 class="section-title">Performance <span class="text-accent">Architecture</span></h2>
+        </div>
+        <div class="team-grid">
+          <div class="team-card">
+            <div class="team-image"><div class="team-initials">NB</div></div>
+            <h3>Nicolas Bachmann</h3>
+            <p class="team-role">COO & Product Vision</p>
+            <p class="team-bio">Communication strategist and digital growth executive helping shape the Fitness Truck concept and experience.</p>
+          </div>
+          <div class="team-card">
+            <div class="team-image"><div class="team-initials">NP</div></div>
+            <h3>Nazareno Piella</h3>
+            <p class="team-role">BSc Exercise Science · Athletic Trainer</p>
+            <p class="team-bio">Science-based coaching approach focused on performance, prevention, and long-term physical progress.</p>
+          </div>
+          <div class="team-card">
+            <div class="team-image"><div class="team-initials">LF</div></div>
+            <h3>Lorenzo Fornasari</h3>
+            <p class="team-role">Physiotherapist · Osteopath · Nutritionist</p>
+            <p class="team-bio">Recovery optimization and integrated care, bringing performance, prevention, and wellness into the Fitness Truck experience.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact" class="section">
+      <div class="container">
+        <div class="section-header centered">
+          <span class="section-eyebrow">Contact</span>
+          <h2 class="section-title">Let's <span class="text-accent">Connect</span></h2>
+        </div>
+        <div class="contact-grid">
+          <div class="contact-info">
+            <div class="contact-item"><span class="contact-label">Email</span><a href="mailto:info@fitnesstruck.ch">info@fitnesstruck.ch</a></div>
+            <div class="contact-item"><span class="contact-label">Phone</span><a href="tel:+41765437839">+41 76 543 78 39</a></div>
+            <div class="contact-item"><span class="contact-label">Instagram</span><a href="https://instagram.com/fitnesstruck" target="_blank" rel="noopener noreferrer">@fitnesstruck</a></div>
+            <div class="contact-item"><span class="contact-label">Locations</span><span>Zurich · Geneva · Lugano · Lausanne</span></div>
+          </div>
+          <div class="contact-form-wrapper">
+            <form name="contact" method="POST" data-netlify="true" action="/thank-you.html?form=contact" class="contact-form" id="contactForm">
+              <input type="hidden" name="form-name" value="contact" />
+              <div class="form-group">
+                <label for="contactName">Your Name <span aria-hidden="true">*</span></label>
+                <input type="text" name="name" id="contactName" placeholder="John Doe" required autocomplete="name" />
+              </div>
+              <div class="form-group">
+                <label for="contactEmail">Your Email <span aria-hidden="true">*</span></label>
+                <input type="email" name="email" id="contactEmail" placeholder="john@example.com" required autocomplete="email" />
+              </div>
+              <div class="form-group">
+                <label for="contactMessage">Your Message <span aria-hidden="true">*</span></label>
+                <textarea name="message" id="contactMessage" placeholder="Tell us about your fitness goals..." rows="5" required></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary btn-full"><span>Send Message</span></button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <img src="assets/logo.png" alt="Fitness Truck" class="footer-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+          <span class="logo-text" style="display:none;">FITNESS TRUCK</span>
+          <p>The gym that moves.</p>
+        </div>
+        <div class="footer-links">
+          <a href="#events">Events</a>
+          <a href="#experience">Experience</a>
+          <a href="#team">Team</a>
+          <a href="#contact">Contact</a>
+          <a href="admin.html" class="admin-link" rel="nofollow">Admin</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 Fitness Truck. All rights reserved.</p>
+        <a href="#top" class="back-to-top" aria-label="Back to top">↑</a>
+      </div>
+    </div>
+  </footer>
+
+  <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
+    <div class="modal" id="eventModal" role="document">
+      <button class="modal-close" id="modalClose" aria-label="Close event details">×</button>
+      <div class="modal-content" id="modalContent"></div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>
