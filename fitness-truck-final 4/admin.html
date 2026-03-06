@@ -15,12 +15,12 @@
     <div class="login-box">
       <h1>Admin Access</h1>
       <p>Fitness Truck Management</p>
-      <input type="password" id="adminPassword" placeholder="Enter password" autocomplete="current-password">
+      <input type="email" id="adminEmail" placeholder="Admin email" autocomplete="email">
+      <input type="password" id="adminPassword" placeholder="Password" autocomplete="current-password">
       <button onclick="attemptLogin()">Sign In</button>
-      <div class="login-error" id="loginError">Incorrect password</div>
+      <div class="login-error" id="loginError">Login failed</div>
       <div class="login-hint">
-        <strong>Demo Password:</strong> fitnesstruck2026<br>
-        <small>For production, replace this with Netlify Identity, Clerk, Auth0, or Supabase Auth.</small>
+        <small>Use the admin email and password you created in Supabase.</small>
       </div>
     </div>
   </div>
@@ -96,6 +96,7 @@
   </div>
 
   <div class="toast-container" id="toastContainer"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="admin.js"></script>
 </body>
 </html>
