@@ -127,77 +127,180 @@ function showAdminInterface() {
 
   const demoBanner = document.querySelector('.demo-banner');
   if (demoBanner) {
-    demoBanner.innerHTML = '<strong>AUTH IS LIVE:</strong> Admin login now uses Supabase. Event editing still saves to localStorage only for now.';
+    demoBanner.innerHTML = '<strong>LIVE MODE:</strong> Admin login and event saving now use Supabase.';
   }
+}
+
+function mapDatabaseToUi(eventRows, sessionRows) {
+  return (eventRows || []).map((event) => ({
+    id: event.id,
+    title: event.title,
+    date: event.date,
+    location: event.location,
+    description: event.description || '',
+    heroPhrase: event.hero_phrase || '',
+    basePriceChf: event.base_price_chf || 0,
+    sessions: (sessionRows || [])
+      .filter((session) => session.event_id === event.id)
+      .map((session) => ({
+        id: session.id,
+        title: session.title,
+        startTime: session.start_time,
+        endTime: session.end_time,
+        exerciseType: session.exercise_type,
+        maxParticipants: session.max_participants,
+        registered: session.registered_count || 0,
+        priceChf: session.price_chf || 0
+      }))
+  }));
 }
 
 async function loadEvents() {
   try {
-    const savedEvents = safeStorage.get('ft_events');
-    if (savedEvents && Array.isArray(savedEvents) && savedEvents.length) {
-      events = savedEvents;
-    } else {
-      const response = await fetch('data/events.json');
-      if (!response.ok) throw new Error('Failed to fetch events');
-      events = await response.json();
-      safeStorage.set('ft_events', events);
-    }
+    const { data: eventRows, error: eventsError } = await supabaseClient
+      .from('events')
+      .select('*')
+      .order('date', { ascending: true });
+
+    if (eventsError) throw eventsError;
+
+    const { data: sessionRows, error: sessionsError } = await supabaseClient
+      .from('sessions')
+      .select('*')
+      .order('start_time', { ascending: true });
+
+    if (sessionsError) throw sessionsError;
+
+    events = mapDatabaseToUi(eventRows, sessionRows);
   } catch (error) {
-    console.error(error);
+    console.error('Failed to load events:', error);
     events = [];
-    showToast('Failed to load events. Using empty list.', 'error');
+    showToast('Failed to load events from Supabase.', 'error');
   }
 
   renderEvents();
   updateStats();
 }
 
-const safeStorage = {
-  get(key, defaultValue = null) {
-    try {
-      const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : defaultValue;
-    } catch {
-      return defaultValue;
+function saveButtonLoading(isLoading) {
+  const submitBtn = document.getElementById('submitBtn');
+  if (!submitBtn) return;
+
+  submitBtn.disabled = isLoading;
+  submitBtn.textContent = isLoading
+    ? (editingEventId ? 'Saving...' : 'Creating...')
+    : (editingEventId ? 'Update Event' : 'Create Event');
+}
+
+async function saveEventToSupabase(eventData) {
+  const eventRow = {
+    id: eventData.id,
+    title: eventData.title,
+    date: eventData.date,
+    location: eventData.location,
+    description: eventData.description,
+    hero_phrase: eventData.heroPhrase
+  };
+
+  if (editingEventId) {
+    const { error: eventError } = await supabaseClient
+      .from('events')
+      .update(eventRow)
+      .eq('id', editingEventId);
+
+    if (eventError) throw eventError;
+  } else {
+    const { error: eventError } = await supabaseClient
+      .from('events')
+      .insert(eventRow);
+
+    if (eventError) throw eventError;
+  }
+
+  const sessionRows = eventData.sessions.map((session) => ({
+    id: session.id,
+    event_id: eventData.id,
+    title: session.title,
+    start_time: session.startTime,
+    end_time: session.endTime,
+    exercise_type: session.exerciseType,
+    max_participants: session.maxParticipants,
+    registered_count: session.registered,
+    price_chf: session.priceChf || 0
+  }));
+
+  if (editingEventId) {
+    const existingEvent = events.find((event) => event.id === editingEventId);
+    const oldSessionIds = (existingEvent?.sessions || []).map((session) => session.id);
+    const newSessionIds = sessionRows.map((session) => session.id);
+    const sessionIdsToDelete = oldSessionIds.filter((id) => !newSessionIds.includes(id));
+
+    if (sessionIdsToDelete.length) {
+      const { error: deleteSessionsError } = await supabaseClient
+        .from('sessions')
+        .delete()
+        .in('id', sessionIdsToDelete);
+
+      if (deleteSessionsError) throw deleteSessionsError;
     }
-  },
-  set(key, value) {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-      return true;
-    } catch {
-      return false;
+
+    if (sessionRows.length) {
+      const { error: upsertSessionsError } = await supabaseClient
+        .from('sessions')
+        .upsert(sessionRows, { onConflict: 'id' });
+
+      if (upsertSessionsError) throw upsertSessionsError;
     }
-  },
-  remove(key) {
-    try {
-      localStorage.removeItem(key);
-      return true;
-    } catch {
-      return false;
+  } else {
+    if (sessionRows.length) {
+      const { error: insertSessionsError } = await supabaseClient
+        .from('sessions')
+        .insert(sessionRows);
+
+      if (insertSessionsError) throw insertSessionsError;
     }
   }
-};
+}
 
-function saveEvents() {
-  safeStorage.set('ft_events', events);
-  updateStats();
+async function deleteEventFromSupabase(eventId) {
+  const sessionIds = (events.find((event) => event.id === eventId)?.sessions || []).map((session) => session.id);
+
+  if (sessionIds.length) {
+    const { error: deleteSessionsError } = await supabaseClient
+      .from('sessions')
+      .delete()
+      .in('id', sessionIds);
+
+    if (deleteSessionsError) throw deleteSessionsError;
+  }
+
+  const { error: deleteEventError } = await supabaseClient
+    .from('events')
+    .delete()
+    .eq('id', eventId);
+
+  if (deleteEventError) throw deleteEventError;
 }
 
 function renderEvents() {
   const container = document.getElementById('eventsList');
   if (!container) return;
+
   if (!events.length) {
     container.innerHTML = '<div class="empty-state"><p>No events yet. Create your first event to get started.</p></div>';
     return;
   }
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
   const sorted = [...events].sort((a, b) => new Date(a.date) - new Date(b.date));
+
   container.innerHTML = sorted.map((event) => {
     const isPast = new Date(event.date) < today;
     const totalSpots = event.sessions.reduce((sum, s) => sum + s.maxParticipants, 0);
     const totalRegistered = event.sessions.reduce((sum, s) => sum + (s.registered || 0), 0);
+
     return `
       <div class="event-item">
         <div class="event-header" onclick="toggleEvent('${escapeJs(event.id)}')">
@@ -225,6 +328,7 @@ function toggleEvent(eventId) {
 function updateStats() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
   document.getElementById('totalEvents').textContent = events.length;
   document.getElementById('upcomingEvents').textContent = events.filter((e) => new Date(e.date) >= today).length;
   document.getElementById('totalSessions').textContent = events.reduce((sum, e) => sum + e.sessions.length, 0);
@@ -267,8 +371,10 @@ function removeSessionForm(index) {
     showToast('Event must have at least one session.', 'error');
     return;
   }
+
   sessionForms[index].remove();
   sessionForms.splice(index, 1);
+
   sessionForms.forEach((form, i) => {
     form.querySelector('.session-form-header span').textContent = `Session ${i + 1}`;
     const btn = form.querySelector('.btn-remove-session');
@@ -276,29 +382,36 @@ function removeSessionForm(index) {
   });
 }
 
-function handleSubmit(e) {
+async function handleSubmit(e) {
   e.preventDefault();
   if (!validateForm()) return;
+
+  const eventId = editingEventId || generateId();
+
+  const existingEvent = events.find((event) => event.id === editingEventId);
+
   const eventData = {
-    id: editingEventId || generateId(),
+    id: eventId,
     title: document.getElementById('eventTitle').value.trim(),
     date: document.getElementById('eventDate').value,
     location: document.getElementById('eventLocation').value.trim(),
     description: document.getElementById('eventDescription').value.trim(),
     heroPhrase: document.getElementById('heroPhrase').value.trim(),
-    sessions: gatherSessionsData()
+    sessions: gatherSessionsData(eventId, existingEvent)
   };
-  if (editingEventId) {
-    const index = events.findIndex((e) => e.id === editingEventId);
-    if (index !== -1) events[index] = eventData;
-    showToast('Event updated successfully.', 'success');
-  } else {
-    events.push(eventData);
-    showToast('Event created successfully.', 'success');
+
+  try {
+    saveButtonLoading(true);
+    await saveEventToSupabase(eventData);
+    await loadEvents();
+    resetForm();
+    showToast(editingEventId ? 'Event updated successfully.' : 'Event created successfully.', 'success');
+  } catch (error) {
+    console.error('Save failed:', error);
+    showToast(error.message || 'Could not save event to Supabase.', 'error');
+  } finally {
+    saveButtonLoading(false);
   }
-  saveEvents();
-  renderEvents();
-  resetForm();
 }
 
 function validateForm() {
@@ -322,43 +435,53 @@ function validateForm() {
     const end = form.querySelector('.session-end');
     const max = form.querySelector('.session-max');
     const reg = form.querySelector('.session-registered');
+
     if (!title.value.trim() || !type.value.trim() || !start.value || !end.value || !max.value) {
       valid = false;
       showToast(`Please fill all required fields for Session ${i + 1}.`, 'error');
     }
+
     if (start.value >= end.value) {
       valid = false;
       end.classList.add('error');
       showToast(`Session ${i + 1}: end time must be after start time.`, 'error');
     }
+
     const maxVal = parseInt(max.value, 10) || 0;
     const regVal = parseInt(reg.value, 10) || 0;
+
     if (maxVal < 1 || maxVal > 500) {
       valid = false;
       max.classList.add('error');
       showToast(`Session ${i + 1}: max participants must be 1-500.`, 'error');
     }
+
     if (regVal > maxVal) {
       valid = false;
       reg.classList.add('error');
       showToast(`Session ${i + 1}: registered cannot exceed max.`, 'error');
     }
   });
+
   return valid;
 }
 
-function gatherSessionsData() {
+function gatherSessionsData(eventId, existingEvent = null) {
+  const existingSessions = existingEvent?.sessions || [];
+
   return sessionForms.map((form, index) => {
     const max = Math.max(1, Math.min(500, parseInt(form.querySelector('.session-max').value, 10) || 50));
     const reg = Math.max(0, Math.min(max, parseInt(form.querySelector('.session-registered').value, 10) || 0));
+
     return {
-      id: form.dataset.sessionId || `${editingEventId || 'event'}-session-${Date.now()}-${index}`,
+      id: form.dataset.sessionId || existingSessions[index]?.id || `${eventId}-session-${Date.now()}-${index}`,
       title: form.querySelector('.session-title').value.trim(),
       exerciseType: form.querySelector('.session-type').value.trim(),
       startTime: form.querySelector('.session-start').value,
       endTime: form.querySelector('.session-end').value,
       maxParticipants: max,
-      registered: reg
+      registered: reg,
+      priceChf: existingSessions[index]?.priceChf || 0
     };
   });
 }
@@ -366,6 +489,7 @@ function gatherSessionsData() {
 function editEvent(eventId) {
   const event = events.find((e) => e.id === eventId);
   if (!event) return;
+
   editingEventId = eventId;
   document.getElementById('formTitle').textContent = 'Edit Event';
   document.getElementById('submitBtn').textContent = 'Update Event';
@@ -381,13 +505,22 @@ function editEvent(eventId) {
   document.querySelector('.form-panel').scrollIntoView({ behavior: 'smooth' });
 }
 
-function deleteEvent(eventId) {
+async function deleteEvent(eventId) {
   if (!confirm('Are you sure you want to delete this event?')) return;
-  events = events.filter((e) => e.id !== eventId);
-  saveEvents();
-  renderEvents();
-  if (editingEventId === eventId) resetForm();
-  showToast('Event deleted.', 'success');
+
+  try {
+    await deleteEventFromSupabase(eventId);
+    await loadEvents();
+
+    if (editingEventId === eventId) {
+      resetForm();
+    }
+
+    showToast('Event deleted.', 'success');
+  } catch (error) {
+    console.error('Delete failed:', error);
+    showToast(error.message || 'Could not delete event.', 'error');
+  }
 }
 
 function resetForm() {
@@ -403,12 +536,29 @@ function resetForm() {
 function generateId() {
   return `event-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
+
 function formatDate(dateString) {
-  return new Date(dateString).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+  return new Date(dateString).toLocaleDateString('en-US', {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
 }
-function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text ?? ''; return div.innerHTML; }
-function escapeAttr(text) { return escapeHtml(String(text ?? '')).replace(/"/g, '&quot;'); }
-function escapeJs(text) { return String(text ?? '').replace(/['\\]/g, '\\$&'); }
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text ?? '';
+  return div.innerHTML;
+}
+
+function escapeAttr(text) {
+  return escapeHtml(String(text ?? '')).replace(/"/g, '&quot;');
+}
+
+function escapeJs(text) {
+  return String(text ?? '').replace(/['\\]/g, '\\$&');
+}
 
 function exportData() {
   const blob = new Blob([JSON.stringify(events, null, 2)], { type: 'application/json' });
@@ -429,6 +579,7 @@ function showToast(message, type = 'success') {
   toast.className = `toast ${type}`;
   toast.innerHTML = `<span style="font-size:1.2rem;">${type === 'success' ? '✓' : '!'}</span><span>${escapeHtml(message)}</span>`;
   container.appendChild(toast);
+
   setTimeout(() => {
     toast.style.opacity = '0';
     toast.style.transform = 'translateX(100%)';
@@ -443,8 +594,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const emailInput = document.getElementById('adminEmail');
   const passwordInput = document.getElementById('adminPassword');
 
-  emailInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter') attemptLogin(); });
-  passwordInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter') attemptLogin(); });
+  emailInput?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') attemptLogin();
+  });
+
+  passwordInput?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') attemptLogin();
+  });
 
   await initializeAdminAuth();
 });
