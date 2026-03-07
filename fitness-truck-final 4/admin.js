@@ -1,3 +1,4 @@
+// force fresh deploy for base price fix
 const CONFIG = {
   SUPABASE_URL: 'https://xqmwipogfcfjmqsiqdbu.supabase.co',
   SUPABASE_KEY: 'sb_publishable_acr4jKu8IG-THTIn40q3eA_uOiEaOCj'
