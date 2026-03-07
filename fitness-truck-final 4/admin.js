@@ -392,14 +392,15 @@ async function handleSubmit(e) {
   const existingEvent = events.find((event) => event.id === editingEventId);
 
   const eventData = {
-    id: eventId,
-    title: document.getElementById('eventTitle').value.trim(),
-    date: document.getElementById('eventDate').value,
-    location: document.getElementById('eventLocation').value.trim(),
-    description: document.getElementById('eventDescription').value.trim(),
-    heroPhrase: document.getElementById('heroPhrase').value.trim(),
-    sessions: gatherSessionsData(eventId, existingEvent)
-  };
+  id: eventId,
+  title: document.getElementById('eventTitle').value.trim(),
+  date: document.getElementById('eventDate').value,
+  location: document.getElementById('eventLocation').value.trim(),
+  description: document.getElementById('eventDescription').value.trim(),
+  heroPhrase: document.getElementById('heroPhrase').value.trim(),
+  basePriceChf: parseFloat(document.getElementById('basePriceChf').value) || 0,
+  sessions: gatherSessionsData(eventId, existingEvent)
+};
 
   try {
     saveButtonLoading(true);
@@ -499,7 +500,7 @@ function editEvent(eventId) {
   document.getElementById('eventDate').value = event.date || '';
   document.getElementById('eventLocation').value = event.location || '';
   document.getElementById('eventDescription').value = event.description || '';
-  document.getElementById('heroPhrase').value = event.heroPhrase || '';
+  document.getElementById('basePriceChf').value = event.basePriceChf ?? 0;
   document.getElementById('sessionsContainer').innerHTML = '';
   sessionForms = [];
   (event.sessions?.length ? event.sessions : [{}]).forEach((session) => addSessionForm(session));
