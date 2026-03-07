@@ -194,13 +194,14 @@ function saveButtonLoading(isLoading) {
 
 async function saveEventToSupabase(eventData) {
   const eventRow = {
-    id: eventData.id,
-    title: eventData.title,
-    date: eventData.date,
-    location: eventData.location,
-    description: eventData.description,
-    hero_phrase: eventData.heroPhrase
-  };
+  id: eventData.id,
+  title: eventData.title,
+  date: eventData.date,
+  location: eventData.location,
+  description: eventData.description,
+  hero_phrase: eventData.heroPhrase,
+  base_price_chf: eventData.basePriceChf
+};
 
   if (editingEventId) {
     const { error: eventError } = await supabaseClient
