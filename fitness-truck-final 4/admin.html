@@ -76,11 +76,17 @@
                 <label for="eventDescription">Description</label>
                 <textarea id="eventDescription" rows="3" placeholder="Brief description of the event..."></textarea>
               </div>
-              <div class="form-group">
-                <label for="heroPhrase">Hero Phrase</label>
-                <input type="text" id="heroPhrase" placeholder="e.g., The movement begins here.">
+                 <div class="form-row">
+                  <div class="form-group">
+                    <label for="heroPhrase">Hero Phrase</label>
+                    <input type="text" id="heroPhrase" placeholder="e.g., The movement begins here.">
               </div>
-              <div class="sessions-builder">
+                 <div class="form-group">
+                   <label for="basePriceChf">Base Price (CHF)</label>
+            <input type="number" id="basePriceChf" min="0" step="0.01" placeholder="e.g., 39.00">
+              </div>
+             </div>
+             <div class="sessions-builder">
                 <h4>Sessions <button type="button" class="btn btn-secondary btn-sm" onclick="addSessionForm()">+ Add Session</button></h4>
                 <div id="sessionsContainer"></div>
               </div>
