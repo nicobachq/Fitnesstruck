@@ -360,8 +360,11 @@ function addSessionForm(sessionData = null) {
       <div class="form-group"><label>End Time *</label><input type="time" class="session-end" required value="${escapeAttr(sessionData?.endTime || '10:30')}"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Max Participants *</label><input type="number" class="session-max" min="1" max="500" required value="${sessionData?.maxParticipants || 50}"></div>
-      <div class="form-group"><label>Already Registered</label><input type="number" class="session-registered" min="0" value="${sessionData?.registered || 0}"></div>
+  <div class="form-group"><label>Max Participants *</label><input type="number" class="session-max" min="1" max="500" required value="${sessionData?.maxParticipants || 50}"></div>
+  <div class="form-group"><label>Already Registered</label><input type="number" class="session-registered" min="0" value="${sessionData?.registered || 0}"></div>
+</div>
+<div class="form-row">
+  <div class="form-group"><label>Session Price (CHF)</label><input type="number" class="session-price" min="0" step="0.01" value="${sessionData?.priceChf ?? 0}"></div>
     </div>`;
   container.appendChild(div);
   sessionForms.push(div);
