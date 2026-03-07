@@ -486,7 +486,7 @@ function gatherSessionsData(eventId, existingEvent = null) {
       endTime: form.querySelector('.session-end').value,
       maxParticipants: max,
       registered: reg,
-      priceChf: existingSessions[index]?.priceChf || 0
+      priceChf: parseFloat(form.querySelector('.session-price')?.value) || 0
     };
   });
 }
