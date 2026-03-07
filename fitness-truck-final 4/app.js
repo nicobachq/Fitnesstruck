@@ -110,6 +110,7 @@ function renderEvents() {
                   <div class="session-info">
                     <span class="session-time">${escapeHtml(session.startTime)} - ${escapeHtml(session.endTime)}</span>
                     <span class="session-type">${escapeHtml(session.exerciseType)}</span>
+                    ${getSessionPriceLabel(event, session) ? `<span style="display:block;margin-top:4px;font-size:0.85rem;opacity:0.9;">${getSessionPriceLabel(event, session)}</span>` : ''}
                   </div>
                   <div class="session-capacity">
                     <div class="capacity-bar"><div class="capacity-fill ${isFull ? 'full' : ''}" style="width:${percentage}%"></div></div>
