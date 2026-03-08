@@ -11,6 +11,7 @@ let editingEventId = null;
 let sessionForms = [];
 let currentAdminUser = null;
 let registrations = [];
+
 async function isCurrentUserAdmin(user) {
   if (!user?.id) return false;
 
@@ -64,6 +65,7 @@ async function initializeAdminAuth() {
     currentAdminUser = session.user;
     showAdminInterface();
     await loadEvents();
+    await loadRegistrations();
   } catch (error) {
     console.error('Auth startup failed:', error);
     showLoginScreen();
@@ -105,6 +107,7 @@ async function attemptLogin() {
     passwordInput.value = '';
     showAdminInterface();
     await loadEvents();
+    await loadRegistrations();
   } catch (error) {
     console.error('Login failed:', error);
     showLoginError(error.message || 'Login failed');
@@ -182,6 +185,7 @@ async function loadEvents() {
   renderEvents();
   updateStats();
 }
+
 async function loadRegistrations() {
   try {
     const { data, error } = await supabaseClient
@@ -197,7 +201,38 @@ async function loadRegistrations() {
     registrations = [];
     showToast('Failed to load registrations from Supabase.', 'error');
   }
+
+  renderRegistrations();
+  updateStats();
 }
+
+function renderRegistrations() {
+  const container = document.getElementById('registrationsList');
+  if (!container) return;
+
+  if (!registrations.length) {
+    container.innerHTML = '<div class="empty-state"><p>No registrations yet.</p></div>';
+    return;
+  }
+
+  container.innerHTML = registrations.map((registration) => `
+    <div class="event-item">
+      <div class="event-header">
+        <div class="event-info">
+          <h3>${escapeHtml(registration.full_name || 'No name')}</h3>
+          <div class="event-meta">
+            ${escapeHtml(registration.email || 'No email')}
+            ${registration.phone ? ` · ${escapeHtml(registration.phone)}` : ''}
+          </div>
+          <div class="event-meta" style="margin-top:4px;">
+            ${registration.created_at ? new Date(registration.created_at).toLocaleString() : ''}
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
 function saveButtonLoading(isLoading) {
   const submitBtn = document.getElementById('submitBtn');
   if (!submitBtn) return;
@@ -210,14 +245,14 @@ function saveButtonLoading(isLoading) {
 
 async function saveEventToSupabase(eventData) {
   const eventRow = {
-  id: eventData.id,
-  title: eventData.title,
-  date: eventData.date,
-  location: eventData.location,
-  description: eventData.description,
-  hero_phrase: eventData.heroPhrase,
-  base_price_chf: eventData.basePriceChf
-};
+    id: eventData.id,
+    title: eventData.title,
+    date: eventData.date,
+    location: eventData.location,
+    description: eventData.description,
+    hero_phrase: eventData.heroPhrase,
+    base_price_chf: eventData.basePriceChf
+  };
 
   if (editingEventId) {
     const { error: eventError } = await supabaseClient
@@ -349,7 +384,7 @@ function updateStats() {
   document.getElementById('totalEvents').textContent = events.length;
   document.getElementById('upcomingEvents').textContent = events.filter((e) => new Date(e.date) >= today).length;
   document.getElementById('totalSessions').textContent = events.reduce((sum, e) => sum + e.sessions.length, 0);
-  document.getElementById('totalRegistrations').textContent = events.reduce((sum, e) => sum + e.sessions.reduce((acc, s) => acc + (s.registered || 0), 0), 0);
+  document.getElementById('totalRegistrations').textContent = registrations.length;
 }
 
 function initForm() {
@@ -376,11 +411,11 @@ function addSessionForm(sessionData = null) {
       <div class="form-group"><label>End Time *</label><input type="time" class="session-end" required value="${escapeAttr(sessionData?.endTime || '10:30')}"></div>
     </div>
     <div class="form-row">
-  <div class="form-group"><label>Max Participants *</label><input type="number" class="session-max" min="1" max="500" required value="${sessionData?.maxParticipants || 50}"></div>
-  <div class="form-group"><label>Already Registered</label><input type="number" class="session-registered" min="0" value="${sessionData?.registered || 0}"></div>
-</div>
-<div class="form-row">
-  <div class="form-group"><label>Session Price (CHF)</label><input type="number" class="session-price" min="0" step="0.01" value="${sessionData?.priceChf ?? 0}"></div>
+      <div class="form-group"><label>Max Participants *</label><input type="number" class="session-max" min="1" max="500" required value="${sessionData?.maxParticipants || 50}"></div>
+      <div class="form-group"><label>Already Registered</label><input type="number" class="session-registered" min="0" value="${sessionData?.registered || 0}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Session Price (CHF)</label><input type="number" class="session-price" min="0" step="0.01" value="${sessionData?.priceChf ?? 0}"></div>
     </div>`;
   container.appendChild(div);
   sessionForms.push(div);
@@ -407,19 +442,18 @@ async function handleSubmit(e) {
   if (!validateForm()) return;
 
   const eventId = editingEventId || generateId();
-
   const existingEvent = events.find((event) => event.id === editingEventId);
 
   const eventData = {
-  id: eventId,
-  title: document.getElementById('eventTitle').value.trim(),
-  date: document.getElementById('eventDate').value,
-  location: document.getElementById('eventLocation').value.trim(),
-  description: document.getElementById('eventDescription').value.trim(),
-  heroPhrase: document.getElementById('heroPhrase').value.trim(),
-  basePriceChf: parseFloat(document.getElementById('basePriceChf').value) || 0,
-  sessions: gatherSessionsData(eventId, existingEvent)
-};
+    id: eventId,
+    title: document.getElementById('eventTitle').value.trim(),
+    date: document.getElementById('eventDate').value,
+    location: document.getElementById('eventLocation').value.trim(),
+    description: document.getElementById('eventDescription').value.trim(),
+    heroPhrase: document.getElementById('heroPhrase').value.trim(),
+    basePriceChf: parseFloat(document.getElementById('basePriceChf').value) || 0,
+    sessions: gatherSessionsData(eventId, existingEvent)
+  };
 
   try {
     saveButtonLoading(true);
@@ -519,6 +553,7 @@ function editEvent(eventId) {
   document.getElementById('eventDate').value = event.date || '';
   document.getElementById('eventLocation').value = event.location || '';
   document.getElementById('eventDescription').value = event.description || '';
+  document.getElementById('heroPhrase').value = event.heroPhrase || '';
   document.getElementById('basePriceChf').value = event.basePriceChf ?? 0;
   document.getElementById('sessionsContainer').innerHTML = '';
   sessionForms = [];
