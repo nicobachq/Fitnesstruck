@@ -233,14 +233,23 @@ function renderRegistrations() {
         <div class="event-header">
           <div class="event-info">
             <h3>${escapeHtml(registration.full_name || 'No name')}</h3>
+
             <div class="event-meta">
               ${escapeHtml(registration.email || 'No email')}
               ${registration.phone ? ` · ${escapeHtml(registration.phone)}` : ''}
             </div>
+
             <div class="event-meta" style="margin-top:4px;">
               ${matchedEvent ? `Event: ${escapeHtml(matchedEvent.title)}` : 'Event: Unknown'}
               ${matchedSession ? ` · Session: ${escapeHtml(matchedSession.title)} (${escapeHtml(matchedSession.startTime)} - ${escapeHtml(matchedSession.endTime)})` : ''}
             </div>
+
+            <div class="event-meta" style="margin-top:4px;">
+              ${registration.age ? `Age: ${escapeHtml(String(registration.age))}` : 'Age: —'}
+              ${registration.emergency_contact_name ? ` · Emergency Contact: ${escapeHtml(registration.emergency_contact_name)}` : ''}
+              ${registration.emergency_contact_phone ? ` (${escapeHtml(registration.emergency_contact_phone)})` : ''}
+            </div>
+
             <div class="event-meta" style="margin-top:4px;">
               ${registration.created_at ? new Date(registration.created_at).toLocaleString() : ''}
             </div>
@@ -341,7 +350,7 @@ async function deleteEventFromSupabase(eventId) {
       .delete()
       .in('id', sessionIds);
 
-    if (deleteSessionsError) throw deleteSessionsError;
+      if (deleteSessionsError) throw deleteSessionsError;
   }
 
   const { error: deleteEventError } = await supabaseClient
