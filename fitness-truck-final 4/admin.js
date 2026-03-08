@@ -3,7 +3,7 @@ const CONFIG = {
   SUPABASE_URL: 'https://xqmwipogfcfjmqsiqdbu.supabase.co',
   SUPABASE_KEY: 'sb_publishable_acr4jKu8IG-THTIn40q3eA_uOiEaOCj'
 };
- 
+
 const supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
 
 let events = [];
@@ -251,6 +251,14 @@ function renderRegistrations() {
             </div>
 
             <div class="event-meta" style="margin-top:4px;">
+              Food allergies: ${registration.food_allergies ? escapeHtml(registration.food_allergies) : '—'}
+            </div>
+
+            <div class="event-meta" style="margin-top:4px;">
+              Medical / physical conditions: ${registration.medical_conditions ? escapeHtml(registration.medical_conditions) : '—'}
+            </div>
+
+            <div class="event-meta" style="margin-top:4px;">
               ${registration.created_at ? new Date(registration.created_at).toLocaleString() : ''}
             </div>
           </div>
@@ -350,7 +358,7 @@ async function deleteEventFromSupabase(eventId) {
       .delete()
       .in('id', sessionIds);
 
-      if (deleteSessionsError) throw deleteSessionsError;
+    if (deleteSessionsError) throw deleteSessionsError;
   }
 
   const { error: deleteEventError } = await supabaseClient
