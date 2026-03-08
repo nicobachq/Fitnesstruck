@@ -3,7 +3,7 @@ const CONFIG = {
   SUPABASE_URL: 'https://xqmwipogfcfjmqsiqdbu.supabase.co',
   SUPABASE_KEY: 'sb_publishable_acr4jKu8IG-THTIn40q3eA_uOiEaOCj'
 };
-
+ 
 const supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
 
 let events = [];
