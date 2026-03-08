@@ -1,7 +1,7 @@
 // ============================================
 // FITNESS TRUCK - Main Application (Supabase + Full Registration)
 // ============================================
-
+ 
 const CONFIG = {
   DEMO_MODE: false,
   SUPABASE_URL: 'https://xqmwipogfcfjmqsiqdbu.supabase.co',
