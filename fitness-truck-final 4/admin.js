@@ -215,22 +215,40 @@ function renderRegistrations() {
     return;
   }
 
-  container.innerHTML = registrations.map((registration) => `
-    <div class="event-item">
-      <div class="event-header">
-        <div class="event-info">
-          <h3>${escapeHtml(registration.full_name || 'No name')}</h3>
-          <div class="event-meta">
-            ${escapeHtml(registration.email || 'No email')}
-            ${registration.phone ? ` · ${escapeHtml(registration.phone)}` : ''}
-          </div>
-          <div class="event-meta" style="margin-top:4px;">
-            ${registration.created_at ? new Date(registration.created_at).toLocaleString() : ''}
+  container.innerHTML = registrations.map((registration) => {
+    let matchedEvent = null;
+    let matchedSession = null;
+
+    for (const event of events) {
+      const session = (event.sessions || []).find((s) => s.id === registration.session_id);
+      if (session) {
+        matchedEvent = event;
+        matchedSession = session;
+        break;
+      }
+    }
+
+    return `
+      <div class="event-item">
+        <div class="event-header">
+          <div class="event-info">
+            <h3>${escapeHtml(registration.full_name || 'No name')}</h3>
+            <div class="event-meta">
+              ${escapeHtml(registration.email || 'No email')}
+              ${registration.phone ? ` · ${escapeHtml(registration.phone)}` : ''}
+            </div>
+            <div class="event-meta" style="margin-top:4px;">
+              ${matchedEvent ? `Event: ${escapeHtml(matchedEvent.title)}` : 'Event: Unknown'}
+              ${matchedSession ? ` · Session: ${escapeHtml(matchedSession.title)} (${escapeHtml(matchedSession.startTime)} - ${escapeHtml(matchedSession.endTime)})` : ''}
+            </div>
+            <div class="event-meta" style="margin-top:4px;">
+              ${registration.created_at ? new Date(registration.created_at).toLocaleString() : ''}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function saveButtonLoading(isLoading) {
