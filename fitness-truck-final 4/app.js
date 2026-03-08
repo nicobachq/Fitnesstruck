@@ -396,8 +396,11 @@ async function submitRegistrationForm(event) {
 }
 
 function getSessionPriceLabel(event, session) {
-  const price = session.priceChf ?? event.basePriceChf;
-  return price && Number(price) > 0 ? `CHF ${Number(price).toFixed(2)}` : '';
+  const sessionPrice = Number(session?.priceChf || 0);
+  const eventPrice = Number(event?.basePriceChf || 0);
+  const price = sessionPrice > 0 ? sessionPrice : eventPrice;
+
+  return price > 0 ? `CHF ${price.toFixed(2)}` : '';
 }
 
 function sessionIdFromState() {
