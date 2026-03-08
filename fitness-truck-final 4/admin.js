@@ -10,7 +10,7 @@ let events = [];
 let editingEventId = null;
 let sessionForms = [];
 let currentAdminUser = null;
-
+let registrations = [];
 async function isCurrentUserAdmin(user) {
   if (!user?.id) return false;
 
@@ -182,7 +182,22 @@ async function loadEvents() {
   renderEvents();
   updateStats();
 }
+async function loadRegistrations() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('registrations')
+      .select('*')
+      .order('created_at', { ascending: false });
 
+    if (error) throw error;
+
+    registrations = data || [];
+  } catch (error) {
+    console.error('Failed to load registrations:', error);
+    registrations = [];
+    showToast('Failed to load registrations from Supabase.', 'error');
+  }
+}
 function saveButtonLoading(isLoading) {
   const submitBtn = document.getElementById('submitBtn');
   if (!submitBtn) return;
