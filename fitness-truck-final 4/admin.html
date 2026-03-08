@@ -47,9 +47,16 @@
 
       <div class="admin-grid">
         <div class="events-section">
-          <h2 class="section-title">Events <button class="btn btn-secondary btn-sm" onclick="exportData()">Export JSON</button></h2>
-          <div class="events-list" id="eventsList"></div>
-        </div>
+  <h2 class="section-title">Events <button class="btn btn-secondary btn-sm" onclick="exportData()">Export JSON</button></h2>
+  <div class="events-list" id="eventsList"></div>
+
+  <div style="margin-top:32px;">
+    <h2 class="section-title">Registrations</h2>
+    <div class="events-list" id="registrationsList">
+      <div class="empty-state"><p>No registrations loaded yet.</p></div>
+    </div>
+  </div>
+</div>
         <div class="form-section">
           <div class="form-panel">
             <h2 id="formTitle">Create Event</h2>
