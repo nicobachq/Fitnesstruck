@@ -27,7 +27,11 @@ const state = {
   heroRenderTimeout: null,
   pendingProfileAvatarFile: null,
   pendingProfileAvatarPreviewUrl: null,
-  pendingProfileRemoveAvatar: false
+  pendingProfileRemoveAvatar: false,
+  myRegistrations: [],
+  myRegistrationsStatus: 'idle',
+  myRegistrationsError: '',
+  myRegistrationsForEmail: ''
 };
 
 function getUserMetadata(user = state.user) {
@@ -194,6 +198,184 @@ function getProfileSummaryValue(value, fallback = 'Not saved yet') {
   return String(value || '').trim() || fallback;
 }
 
+function resetMyRegistrationsState() {
+  state.myRegistrations = [];
+  state.myRegistrationsStatus = 'idle';
+  state.myRegistrationsError = '';
+  state.myRegistrationsForEmail = '';
+}
+
+function normalizeMyRegistrationItem(item = {}) {
+  return {
+    registration_id: String(item.registration_id || ''),
+    created_at: String(item.created_at || ''),
+    event_id: String(item.event_id || ''),
+    event_title: String(item.event_title || ''),
+    event_date: String(item.event_date || ''),
+    event_location: String(item.event_location || ''),
+    session_id: String(item.session_id || ''),
+    session_title: String(item.session_title || ''),
+    session_start_time: String(item.session_start_time || ''),
+    session_end_time: String(item.session_end_time || ''),
+    session_exercise_type: String(item.session_exercise_type || ''),
+    session_price_chf: Number(item.session_price_chf || 0),
+    event_base_price_chf: Number(item.event_base_price_chf || 0),
+    created_at_label: item.created_at ? formatDateTime(item.created_at) : '',
+    is_upcoming: !!item.event_date && new Date(item.event_date) >= startOfToday()
+  };
+}
+
+function startOfToday() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+
+function getRegistrationPriceLabel(item) {
+  const sessionPrice = Number(item.session_price_chf || 0);
+  const eventPrice = Number(item.event_base_price_chf || 0);
+  const price = sessionPrice > 0 ? sessionPrice : eventPrice;
+  return price > 0 ? `CHF ${price.toFixed(2)}` : 'Price not set yet';
+}
+
+function renderMyRegistrationCards(items = [], emptyMessage = 'No registrations yet.') {
+  if (!items.length) {
+    return `<div class="auth-registrations-empty">${escapeHtml(emptyMessage)}</div>`;
+  }
+
+  return items.map((item) => `
+    <article class="auth-registration-card">
+      <div class="auth-registration-card-top">
+        <div>
+          <div class="auth-registration-kicker">${item.is_upcoming ? 'Upcoming booking' : 'Past booking'}</div>
+          <h4>${escapeHtml(item.event_title || 'Event')}</h4>
+        </div>
+        <span class="auth-registration-status ${item.is_upcoming ? 'upcoming' : 'past'}">${item.is_upcoming ? 'Upcoming' : 'Completed'}</span>
+      </div>
+      <div class="auth-registration-meta">
+        <span>${escapeHtml(formatDate(item.event_date))}</span>
+        <span>${escapeHtml(item.event_location || 'Location to be confirmed')}</span>
+      </div>
+      <div class="auth-registration-details">
+        <div class="auth-registration-detail">
+          <strong>Session</strong>
+          <span>${escapeHtml(item.session_title || 'Session')}</span>
+        </div>
+        <div class="auth-registration-detail">
+          <strong>Time</strong>
+          <span>${escapeHtml(item.session_start_time && item.session_end_time ? `${item.session_start_time} - ${item.session_end_time}` : 'Time to be confirmed')}</span>
+        </div>
+        <div class="auth-registration-detail">
+          <strong>Type</strong>
+          <span>${escapeHtml(item.session_exercise_type || 'Experience')}</span>
+        </div>
+        <div class="auth-registration-detail">
+          <strong>Price</strong>
+          <span>${escapeHtml(getRegistrationPriceLabel(item))}</span>
+        </div>
+      </div>
+      <div class="auth-registration-footer">
+        <span>Booked ${escapeHtml(item.created_at_label || 'recently')}</span>
+        ${item.event_id ? `<button type="button" class="btn btn-secondary btn-inline" data-open-booking-event-id="${escapeAttr(item.event_id)}">Open event</button>` : ''}
+      </div>
+    </article>
+  `).join('');
+}
+
+function getMyRegistrationsMarkup() {
+  if (!state.user) return '';
+
+  if (state.myRegistrationsStatus === 'loading') {
+    return `
+      <section class="auth-registrations-panel">
+        <div class="auth-registrations-header">
+          <div>
+            <h3>My registrations</h3>
+            <p>We are loading your booked sessions now.</p>
+          </div>
+        </div>
+        <div class="auth-registrations-empty">Loading your registrations…</div>
+      </section>`;
+  }
+
+  if (state.myRegistrationsStatus === 'error') {
+    return `
+      <section class="auth-registrations-panel">
+        <div class="auth-registrations-header">
+          <div>
+            <h3>My registrations</h3>
+            <p>Your booked sessions appear here once we can read them.</p>
+          </div>
+          <button type="button" class="btn btn-secondary btn-inline" id="retryMyRegistrationsBtn">Try again</button>
+        </div>
+        <div class="auth-registrations-empty">${escapeHtml(state.myRegistrationsError || 'We could not load your registrations yet.')}</div>
+      </section>`;
+  }
+
+  const upcoming = state.myRegistrations.filter((item) => item.is_upcoming);
+  const past = state.myRegistrations.filter((item) => !item.is_upcoming);
+
+  return `
+    <section class="auth-registrations-panel">
+      <div class="auth-registrations-header">
+        <div>
+          <h3>My registrations</h3>
+          <p>See the sessions you already booked with this email address.</p>
+        </div>
+        <span class="auth-registrations-count">${state.myRegistrations.length} total</span>
+      </div>
+      <div class="auth-registrations-group">
+        <div class="auth-registrations-group-header">
+          <strong>Upcoming</strong>
+          <span>${upcoming.length}</span>
+        </div>
+        ${renderMyRegistrationCards(upcoming, 'No upcoming bookings yet.')}
+      </div>
+      <div class="auth-registrations-group">
+        <div class="auth-registrations-group-header">
+          <strong>Past</strong>
+          <span>${past.length}</span>
+        </div>
+        ${renderMyRegistrationCards(past, 'Your completed sessions will appear here later.')}
+      </div>
+    </section>`;
+}
+
+async function loadMyRegistrations(options = {}) {
+  const { force = false } = options;
+  const userEmail = String(state.user?.email || '').trim().toLowerCase();
+  if (!userEmail) {
+    resetMyRegistrationsState();
+    return [];
+  }
+
+  if (!force && state.myRegistrationsStatus === 'loading') return state.myRegistrations;
+  if (!force && state.myRegistrationsStatus === 'success' && state.myRegistrationsForEmail === userEmail) return state.myRegistrations;
+
+  state.myRegistrationsStatus = 'loading';
+  state.myRegistrationsError = '';
+  if (isAuthModalOpen() && state.user && state.accountMode === 'summary') renderAuthModal();
+
+  try {
+    const { data, error } = await supabaseClient.rpc('get_my_registrations');
+    if (error) throw error;
+
+    state.myRegistrations = Array.isArray(data) ? data.map(normalizeMyRegistrationItem) : [];
+    state.myRegistrationsStatus = 'success';
+    state.myRegistrationsForEmail = userEmail;
+    state.myRegistrationsError = '';
+  } catch (error) {
+    console.error('My registrations load error:', error);
+    state.myRegistrations = [];
+    state.myRegistrationsStatus = 'error';
+    state.myRegistrationsForEmail = userEmail;
+    state.myRegistrationsError = error.message || 'Could not load your registrations.';
+  }
+
+  if (isAuthModalOpen() && state.user && state.accountMode === 'summary') renderAuthModal();
+  return state.myRegistrations;
+}
+
 function updateAccountButton() {
   const button = document.getElementById('accountBtn');
   if (!button) return;
@@ -267,7 +449,12 @@ function scheduleHeroSideCardRender() {
 
 function refreshAuthDependentUI() {
   document.body.dataset.authState = state.user ? 'logged-in' : 'logged-out';
-  if (!state.user) state.accountMode = 'summary';
+  if (!state.user) {
+    state.accountMode = 'summary';
+    resetMyRegistrationsState();
+  } else if (state.myRegistrationsForEmail && state.myRegistrationsForEmail !== String(state.user.email || '').trim().toLowerCase()) {
+    resetMyRegistrationsState();
+  }
   updateAccountButton();
   scheduleHeroSideCardRender();
   if (isAuthModalOpen()) {
@@ -367,6 +554,9 @@ function openAuthModal(view = 'login', triggerEl = document.activeElement) {
   if (!overlay) return;
   overlay.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
+  if (state.user && state.accountMode === 'summary') {
+    loadMyRegistrations();
+  }
   setTimeout(() => {
     const firstInput = overlay.querySelector('input, button');
     if (firstInput) firstInput.focus();
@@ -541,6 +731,7 @@ function renderAuthModal() {
             <span>${escapeHtml(getProfileSummaryValue(profile.medical_conditions, 'Nothing saved yet'))}</span>
           </div>
         </div>
+        ${getMyRegistrationsMarkup()}
         <div class="auth-actions">
           <button type="button" class="btn btn-primary" id="editProfileBtn">Edit profile</button>
           <button type="button" class="btn btn-secondary" id="closeAuthAndBrowseBtn">Continue booking</button>
@@ -555,6 +746,13 @@ function renderAuthModal() {
     });
     document.getElementById('closeAuthAndBrowseBtn')?.addEventListener('click', closeAuthModal);
     document.getElementById('logoutAccountBtn')?.addEventListener('click', logoutCurrentUser);
+    document.getElementById('retryMyRegistrationsBtn')?.addEventListener('click', () => loadMyRegistrations({ force: true }));
+    mount.querySelectorAll('[data-open-booking-event-id]').forEach((button) => {
+      button.addEventListener('click', () => {
+        closeAuthModal();
+        openEventModal(button.dataset.openBookingEventId);
+      });
+    });
     return;
   }
 
@@ -710,6 +908,7 @@ async function handleSignupSubmit(event) {
       state.accountMode = 'summary';
       setAuthNotice();
       refreshAuthDependentUI();
+      loadMyRegistrations({ force: true });
       showToast('Account created and you are now logged in.', 'success');
       closeAuthModal();
       return;
@@ -1092,8 +1291,10 @@ function initAuth() {
     } else {
       state.accountMode = 'summary';
       clearPendingProfileAvatarState();
+      resetMyRegistrationsState();
     }
     refreshAuthDependentUI();
+    if (state.user && !wasEditingProfile) loadMyRegistrations();
   });
 }
 
@@ -1482,6 +1683,7 @@ async function submitRegistrationForm(event) {
 
     showToast(emailSent ? 'Registration saved and confirmation email sent.' : 'Registration saved. Confirmation email could not be sent yet.', emailSent ? 'success' : 'error');
     await loadEvents();
+    if (state.user) await loadMyRegistrations({ force: true });
     closeModal();
   } catch (error) {
     console.error('Registration error:', error);
@@ -1636,6 +1838,18 @@ function formatDate(dateString) {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
+  });
+}
+
+function formatDateTime(dateString) {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
   });
 }
 
