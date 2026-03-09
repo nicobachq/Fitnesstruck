@@ -1031,8 +1031,14 @@ function initAuth() {
   });
 
   supabaseClient.auth.onAuthStateChange((_event, session) => {
+    const wasEditingProfile = isAuthModalOpen() && state.user && state.accountMode === 'edit';
     state.user = session?.user || null;
-    if (state.user) state.accountMode = 'summary';
+    if (state.user) {
+      if (!wasEditingProfile) state.accountMode = 'summary';
+    } else {
+      state.accountMode = 'summary';
+      state.pendingProfileAvatarFile = null;
+    }
     refreshAuthDependentUI();
   });
 }
