@@ -42,13 +42,15 @@ function updateAccountButton() {
   const button = document.getElementById('accountBtn');
   if (!button) return;
   if (state.user) {
-    button.textContent = getUserDisplayName();
+    button.textContent = 'My Account';
     button.classList.add('account-pill');
     button.setAttribute('aria-label', `Open account for ${getUserDisplayName()}`);
+    button.setAttribute('title', getUserDisplayName());
   } else {
     button.textContent = 'Account';
     button.classList.remove('account-pill');
     button.setAttribute('aria-label', 'Open account');
+    button.removeAttribute('title');
   }
 }
 
@@ -102,8 +104,8 @@ function renderAuthModal() {
             <span>${escapeHtml(getUserPhone() || 'Not saved yet')}</span>
           </div>
           <div class="auth-summary-item">
-            <strong>Status</strong>
-            <span>Ready for booking</span>
+            <strong>News updates</strong>
+            <span>${getUserMetadata().marketing_opt_in ? 'Subscribed' : 'Not subscribed'}</span>
           </div>
         </div>
         <div class="auth-actions">
@@ -144,6 +146,13 @@ function renderAuthModal() {
           <div class="form-group">
             <label for="signupPassword">Password *</label>
             <input id="signupPassword" name="password" type="password" minlength="6" required autocomplete="new-password" />
+          </div>
+          <div class="form-group form-checkbox-group">
+            <label class="checkbox-row auth-checkbox-row" for="signupMarketingOptIn">
+              <input id="signupMarketingOptIn" name="marketing_opt_in" type="checkbox" />
+              <span>Email me news, early access, and event updates.</span>
+            </label>
+            <p class="auth-optin-note">Optional and separate from your account login.</p>
           </div>
           <button type="submit" class="btn btn-primary">Create account</button>
         </form>
@@ -210,6 +219,7 @@ async function handleSignupSubmit(event) {
   const phone = String(formData.get('phone') || '').trim();
   const email = String(formData.get('email') || '').trim().toLowerCase();
   const password = String(formData.get('password') || '');
+  const marketingOptIn = formData.get('marketing_opt_in') === 'on';
 
   button.disabled = true;
   button.textContent = 'Creating account...';
@@ -221,7 +231,8 @@ async function handleSignupSubmit(event) {
       options: {
         data: {
           full_name: fullName,
-          phone
+          phone,
+          marketing_opt_in: marketingOptIn
         }
       }
     });
@@ -742,8 +753,7 @@ function closeModal() {
 
 function initForms() {
   const contactForm = document.getElementById('contactForm');
-  const newsletterForm = document.getElementById('newsletterForm');
-  [contactForm, newsletterForm].forEach((form) => {
+  [contactForm].forEach((form) => {
     if (!form) return;
     form.addEventListener('submit', () => {
       const button = form.querySelector('button[type="submit"]') || form.querySelector('.btn-submit');
@@ -785,7 +795,7 @@ function initNavigation() {
       }
     });
 
-    navLinks.querySelectorAll('a').forEach((link) => {
+    navLinks.querySelectorAll('a, button').forEach((link) => {
       link.addEventListener('click', () => {
         mobileMenuBtn.setAttribute('aria-expanded', 'false');
         navLinks.classList.remove('active');
@@ -793,6 +803,13 @@ function initNavigation() {
       });
     });
   }
+
+  document.querySelectorAll('[data-open-auth]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      const view = button.dataset.openAuth === 'signup' ? 'signup' : 'login';
+      openAuthModal(view, event.currentTarget);
+    });
+  });
 
   document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
     anchor.addEventListener('click', function (event) {

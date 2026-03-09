@@ -27,8 +27,7 @@
         <a href="#experience">Experience</a>
         <a href="#team">Team</a>
         <a href="#contact">Contact</a>
-        <button type="button" class="nav-auth-btn" id="accountBtn">Account</button>
-        <a href="#newsletter" class="nav-cta">Join Movement</a>
+        <button type="button" class="nav-auth-btn nav-cta" id="accountBtn">Account</button>
       </div>
       <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="navLinks">
         <span></span>
@@ -64,21 +63,19 @@
         </div>
 
         <div class="hero-right">
-          <div class="floating-card" id="newsletter">
+          <div class="floating-card account-hero-card">
             <div class="card-glow"></div>
-            <h3>Join the Priority List</h3>
-            <p>Get early access to premium sessions before they sell out.</p>
-            <form name="newsletter" method="POST" data-netlify="true" action="/thank-you.html?form=newsletter" class="newsletter-form" id="newsletterForm">
-              <input type="hidden" name="form-name" value="newsletter" />
-              <div class="input-group">
-                <label for="newsletterEmail" class="visually-hidden">Email address for newsletter</label>
-                <input type="email" name="email" id="newsletterEmail" placeholder="Enter your email" required autocomplete="email" />
-                <button type="submit" class="btn-submit" aria-label="Subscribe to newsletter">→</button>
-              </div>
-            </form>
-            <div class="trust-badges">
-              <span>✓ No spam</span>
-              <span>✓ Cancel anytime</span>
+            <span class="account-hero-label">Member access</span>
+            <h3>Create your account</h3>
+            <p>Save your details for faster bookings, view your account anytime, and choose whether to receive event news and early-access updates.</p>
+            <div class="account-card-actions">
+              <button type="button" class="btn btn-primary" data-open-auth="signup">Create account</button>
+              <button type="button" class="btn btn-secondary" data-open-auth="login">Log in</button>
+            </div>
+            <div class="account-benefits" aria-label="Account benefits">
+              <div class="account-benefit">✓ Faster repeat registrations</div>
+              <div class="account-benefit">✓ Optional event news opt-in</div>
+              <div class="account-benefit">✓ Guest booking still available</div>
             </div>
           </div>
 
@@ -115,8 +112,8 @@
             <line x1="3" y1="10" x2="21" y2="10"/>
           </svg>
           <h3>No Upcoming Events</h3>
-          <p>We're planning our next activations. Join the priority list to be first to know.</p>
-          <a href="#newsletter" class="btn btn-primary">Get Notified</a>
+          <p>We're planning our next activations. Create an account if you want faster booking once new sessions are live.</p>
+          <button type="button" class="btn btn-primary" data-open-auth="signup">Create account</button>
         </div>
 
         <div class="calendar-section" id="calendarSection">
@@ -284,6 +281,6 @@
   <div class="toast-container" id="toastContainer" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
