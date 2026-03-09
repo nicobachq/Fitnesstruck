@@ -409,6 +409,33 @@ function populateRegistrationFormFromUser(form) {
   });
 }
 
+async function syncAuthUI(options = {}) {
+  const { refreshFromServer = false } = options;
+
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+
+    state.user = data?.session?.user || null;
+
+    if (!state.user && refreshFromServer) {
+      const { data: userData, error: userError } = await supabaseClient.auth.getUser();
+      if (userError) throw userError;
+      state.user = userData?.user || null;
+    }
+  } catch (error) {
+    console.error('Auth state sync error:', error);
+    state.user = null;
+  }
+
+  updateAccountButton();
+  renderHeroSideCard();
+  if (document.getElementById('authOverlay')?.getAttribute('aria-hidden') === 'false') {
+    renderAuthModal();
+  }
+  populateRegistrationFormFromUser(document.getElementById('sessionRegistrationForm'));
+}
+
 function initAuth() {
   updateAccountButton();
 
@@ -419,7 +446,7 @@ function initAuth() {
       navLinks.classList.remove('active');
       mobileMenuBtn?.setAttribute('aria-expanded', 'false');
     }
-    openAuthModal(state.user ? 'login' : 'login', event.currentTarget);
+    openAuthModal('login', event.currentTarget);
   });
 
   document.getElementById('authModalClose')?.addEventListener('click', closeAuthModal);
@@ -447,14 +474,14 @@ function initAuth() {
     }
   });
 
-  supabaseClient.auth.getUser().then(({ data, error }) => {
-    if (error) {
-      console.error('Auth state load error:', error);
-      return;
-    }
-    state.user = data.user || null;
-    updateAccountButton();
-    renderHeroSideCard();
+  syncAuthUI({ refreshFromServer: true });
+
+  window.addEventListener('focus', () => {
+    syncAuthUI();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') syncAuthUI();
   });
 
   supabaseClient.auth.onAuthStateChange((_event, session) => {
