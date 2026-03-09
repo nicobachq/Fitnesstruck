@@ -5,7 +5,8 @@
 const CONFIG = {
   DEMO_MODE: false,
   SUPABASE_URL: 'https://xqmwipogfcfjmqsiqdbu.supabase.co',
-  SUPABASE_KEY: 'sb_publishable_acr4jKu8IG-THTIn40q3eA_uOiEaOCj'
+  SUPABASE_KEY: 'sb_publishable_acr4jKu8IG-THTIn40q3eA_uOiEaOCj',
+  AVATAR_BUCKET: 'avatars'
 };
 
 const supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
@@ -23,7 +24,8 @@ const state = {
   authNotice: null,
   accountMode: 'summary',
   heroRenderFrame: null,
-  heroRenderTimeout: null
+  heroRenderTimeout: null,
+  pendingProfileAvatarFile: null
 };
 
 function getUserMetadata(user = state.user) {
@@ -42,6 +44,117 @@ function getUserPhone(user = state.user) {
   return String(getUserMetadata(user).phone || '').trim();
 }
 
+function normalizeGenderValue(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return ['male', 'female', 'other', 'prefer_not_to_say'].includes(normalized) ? normalized : '';
+}
+
+function getGenderLabel(value, fallback = 'Not saved yet') {
+  const labels = {
+    male: 'Male',
+    female: 'Female',
+    other: 'Other',
+    prefer_not_to_say: 'Prefer not to say'
+  };
+  return labels[normalizeGenderValue(value)] || fallback;
+}
+
+function buildGenderOptionsHtml(selected = '', includePlaceholder = false) {
+  const normalized = normalizeGenderValue(selected);
+  const options = [
+    ['male', 'Male'],
+    ['female', 'Female'],
+    ['other', 'Other'],
+    ['prefer_not_to_say', 'Prefer not to say']
+  ];
+
+  const placeholder = includePlaceholder
+    ? `<option value="" ${normalized ? '' : 'selected'} disabled>Select one</option>`
+    : '';
+
+  return `${placeholder}${options.map(([value, label]) => `<option value="${value}" ${normalized === value ? 'selected' : ''}>${label}</option>`).join('')}`;
+}
+
+function getAvatarInitials(label = '') {
+  const initials = String(label || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('');
+
+  return initials || 'FT';
+}
+
+function buildAvatarPlaceholderDataUri(label = 'Fitness Truck') {
+  const initials = getAvatarInitials(label);
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320" role="img" aria-label="Default profile avatar">
+      <defs>
+        <linearGradient id="avatarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#ff2d2d" />
+          <stop offset="100%" stop-color="#781414" />
+        </linearGradient>
+      </defs>
+      <rect width="320" height="320" rx="54" fill="#0f1117" />
+      <circle cx="160" cy="160" r="122" fill="url(#avatarGradient)" opacity="0.95" />
+      <circle cx="160" cy="128" r="46" fill="rgba(255,255,255,0.2)" />
+      <path d="M92 242c14-36 45-58 68-58s54 22 68 58" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="18" stroke-linecap="round" />
+      <text x="160" y="289" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="44" font-weight="700" fill="#ffffff">${initials}</text>
+    </svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg.replace(/\s+/g, ' ').trim())}`;
+}
+
+
+function getAvatarFileExtension(file) {
+  const name = String(file?.name || '').trim().toLowerCase();
+  return name.includes('.') ? name.split('.').pop() : '';
+}
+
+function isSupportedAvatarFile(file) {
+  if (!file) return false;
+  const extension = getAvatarFileExtension(file);
+  const type = String(file.type || '').trim().toLowerCase();
+  const allowedExtensions = ['png', 'jpg', 'jpeg', 'webp', 'heic', 'heif', 'avif'];
+  const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/heic', 'image/heif', 'image/avif'];
+  if (allowedTypes.includes(type)) return true;
+  if (allowedExtensions.includes(extension)) return true;
+  return /^image\//i.test(type);
+}
+
+function getAvatarContentType(file) {
+  const type = String(file?.type || '').trim().toLowerCase();
+  if (type) return type;
+  const extension = getAvatarFileExtension(file);
+  const contentTypes = {
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    webp: 'image/webp',
+    heic: 'image/heic',
+    heif: 'image/heif',
+    avif: 'image/avif'
+  };
+  return contentTypes[extension] || 'image/jpeg';
+}
+
+function getAvatarUrl(user = state.user) {
+  const metadata = getUserMetadata(user);
+  const avatarPath = String(metadata.avatar_path || '').trim();
+
+  if (avatarPath) {
+    const { data } = supabaseClient.storage.from(CONFIG.AVATAR_BUCKET).getPublicUrl(avatarPath);
+    const publicUrl = String(data?.publicUrl || '').trim();
+    if (publicUrl) {
+      const cacheBuster = metadata.avatar_updated_at ? `?v=${encodeURIComponent(String(metadata.avatar_updated_at))}` : '';
+      return `${publicUrl}${cacheBuster}`;
+    }
+  }
+
+  return buildAvatarPlaceholderDataUri(getUserDisplayName(user));
+}
+
 function getUserProfileData(user = state.user) {
   const metadata = getUserMetadata(user);
   return {
@@ -49,11 +162,15 @@ function getUserProfileData(user = state.user) {
     email: String(user?.email || '').trim().toLowerCase(),
     phone: String(metadata.phone || '').trim(),
     age: metadata.age === 0 || metadata.age ? String(metadata.age).trim() : '',
+    gender: normalizeGenderValue(metadata.gender),
     food_allergies: String(metadata.food_allergies || '').trim(),
     medical_conditions: String(metadata.medical_conditions || '').trim(),
     emergency_contact_name: String(metadata.emergency_contact_name || '').trim(),
     emergency_contact_phone: String(metadata.emergency_contact_phone || '').trim(),
-    marketing_opt_in: !!metadata.marketing_opt_in
+    marketing_opt_in: !!metadata.marketing_opt_in,
+    avatar_path: String(metadata.avatar_path || '').trim(),
+    avatar_updated_at: String(metadata.avatar_updated_at || '').trim(),
+    avatar_url: getAvatarUrl(user)
   };
 }
 
@@ -263,13 +380,33 @@ function renderAuthModal() {
             <h2 class="auth-title" id="authModalTitle">Edit profile</h2>
             <p class="auth-muted">Save your default booking details once so future registrations are faster.</p>
           </div>
-          <div class="auth-profile-static">
-            <strong>Login email</strong>
-            <span>${escapeHtml(profile.email || '')}</span>
-            <p class="auth-profile-note">Your login email is already used automatically for registrations.</p>
+          <div class="auth-profile-layout">
+            <div class="auth-avatar-panel">
+              <img src="${escapeAttr(profile.avatar_url)}" alt="${escapeAttr(`${getUserDisplayName()} profile photo`)}" class="auth-avatar-image auth-avatar-image-large" id="profileAvatarPreview" />
+              <div class="auth-avatar-copy">
+                <strong>Profile photo</strong>
+                <span>Add a photo for your account, or keep the generic avatar.</span>
+              </div>
+            </div>
+            <div class="auth-profile-static">
+              <strong>Login email</strong>
+              <span>${escapeHtml(profile.email || '')}</span>
+              <p class="auth-profile-note">Your login email is already used automatically for registrations.</p>
+            </div>
           </div>
           <form id="profileEditForm" class="auth-form auth-profile-form">
+            <input type="hidden" name="remove_avatar" id="profileRemoveAvatar" value="0" />
             <div class="auth-profile-grid">
+              <div class="form-group form-group-full">
+                <label for="profileAvatarFile">Profile photo</label>
+                <input id="profileAvatarFile" name="avatar_file" type="file" accept="image/*,.heic,.heif,.avif" class="visually-hidden-file-input" />
+                <div class="auth-avatar-picker-row">
+                  <button type="button" class="btn btn-secondary btn-inline" id="chooseAvatarBtn">Choose photo</button>
+                  <button type="button" class="btn btn-secondary btn-inline" id="removeAvatarBtn">Use generic avatar</button>
+                </div>
+                <div class="auth-profile-note">PNG, JPG, JPEG, WEBP, HEIC, HEIF, or AVIF up to 5 MB.</div>
+                <div class="auth-profile-note" id="profileAvatarStatus">No new file selected.</div>
+              </div>
               <div class="form-group">
                 <label for="profileFullName">Full name *</label>
                 <input id="profileFullName" name="full_name" type="text" required autocomplete="name" value="${escapeAttr(profile.full_name)}" />
@@ -277,6 +414,13 @@ function renderAuthModal() {
               <div class="form-group">
                 <label for="profilePhone">Phone number *</label>
                 <input id="profilePhone" name="phone" type="tel" required autocomplete="tel" value="${escapeAttr(profile.phone)}" />
+              </div>
+              <div class="form-group">
+                <label for="profileGender">Gender</label>
+                <select id="profileGender" name="gender">
+                  <option value="">Prefer to choose later</option>
+                  ${buildGenderOptionsHtml(profile.gender)}
+                </select>
               </div>
               <div class="form-group">
                 <label for="profileAge">Age</label>
@@ -290,7 +434,7 @@ function renderAuthModal() {
                 <label for="profileEmergencyPhone">Emergency contact phone</label>
                 <input id="profileEmergencyPhone" name="emergency_contact_phone" type="tel" autocomplete="tel" value="${escapeAttr(profile.emergency_contact_phone)}" />
               </div>
-              <div class="form-group form-checkbox-group">
+              <div class="form-group form-checkbox-group form-group-full">
                 <label class="checkbox-row auth-checkbox-row" for="profileMarketingOptIn">
                   <input id="profileMarketingOptIn" name="marketing_opt_in" type="checkbox" ${profile.marketing_opt_in ? 'checked' : ''} />
                   <span>Email me news, early access, and event updates.</span>
@@ -312,8 +456,10 @@ function renderAuthModal() {
           </form>
         </div>`;
 
+      bindProfileAvatarControls(profile);
       document.getElementById('profileEditForm')?.addEventListener('submit', handleProfileSaveSubmit);
       document.getElementById('cancelProfileEditBtn')?.addEventListener('click', () => {
+        state.pendingProfileAvatarFile = null;
         state.accountMode = 'summary';
         renderAuthModal();
       });
@@ -326,6 +472,14 @@ function renderAuthModal() {
         <div>
           <h2 class="auth-title" id="authModalTitle">Your account</h2>
           <p class="auth-muted">These saved details can be reused automatically when you register for a session.</p>
+        </div>
+        <div class="auth-account-header">
+          <img src="${escapeAttr(profile.avatar_url)}" alt="${escapeAttr(`${getUserDisplayName()} profile photo`)}" class="auth-avatar-image auth-avatar-image-large" />
+          <div class="auth-account-header-copy">
+            <h3>${escapeHtml(getProfileSummaryValue(profile.full_name, getUserDisplayName()))}</h3>
+            <p>${escapeHtml(profile.email || '')}</p>
+            <span>${escapeHtml(getGenderLabel(profile.gender, 'Gender not saved yet'))}</span>
+          </div>
         </div>
         <div class="auth-summary-grid">
           <div class="auth-summary-item">
@@ -345,12 +499,16 @@ function renderAuthModal() {
             <span>${escapeHtml(getProfileSummaryValue(profile.age))}</span>
           </div>
           <div class="auth-summary-item">
-            <strong>Emergency contact</strong>
-            <span>${escapeHtml(profile.emergency_contact_name && profile.emergency_contact_phone ? `${profile.emergency_contact_name} · ${profile.emergency_contact_phone}` : profile.emergency_contact_name || profile.emergency_contact_phone || 'Not saved yet')}</span>
+            <strong>Gender</strong>
+            <span>${escapeHtml(getGenderLabel(profile.gender))}</span>
           </div>
           <div class="auth-summary-item">
             <strong>News updates</strong>
             <span>${profile.marketing_opt_in ? 'Subscribed' : 'Not subscribed'}</span>
+          </div>
+          <div class="auth-summary-item full-width">
+            <strong>Emergency contact</strong>
+            <span>${escapeHtml(profile.emergency_contact_name && profile.emergency_contact_phone ? `${profile.emergency_contact_name} · ${profile.emergency_contact_phone}` : profile.emergency_contact_name || profile.emergency_contact_phone || 'Not saved yet')}</span>
           </div>
           <div class="auth-summary-item full-width">
             <strong>Food allergies</strong>
@@ -563,6 +721,135 @@ async function logoutCurrentUser() {
   }
 }
 
+function bindProfileAvatarControls(profile) {
+  const preview = document.getElementById('profileAvatarPreview');
+  const fileInput = document.getElementById('profileAvatarFile');
+  const chooseButton = document.getElementById('chooseAvatarBtn');
+  const removeInput = document.getElementById('profileRemoveAvatar');
+  const removeButton = document.getElementById('removeAvatarBtn');
+  const status = document.getElementById('profileAvatarStatus');
+  if (!preview || !fileInput || !removeInput || !removeButton || !chooseButton) return;
+
+  const fallbackSrc = buildAvatarPlaceholderDataUri(getUserDisplayName());
+  state.pendingProfileAvatarFile = null;
+
+  const setStatus = (message) => {
+    if (status) status.textContent = message;
+  };
+
+  const clearPreviewObjectUrl = () => {
+    const objectUrl = preview.dataset.objectUrl;
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl);
+      delete preview.dataset.objectUrl;
+    }
+  };
+
+  chooseButton.addEventListener('click', () => {
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', () => {
+    clearPreviewObjectUrl();
+    const file = fileInput.files?.[0];
+    if (!file) {
+      state.pendingProfileAvatarFile = null;
+      preview.src = profile.avatar_url || fallbackSrc;
+      removeInput.value = '0';
+      setStatus('No new file selected.');
+      return;
+    }
+
+    if (!isSupportedAvatarFile(file)) {
+      state.pendingProfileAvatarFile = null;
+      fileInput.value = '';
+      preview.src = profile.avatar_url || fallbackSrc;
+      setStatus('No new file selected.');
+      showToast('Please choose a PNG, JPG, JPEG, WEBP, HEIC, HEIF, or AVIF image.', 'error');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      state.pendingProfileAvatarFile = null;
+      fileInput.value = '';
+      preview.src = profile.avatar_url || fallbackSrc;
+      setStatus('No new file selected.');
+      showToast('Please choose an image smaller than 5 MB.', 'error');
+      return;
+    }
+
+    state.pendingProfileAvatarFile = file;
+    removeInput.value = '0';
+    setStatus(`Selected: ${file.name}`);
+    const objectUrl = URL.createObjectURL(file);
+    preview.dataset.objectUrl = objectUrl;
+    preview.onerror = () => {
+      preview.onerror = null;
+      preview.src = profile.avatar_url || fallbackSrc;
+      setStatus(`Selected: ${file.name} (preview not available in this browser)`);
+    };
+    preview.onload = () => {
+      preview.onload = null;
+      preview.onerror = null;
+    };
+    preview.src = objectUrl;
+  });
+
+  removeButton.addEventListener('click', () => {
+    clearPreviewObjectUrl();
+    state.pendingProfileAvatarFile = null;
+    fileInput.value = '';
+    removeInput.value = '1';
+    preview.src = fallbackSrc;
+    setStatus('Using the generic avatar.');
+  });
+}
+
+async function uploadAvatarFile(file) {
+  if (!state.user?.id) throw new Error('You need to be logged in to upload a profile photo.');
+  if (!file) return null;
+  if (!isSupportedAvatarFile(file)) throw new Error('Please choose a PNG, JPG, WEBP, HEIC, HEIF, or AVIF image.');
+  if (file.size > 5 * 1024 * 1024) throw new Error('Please choose an image smaller than 5 MB.');
+
+  const extensionFromName = getAvatarFileExtension(file);
+  const extension = ['png', 'jpg', 'jpeg', 'webp', 'heic', 'heif', 'avif'].includes(extensionFromName)
+    ? extensionFromName
+    : (getAvatarContentType(file) === 'image/png' ? 'png'
+      : getAvatarContentType(file) === 'image/webp' ? 'webp'
+      : getAvatarContentType(file) === 'image/heic' ? 'heic'
+      : getAvatarContentType(file) === 'image/heif' ? 'heif'
+      : getAvatarContentType(file) === 'image/avif' ? 'avif'
+      : 'jpg');
+
+  const previousPath = String(getUserMetadata().avatar_path || '').trim();
+  const updatedAt = Date.now();
+  const path = `${state.user.id}/avatar-${updatedAt}.${extension}`;
+
+  const { error } = await supabaseClient.storage
+    .from(CONFIG.AVATAR_BUCKET)
+    .upload(path, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: getAvatarContentType(file)
+    });
+
+  if (error) throw error;
+
+  if (previousPath && previousPath !== path) {
+    const { error: removeError } = await supabaseClient.storage.from(CONFIG.AVATAR_BUCKET).remove([previousPath]);
+    if (removeError) console.warn('Old avatar cleanup failed:', removeError.message || removeError);
+  }
+
+  return { path, updatedAt };
+}
+
+async function removeAvatarFile(path) {
+  const safePath = String(path || '').trim();
+  if (!safePath) return;
+  const { error } = await supabaseClient.storage.from(CONFIG.AVATAR_BUCKET).remove([safePath]);
+  if (error) throw error;
+}
+
 async function handleProfileSaveSubmit(event) {
   event.preventDefault();
   const form = event.currentTarget;
@@ -573,6 +860,7 @@ async function handleProfileSaveSubmit(event) {
     full_name: String(formData.get('full_name') || '').trim(),
     phone: String(formData.get('phone') || '').trim(),
     age: String(formData.get('age') || '').trim(),
+    gender: normalizeGenderValue(formData.get('gender')),
     food_allergies: String(formData.get('food_allergies') || '').trim(),
     medical_conditions: String(formData.get('medical_conditions') || '').trim(),
     emergency_contact_name: String(formData.get('emergency_contact_name') || '').trim(),
@@ -589,15 +877,38 @@ async function handleProfileSaveSubmit(event) {
   button.textContent = 'Saving profile...';
 
   try {
+    const removeAvatar = formData.get('remove_avatar') === '1';
+    const avatarFile = state.pendingProfileAvatarFile || formData.get('avatar_file');
+    const currentAvatarPath = String(getUserMetadata().avatar_path || '').trim();
+
+    let avatarPath = currentAvatarPath || null;
+    let avatarUpdatedAt = getUserMetadata().avatar_updated_at || null;
+
+    if (removeAvatar && currentAvatarPath) {
+      await removeAvatarFile(currentAvatarPath);
+      avatarPath = null;
+      avatarUpdatedAt = Date.now();
+    }
+
+    if (avatarFile && typeof avatarFile === 'object' && avatarFile.size > 0) {
+      const uploadedAvatar = await uploadAvatarFile(avatarFile);
+      avatarPath = uploadedAvatar.path;
+      avatarUpdatedAt = uploadedAvatar.updatedAt;
+    }
+
     const { data, error } = await supabaseClient.auth.updateUser({
       data: {
         ...profileData,
-        age: profileData.age ? Number(profileData.age) : null
+        age: profileData.age ? Number(profileData.age) : null,
+        gender: profileData.gender || null,
+        avatar_path: avatarPath,
+        avatar_updated_at: avatarUpdatedAt
       }
     });
     if (error) throw error;
 
     state.user = data?.user || state.user;
+    state.pendingProfileAvatarFile = null;
     state.accountMode = 'summary';
     refreshAuthDependentUI();
     populateRegistrationFormFromUser(document.getElementById('sessionRegistrationForm'), { overwrite: true });
@@ -621,6 +932,7 @@ function populateRegistrationFormFromUser(form, options = {}) {
     email: profile.email,
     phone: profile.phone,
     age: profile.age,
+    gender: profile.gender,
     food_allergies: profile.food_allergies,
     medical_conditions: profile.medical_conditions,
     emergency_contact_name: profile.emergency_contact_name,
@@ -968,6 +1280,12 @@ function renderRegistrationForm() {
           <label for="regAge">Age *</label>
           <input id="regAge" name="age" type="number" min="1" max="120" required inputmode="numeric" />
         </div>
+        <div class="form-group">
+          <label for="regGender">Gender *</label>
+          <select id="regGender" name="gender" required>
+            ${buildGenderOptionsHtml('', true)}
+          </select>
+        </div>
         <div class="form-group form-group-full">
           <label for="regAllergies">Food allergies</label>
           <textarea id="regAllergies" name="food_allergies" rows="3" placeholder="List any allergies or write none."></textarea>
@@ -1023,6 +1341,7 @@ async function submitRegistrationForm(event) {
     p_full_name: String(formData.get('full_name') || '').trim(),
     p_phone: String(formData.get('phone') || '').trim(),
     p_age: Number(formData.get('age')),
+    p_gender: normalizeGenderValue(formData.get('gender')),
     p_food_allergies: String(formData.get('food_allergies') || '').trim(),
     p_medical_conditions: String(formData.get('medical_conditions') || '').trim(),
     p_emergency_contact_name: String(formData.get('emergency_contact_name') || '').trim(),
@@ -1031,7 +1350,7 @@ async function submitRegistrationForm(event) {
     p_waiver_accepted: formData.get('waiver_accepted') === 'on'
   };
 
-  if (!payload.p_email || !payload.p_full_name || !payload.p_phone || !payload.p_age || !payload.p_emergency_contact_name || !payload.p_emergency_contact_phone || !payload.p_consent_given || !payload.p_waiver_accepted) {
+  if (!payload.p_email || !payload.p_full_name || !payload.p_phone || !payload.p_age || !payload.p_gender || !payload.p_emergency_contact_name || !payload.p_emergency_contact_phone || !payload.p_consent_given || !payload.p_waiver_accepted) {
     showToast('Please complete all required fields.', 'error');
     return;
   }
@@ -1060,6 +1379,7 @@ async function submitRegistrationForm(event) {
             email: payload.p_email,
             phone: payload.p_phone,
             age: payload.p_age,
+            gender: payload.p_gender,
             foodAllergies: payload.p_food_allergies,
             medicalConditions: payload.p_medical_conditions,
             emergencyContactName: payload.p_emergency_contact_name,
