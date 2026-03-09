@@ -1,4 +1,4 @@
-// force fresh deploy for base price fix
+// force fresh deploy for live registration count sync
 const CONFIG = {
   SUPABASE_URL: 'https://xqmwipogfcfjmqsiqdbu.supabase.co',
   SUPABASE_KEY: 'sb_publishable_acr4jKu8IG-THTIn40q3eA_uOiEaOCj'
@@ -12,6 +12,7 @@ let sessionForms = [];
 let currentAdminUser = null;
 let registrations = [];
 let registrationSearchTerm = '';
+let isSyncingSessionCounts = false;
 
 async function isCurrentUserAdmin(user) {
   if (!user?.id) return false;
@@ -154,10 +155,84 @@ function mapDatabaseToUi(eventRows, sessionRows) {
         endTime: session.end_time,
         exerciseType: session.exercise_type,
         maxParticipants: session.max_participants,
+        storedRegisteredCount: session.registered_count || 0,
         registered: session.registered_count || 0,
         priceChf: session.price_chf || 0
       }))
   }));
+}
+
+function buildLiveRegistrationCountMap() {
+  const countMap = new Map();
+
+  registrations.forEach((registration) => {
+    if (!registration?.session_id) return;
+    countMap.set(registration.session_id, (countMap.get(registration.session_id) || 0) + 1);
+  });
+
+  return countMap;
+}
+
+function applyLiveRegistrationCounts() {
+  const countMap = buildLiveRegistrationCountMap();
+
+  events.forEach((event) => {
+    (event.sessions || []).forEach((session) => {
+      session.registered = countMap.get(session.id) || 0;
+    });
+  });
+}
+
+async function syncStoredSessionCountsToSupabase() {
+  if (isSyncingSessionCounts) return;
+
+  const updates = [];
+
+  events.forEach((event) => {
+    (event.sessions || []).forEach((session) => {
+      const liveCount = Number(session.registered || 0);
+      const storedCount = Number(session.storedRegisteredCount || 0);
+
+      if (liveCount !== storedCount) {
+        updates.push({
+          id: session.id,
+          registered_count: liveCount
+        });
+      }
+    });
+  });
+
+  if (!updates.length) return;
+
+  isSyncingSessionCounts = true;
+
+  try {
+    await Promise.all(
+      updates.map((update) => (
+        supabaseClient
+          .from('sessions')
+          .update({ registered_count: update.registered_count })
+          .eq('id', update.id)
+      ))
+    );
+
+    events.forEach((event) => {
+      (event.sessions || []).forEach((session) => {
+        session.storedRegisteredCount = session.registered;
+      });
+    });
+  } catch (error) {
+    console.error('Could not sync session counts back to Supabase:', error);
+  } finally {
+    isSyncingSessionCounts = false;
+  }
+}
+
+function refreshAdminDataView() {
+  applyLiveRegistrationCounts();
+  renderEvents();
+  renderRegistrations();
+  updateStats();
 }
 
 async function loadEvents() {
@@ -183,8 +258,7 @@ async function loadEvents() {
     showToast('Failed to load events from Supabase.', 'error');
   }
 
-  renderEvents();
-  updateStats();
+  refreshAdminDataView();
 }
 
 async function loadRegistrations() {
@@ -203,8 +277,24 @@ async function loadRegistrations() {
     showToast('Failed to load registrations from Supabase.', 'error');
   }
 
-  renderRegistrations();
-  updateStats();
+  refreshAdminDataView();
+  await syncStoredSessionCountsToSupabase();
+}
+
+function getRegistrationMatchDetails(registration) {
+  let matchedEvent = null;
+  let matchedSession = null;
+
+  for (const event of events) {
+    const session = (event.sessions || []).find((item) => item.id === registration.session_id);
+    if (session) {
+      matchedEvent = event;
+      matchedSession = session;
+      break;
+    }
+  }
+
+  return { matchedEvent, matchedSession };
 }
 
 function getFilteredRegistrations() {
@@ -215,17 +305,7 @@ function getFilteredRegistrations() {
   }
 
   return registrations.filter((registration) => {
-    let matchedEvent = null;
-    let matchedSession = null;
-
-    for (const event of events) {
-      const session = (event.sessions || []).find((s) => s.id === registration.session_id);
-      if (session) {
-        matchedEvent = event;
-        matchedSession = session;
-        break;
-      }
-    }
+    const { matchedEvent, matchedSession } = getRegistrationMatchDetails(registration);
 
     const searchableText = [
       registration.full_name,
@@ -281,17 +361,7 @@ function renderRegistrations() {
   }
 
   container.innerHTML = filteredRegistrations.map((registration) => {
-    let matchedEvent = null;
-    let matchedSession = null;
-
-    for (const event of events) {
-      const session = (event.sessions || []).find((s) => s.id === registration.session_id);
-      if (session) {
-        matchedEvent = event;
-        matchedSession = session;
-        break;
-      }
-    }
+    const { matchedEvent, matchedSession } = getRegistrationMatchDetails(registration);
 
     return `
       <div class="event-item">
@@ -466,8 +536,8 @@ function renderEvents() {
 
   container.innerHTML = sorted.map((event) => {
     const isPast = new Date(event.date) < today;
-    const totalSpots = event.sessions.reduce((sum, s) => sum + s.maxParticipants, 0);
-    const totalRegistered = event.sessions.reduce((sum, s) => sum + (s.registered || 0), 0);
+    const totalSpots = event.sessions.reduce((sum, session) => sum + session.maxParticipants, 0);
+    const totalRegistered = event.sessions.reduce((sum, session) => sum + (session.registered || 0), 0);
 
     return `
       <div class="event-item">
@@ -498,8 +568,8 @@ function updateStats() {
   today.setHours(0, 0, 0, 0);
 
   document.getElementById('totalEvents').textContent = events.length;
-  document.getElementById('upcomingEvents').textContent = events.filter((e) => new Date(e.date) >= today).length;
-  document.getElementById('totalSessions').textContent = events.reduce((sum, e) => sum + e.sessions.length, 0);
+  document.getElementById('upcomingEvents').textContent = events.filter((event) => new Date(event.date) >= today).length;
+  document.getElementById('totalSessions').textContent = events.reduce((sum, event) => sum + event.sessions.length, 0);
   document.getElementById('totalRegistrations').textContent = registrations.length;
 }
 
@@ -510,6 +580,7 @@ function initForm() {
 function addSessionForm(sessionData = null) {
   const index = sessionForms.length;
   const container = document.getElementById('sessionsContainer');
+  const liveRegisteredCount = Number(sessionData?.registered || 0);
   const div = document.createElement('div');
   div.className = 'session-form';
   div.dataset.sessionId = sessionData?.id || '';
@@ -528,7 +599,7 @@ function addSessionForm(sessionData = null) {
     </div>
     <div class="form-row">
       <div class="form-group"><label>Max Participants *</label><input type="number" class="session-max" min="1" max="500" required value="${sessionData?.maxParticipants || 50}"></div>
-      <div class="form-group"><label>Already Registered</label><input type="number" class="session-registered" min="0" value="${sessionData?.registered || 0}"></div>
+      <div class="form-group"><label>Live Registrations</label><input type="number" class="session-registered" min="0" readonly value="${liveRegisteredCount}"><small style="display:block;margin-top:6px;opacity:0.75;">Calculated from real registrations</small></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label>Session Price (CHF)</label><input type="number" class="session-price" min="0" step="0.01" value="${sessionData?.priceChf ?? 0}"></div>
@@ -557,6 +628,7 @@ async function handleSubmit(e) {
   e.preventDefault();
   if (!validateForm()) return;
 
+  const wasEditing = !!editingEventId;
   const eventId = editingEventId || generateId();
   const existingEvent = events.find((event) => event.id === editingEventId);
 
@@ -576,7 +648,7 @@ async function handleSubmit(e) {
     await saveEventToSupabase(eventData);
     await loadEvents();
     resetForm();
-    showToast(editingEventId ? 'Event updated successfully.' : 'Event created successfully.', 'success');
+    showToast(wasEditing ? 'Event updated successfully.' : 'Event created successfully.', 'success');
   } catch (error) {
     console.error('Save failed:', error);
     showToast(error.message || 'Could not save event to Supabase.', 'error');
@@ -629,8 +701,8 @@ function validateForm() {
 
     if (regVal > maxVal) {
       valid = false;
-      reg.classList.add('error');
-      showToast(`Session ${i + 1}: registered cannot exceed max.`, 'error');
+      max.classList.add('error');
+      showToast(`Session ${i + 1}: max participants cannot be lower than live registrations.`, 'error');
     }
   });
 
@@ -658,7 +730,7 @@ function gatherSessionsData(eventId, existingEvent = null) {
 }
 
 function editEvent(eventId) {
-  const event = events.find((e) => e.id === eventId);
+  const event = events.find((item) => item.id === eventId);
   if (!event) return;
 
   editingEventId = eventId;
