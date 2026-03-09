@@ -20,7 +20,10 @@ const state = {
   user: null,
   authView: 'login',
   lastAuthTriggerEl: null,
-  authNotice: null
+  authNotice: null,
+  accountMode: 'summary',
+  heroRenderFrame: null,
+  heroRenderTimeout: null
 };
 
 function getUserMetadata(user = state.user) {
@@ -37,6 +40,25 @@ function getUserDisplayName(user = state.user) {
 
 function getUserPhone(user = state.user) {
   return String(getUserMetadata(user).phone || '').trim();
+}
+
+function getUserProfileData(user = state.user) {
+  const metadata = getUserMetadata(user);
+  return {
+    full_name: String(metadata.full_name || '').trim(),
+    email: String(user?.email || '').trim().toLowerCase(),
+    phone: String(metadata.phone || '').trim(),
+    age: metadata.age === 0 || metadata.age ? String(metadata.age).trim() : '',
+    food_allergies: String(metadata.food_allergies || '').trim(),
+    medical_conditions: String(metadata.medical_conditions || '').trim(),
+    emergency_contact_name: String(metadata.emergency_contact_name || '').trim(),
+    emergency_contact_phone: String(metadata.emergency_contact_phone || '').trim(),
+    marketing_opt_in: !!metadata.marketing_opt_in
+  };
+}
+
+function getProfileSummaryValue(value, fallback = 'Not saved yet') {
+  return String(value || '').trim() || fallback;
 }
 
 function updateAccountButton() {
@@ -59,6 +81,68 @@ function setAuthNotice(message = '', type = 'info') {
   state.authNotice = message ? { message, type } : null;
 }
 
+function renderSignedInHeroFallback(mount) {
+  mount.hidden = false;
+  mount.innerHTML = `
+    <div class="floating-card next-event-hero-card">
+      <div class="card-glow"></div>
+      <span class="next-event-kicker">Signed in</span>
+      <h3>Welcome back, ${escapeHtml(getUserDisplayName())}</h3>
+      <p>Your account is active. Browse the schedule or open your account details anytime.</p>
+      <div class="account-card-actions">
+        <button type="button" class="btn btn-primary" id="heroBrowseEventsBtn">View schedule</button>
+        <button type="button" class="btn btn-secondary" id="heroFallbackAccountBtn">My account</button>
+      </div>
+    </div>`;
+
+  document.getElementById('heroBrowseEventsBtn')?.addEventListener('click', () => {
+    const eventsSection = document.getElementById('events');
+    if (eventsSection) {
+      const offsetTop = eventsSection.offsetTop - 80;
+      window.scrollTo({ top: offsetTop, behavior: 'smooth' });
+    }
+  });
+  document.getElementById('heroFallbackAccountBtn')?.addEventListener('click', (event) => openAuthModal('login', event.currentTarget));
+}
+
+function scheduleHeroSideCardRender() {
+  if (state.heroRenderFrame) cancelAnimationFrame(state.heroRenderFrame);
+  if (state.heroRenderTimeout) clearTimeout(state.heroRenderTimeout);
+
+  state.heroRenderFrame = requestAnimationFrame(() => {
+    state.heroRenderFrame = null;
+    try {
+      renderHeroSideCard();
+    } catch (error) {
+      console.error('Hero side card render error:', error);
+      const mount = document.getElementById('heroSideCard');
+      if (mount && state.user) renderSignedInHeroFallback(mount);
+    }
+  });
+
+  state.heroRenderTimeout = setTimeout(() => {
+    state.heroRenderTimeout = null;
+    try {
+      renderHeroSideCard();
+    } catch (error) {
+      console.error('Delayed hero side card render error:', error);
+      const mount = document.getElementById('heroSideCard');
+      if (mount && state.user) renderSignedInHeroFallback(mount);
+    }
+  }, 180);
+}
+
+function refreshAuthDependentUI() {
+  document.body.dataset.authState = state.user ? 'logged-in' : 'logged-out';
+  if (!state.user) state.accountMode = 'summary';
+  updateAccountButton();
+  scheduleHeroSideCardRender();
+  if (document.getElementById('authOverlay')?.getAttribute('aria-hidden') === 'false') {
+    renderAuthModal();
+  }
+  populateRegistrationFormFromUser(document.getElementById('sessionRegistrationForm'));
+}
+
 function bindAuthLaunchers(root = document) {
   root.querySelectorAll('[data-open-auth]').forEach((button) => {
     if (button.dataset.authBound === '1') return;
@@ -74,7 +158,7 @@ function renderHeroSideCard() {
   const mount = document.getElementById('heroSideCard');
   if (!mount) return;
 
-  const nextEvent = getUpcomingEvents()[0] || null;
+  mount.dataset.authState = state.user ? 'logged-in' : 'logged-out';
 
   if (!state.user) {
     mount.hidden = false;
@@ -98,14 +182,14 @@ function renderHeroSideCard() {
     return;
   }
 
-  if (!nextEvent) {
-    mount.innerHTML = '';
-    mount.hidden = true;
+  const nextEvent = getUpcomingEvents()[0] || null;
+  if (!nextEvent || !Array.isArray(nextEvent.sessions)) {
+    renderSignedInHeroFallback(mount);
     return;
   }
 
-  const totalSpots = nextEvent.sessions.reduce((sum, session) => sum + session.maxParticipants, 0);
-  const totalRegistered = nextEvent.sessions.reduce((sum, session) => sum + session.registered, 0);
+  const totalSpots = nextEvent.sessions.reduce((sum, session) => sum + Number(session.maxParticipants || 0), 0);
+  const totalRegistered = nextEvent.sessions.reduce((sum, session) => sum + Number(session.registered || 0), 0);
   const remainingSpots = Math.max(totalSpots - totalRegistered, 0);
 
   mount.hidden = false;
@@ -141,6 +225,7 @@ function renderHeroSideCard() {
 
 function openAuthModal(view = 'login', triggerEl = document.activeElement) {
   state.authView = view === 'signup' ? 'signup' : 'login';
+  if (state.user) state.accountMode = 'summary';
   state.lastAuthTriggerEl = triggerEl || null;
   renderAuthModal();
   const overlay = document.getElementById('authOverlay');
@@ -168,37 +253,125 @@ function renderAuthModal() {
   if (!mount) return;
 
   if (state.user) {
+    const profile = getUserProfileData();
+
+    if (state.accountMode === 'edit') {
+      mount.innerHTML = `
+        <div class="auth-card">
+          <span class="auth-status-pill">Signed in</span>
+          <div>
+            <h2 class="auth-title" id="authModalTitle">Edit profile</h2>
+            <p class="auth-muted">Save your default booking details once so future registrations are faster.</p>
+          </div>
+          <div class="auth-profile-static">
+            <strong>Login email</strong>
+            <span>${escapeHtml(profile.email || '')}</span>
+            <p class="auth-profile-note">Your login email is already used automatically for registrations.</p>
+          </div>
+          <form id="profileEditForm" class="auth-form auth-profile-form">
+            <div class="auth-profile-grid">
+              <div class="form-group">
+                <label for="profileFullName">Full name *</label>
+                <input id="profileFullName" name="full_name" type="text" required autocomplete="name" value="${escapeAttr(profile.full_name)}" />
+              </div>
+              <div class="form-group">
+                <label for="profilePhone">Phone number *</label>
+                <input id="profilePhone" name="phone" type="tel" required autocomplete="tel" value="${escapeAttr(profile.phone)}" />
+              </div>
+              <div class="form-group">
+                <label for="profileAge">Age</label>
+                <input id="profileAge" name="age" type="number" min="1" max="120" inputmode="numeric" value="${escapeAttr(profile.age)}" />
+              </div>
+              <div class="form-group">
+                <label for="profileEmergencyName">Emergency contact name</label>
+                <input id="profileEmergencyName" name="emergency_contact_name" type="text" autocomplete="name" value="${escapeAttr(profile.emergency_contact_name)}" />
+              </div>
+              <div class="form-group">
+                <label for="profileEmergencyPhone">Emergency contact phone</label>
+                <input id="profileEmergencyPhone" name="emergency_contact_phone" type="tel" autocomplete="tel" value="${escapeAttr(profile.emergency_contact_phone)}" />
+              </div>
+              <div class="form-group form-checkbox-group">
+                <label class="checkbox-row auth-checkbox-row" for="profileMarketingOptIn">
+                  <input id="profileMarketingOptIn" name="marketing_opt_in" type="checkbox" ${profile.marketing_opt_in ? 'checked' : ''} />
+                  <span>Email me news, early access, and event updates.</span>
+                </label>
+              </div>
+              <div class="form-group form-group-full">
+                <label for="profileAllergies">Food allergies</label>
+                <textarea id="profileAllergies" name="food_allergies" rows="3" placeholder="List any allergies or write none.">${escapeHtml(profile.food_allergies)}</textarea>
+              </div>
+              <div class="form-group form-group-full">
+                <label for="profileMedical">Medical / physical conditions</label>
+                <textarea id="profileMedical" name="medical_conditions" rows="3" placeholder="Anything you want prefilled for future registrations.">${escapeHtml(profile.medical_conditions)}</textarea>
+              </div>
+            </div>
+            <div class="auth-actions">
+              <button type="submit" class="btn btn-primary">Save profile</button>
+              <button type="button" class="btn btn-secondary" id="cancelProfileEditBtn">Cancel</button>
+            </div>
+          </form>
+        </div>`;
+
+      document.getElementById('profileEditForm')?.addEventListener('submit', handleProfileSaveSubmit);
+      document.getElementById('cancelProfileEditBtn')?.addEventListener('click', () => {
+        state.accountMode = 'summary';
+        renderAuthModal();
+      });
+      return;
+    }
+
     mount.innerHTML = `
       <div class="auth-card">
         <span class="auth-status-pill">Signed in</span>
         <div>
           <h2 class="auth-title" id="authModalTitle">Your account</h2>
-          <p class="auth-muted">Your details can now be reused when you register for a session.</p>
+          <p class="auth-muted">These saved details can be reused automatically when you register for a session.</p>
         </div>
         <div class="auth-summary-grid">
           <div class="auth-summary-item">
             <strong>Name</strong>
-            <span>${escapeHtml(getUserDisplayName())}</span>
+            <span>${escapeHtml(getProfileSummaryValue(profile.full_name, getUserDisplayName()))}</span>
           </div>
           <div class="auth-summary-item">
             <strong>Email</strong>
-            <span>${escapeHtml(state.user.email || '')}</span>
+            <span>${escapeHtml(profile.email || '')}</span>
           </div>
           <div class="auth-summary-item">
             <strong>Phone</strong>
-            <span>${escapeHtml(getUserPhone() || 'Not saved yet')}</span>
+            <span>${escapeHtml(getProfileSummaryValue(profile.phone))}</span>
+          </div>
+          <div class="auth-summary-item">
+            <strong>Age</strong>
+            <span>${escapeHtml(getProfileSummaryValue(profile.age))}</span>
+          </div>
+          <div class="auth-summary-item">
+            <strong>Emergency contact</strong>
+            <span>${escapeHtml(profile.emergency_contact_name && profile.emergency_contact_phone ? `${profile.emergency_contact_name} · ${profile.emergency_contact_phone}` : profile.emergency_contact_name || profile.emergency_contact_phone || 'Not saved yet')}</span>
           </div>
           <div class="auth-summary-item">
             <strong>News updates</strong>
-            <span>${getUserMetadata().marketing_opt_in ? 'Subscribed' : 'Not subscribed'}</span>
+            <span>${profile.marketing_opt_in ? 'Subscribed' : 'Not subscribed'}</span>
+          </div>
+          <div class="auth-summary-item full-width">
+            <strong>Food allergies</strong>
+            <span>${escapeHtml(getProfileSummaryValue(profile.food_allergies, 'Nothing saved yet'))}</span>
+          </div>
+          <div class="auth-summary-item full-width">
+            <strong>Medical / physical notes</strong>
+            <span>${escapeHtml(getProfileSummaryValue(profile.medical_conditions, 'Nothing saved yet'))}</span>
           </div>
         </div>
         <div class="auth-actions">
-          <button type="button" class="btn btn-primary" id="closeAuthAndBrowseBtn">Continue booking</button>
+          <button type="button" class="btn btn-primary" id="editProfileBtn">Edit profile</button>
+          <button type="button" class="btn btn-secondary" id="closeAuthAndBrowseBtn">Continue booking</button>
           <button type="button" class="btn btn-secondary" id="logoutAccountBtn">Log out</button>
         </div>
       </div>`;
 
+    document.getElementById('editProfileBtn')?.addEventListener('click', () => {
+      state.accountMode = 'edit';
+      renderAuthModal();
+    });
     document.getElementById('closeAuthAndBrowseBtn')?.addEventListener('click', closeAuthModal);
     document.getElementById('logoutAccountBtn')?.addEventListener('click', logoutCurrentUser);
     return;
@@ -290,10 +463,9 @@ async function handleLoginSubmit(event) {
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) throw error;
     state.user = data.user || null;
+    state.accountMode = 'summary';
     setAuthNotice();
-    updateAccountButton();
-    renderHeroSideCard();
-    populateRegistrationFormFromUser(document.getElementById('sessionRegistrationForm'));
+    refreshAuthDependentUI();
     showToast('You are now logged in.', 'success');
     closeAuthModal();
   } catch (error) {
@@ -354,10 +526,9 @@ async function handleSignupSubmit(event) {
 
     if (data.session) {
       state.user = data.user || null;
+      state.accountMode = 'summary';
       setAuthNotice();
-      updateAccountButton();
-      renderHeroSideCard();
-      populateRegistrationFormFromUser(document.getElementById('sessionRegistrationForm'));
+      refreshAuthDependentUI();
       showToast('Account created and you are now logged in.', 'success');
       closeAuthModal();
       return;
@@ -383,8 +554,7 @@ async function logoutCurrentUser() {
     if (error) throw error;
     state.user = null;
     setAuthNotice();
-    updateAccountButton();
-    renderHeroSideCard();
+    refreshAuthDependentUI();
     renderAuthModal();
     showToast('You are now logged out.', 'success');
   } catch (error) {
@@ -393,19 +563,78 @@ async function logoutCurrentUser() {
   }
 }
 
-function populateRegistrationFormFromUser(form) {
+async function handleProfileSaveSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const formData = new FormData(form);
+
+  const profileData = {
+    full_name: String(formData.get('full_name') || '').trim(),
+    phone: String(formData.get('phone') || '').trim(),
+    age: String(formData.get('age') || '').trim(),
+    food_allergies: String(formData.get('food_allergies') || '').trim(),
+    medical_conditions: String(formData.get('medical_conditions') || '').trim(),
+    emergency_contact_name: String(formData.get('emergency_contact_name') || '').trim(),
+    emergency_contact_phone: String(formData.get('emergency_contact_phone') || '').trim(),
+    marketing_opt_in: formData.get('marketing_opt_in') === 'on'
+  };
+
+  if (!profileData.full_name || !profileData.phone) {
+    showToast('Please save at least your full name and phone number.', 'error');
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = 'Saving profile...';
+
+  try {
+    const { data, error } = await supabaseClient.auth.updateUser({
+      data: {
+        ...profileData,
+        age: profileData.age ? Number(profileData.age) : null
+      }
+    });
+    if (error) throw error;
+
+    state.user = data?.user || state.user;
+    state.accountMode = 'summary';
+    refreshAuthDependentUI();
+    populateRegistrationFormFromUser(document.getElementById('sessionRegistrationForm'), { overwrite: true });
+    renderAuthModal();
+    showToast('Profile saved. Future registrations will be prefilled.', 'success');
+  } catch (error) {
+    console.error('Profile save error:', error);
+    showToast(error.message || 'Could not save your profile.', 'error');
+    button.disabled = false;
+    button.textContent = 'Save profile';
+  }
+}
+
+function populateRegistrationFormFromUser(form, options = {}) {
+  const { overwrite = false } = options;
   if (!form || !state.user) return;
-  const metadata = getUserMetadata();
+
+  const profile = getUserProfileData();
   const fields = {
-    full_name: String(metadata.full_name || '').trim(),
-    email: String(state.user.email || '').trim().toLowerCase(),
-    phone: String(metadata.phone || '').trim()
+    full_name: profile.full_name,
+    email: profile.email,
+    phone: profile.phone,
+    age: profile.age,
+    food_allergies: profile.food_allergies,
+    medical_conditions: profile.medical_conditions,
+    emergency_contact_name: profile.emergency_contact_name,
+    emergency_contact_phone: profile.emergency_contact_phone
   };
 
   Object.entries(fields).forEach(([name, value]) => {
-    if (!value) return;
+    if (!String(value || '').trim()) return;
     const input = form.elements.namedItem(name);
-    if (input && !String(input.value || '').trim()) input.value = value;
+    if (!input) return;
+
+    const currentValue = String(input.value || '').trim();
+    if (!overwrite && currentValue) return;
+    input.value = value;
   });
 }
 
@@ -428,16 +657,11 @@ async function syncAuthUI(options = {}) {
     state.user = null;
   }
 
-  updateAccountButton();
-  renderHeroSideCard();
-  if (document.getElementById('authOverlay')?.getAttribute('aria-hidden') === 'false') {
-    renderAuthModal();
-  }
-  populateRegistrationFormFromUser(document.getElementById('sessionRegistrationForm'));
+  refreshAuthDependentUI();
 }
 
 function initAuth() {
-  updateAccountButton();
+  refreshAuthDependentUI();
 
   document.getElementById('accountBtn')?.addEventListener('click', (event) => {
     const navLinks = document.getElementById('navLinks');
@@ -486,10 +710,8 @@ function initAuth() {
 
   supabaseClient.auth.onAuthStateChange((_event, session) => {
     state.user = session?.user || null;
-    updateAccountButton();
-    renderHeroSideCard();
-    if (document.getElementById('authOverlay')?.getAttribute('aria-hidden') === 'false') renderAuthModal();
-    populateRegistrationFormFromUser(document.getElementById('sessionRegistrationForm'));
+    if (state.user) state.accountMode = 'summary';
+    refreshAuthDependentUI();
   });
 }
 
@@ -538,7 +760,7 @@ async function loadEvents() {
   renderEvents();
   renderCalendar();
   updateEmptyState();
-  renderHeroSideCard();
+  scheduleHeroSideCardRender();
   observeAnimatable();
 }
 
@@ -718,7 +940,7 @@ function renderRegistrationForm() {
   if (!mount || !event || !session) return;
 
   const authBanner = state.user
-    ? `<div class="auth-registration-banner logged-in"><strong>Signed in as ${escapeHtml(getUserDisplayName())}</strong><br>We prefilled your name, email, and phone below. You can still adjust them for this registration.</div>`
+    ? `<div class="auth-registration-banner logged-in"><strong>Signed in as ${escapeHtml(getUserDisplayName())}</strong><br>We prefilled your saved account details below. You can still adjust anything for this registration.</div>`
     : `<div class="auth-registration-banner">Want faster bookings next time? <button type="button" class="auth-inline-btn" id="openAuthFromRegistration">Create an account or log in</button>.</div>`;
 
   mount.innerHTML = `
