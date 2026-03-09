@@ -25,7 +25,9 @@ const state = {
   accountMode: 'summary',
   heroRenderFrame: null,
   heroRenderTimeout: null,
-  pendingProfileAvatarFile: null
+  pendingProfileAvatarFile: null,
+  pendingProfileAvatarPreviewUrl: null,
+  pendingProfileRemoveAvatar: false
 };
 
 function getUserMetadata(user = state.user) {
@@ -138,6 +140,20 @@ function getAvatarContentType(file) {
   };
   return contentTypes[extension] || 'image/jpeg';
 }
+function clearPendingProfileAvatarState(options = {}) {
+  const { keepRemove = false } = options;
+  if (state.pendingProfileAvatarPreviewUrl) {
+    try {
+      URL.revokeObjectURL(state.pendingProfileAvatarPreviewUrl);
+    } catch (error) {
+      console.warn('Avatar preview cleanup failed:', error);
+    }
+  }
+  state.pendingProfileAvatarFile = null;
+  state.pendingProfileAvatarPreviewUrl = null;
+  if (!keepRemove) state.pendingProfileRemoveAvatar = false;
+}
+
 
 function getAvatarUrl(user = state.user) {
   const metadata = getUserMetadata(user);
@@ -389,7 +405,7 @@ function renderAuthModal() {
           </div>
           <div class="auth-profile-layout">
             <div class="auth-avatar-panel">
-              <img src="${escapeAttr(profile.avatar_url)}" alt="${escapeAttr(`${getUserDisplayName()} profile photo`)}" class="auth-avatar-image auth-avatar-image-large" id="profileAvatarPreview" />
+              <img src="${escapeAttr(state.pendingProfileAvatarPreviewUrl || (state.pendingProfileRemoveAvatar ? buildAvatarPlaceholderDataUri(getUserDisplayName()) : profile.avatar_url))}" alt="${escapeAttr(`${getUserDisplayName()} profile photo`)}" class="auth-avatar-image auth-avatar-image-large" id="profileAvatarPreview" />
               <div class="auth-avatar-copy">
                 <strong>Profile photo</strong>
                 <span>Add a photo for your account, or keep the generic avatar.</span>
@@ -402,17 +418,16 @@ function renderAuthModal() {
             </div>
           </div>
           <form id="profileEditForm" class="auth-form auth-profile-form">
-            <input type="hidden" name="remove_avatar" id="profileRemoveAvatar" value="0" />
+            <input type="hidden" name="remove_avatar" id="profileRemoveAvatar" value="${state.pendingProfileRemoveAvatar ? '1' : '0'}" />
             <div class="auth-profile-grid">
               <div class="form-group form-group-full">
-                <label for="profileAvatarFile">Profile photo</label>
-                <input id="profileAvatarFile" name="avatar_file" type="file" accept="image/*,.heic,.heif,.avif" class="visually-hidden-file-input" />
+                <label>Profile photo</label>
                 <div class="auth-avatar-picker-row">
                   <button type="button" class="btn btn-secondary btn-inline" id="chooseAvatarBtn">Choose photo</button>
                   <button type="button" class="btn btn-secondary btn-inline" id="removeAvatarBtn">Use generic avatar</button>
                 </div>
                 <div class="auth-profile-note">PNG, JPG, JPEG, WEBP, HEIC, HEIF, or AVIF up to 5 MB.</div>
-                <div class="auth-profile-note" id="profileAvatarStatus">No new file selected.</div>
+                <div class="auth-profile-note" id="profileAvatarStatus">${escapeHtml(state.pendingProfileAvatarFile?.name ? `Selected: ${state.pendingProfileAvatarFile.name}` : (state.pendingProfileRemoveAvatar ? 'Using the generic avatar.' : 'No new file selected.'))}</div>
               </div>
               <div class="form-group">
                 <label for="profileFullName">Full name *</label>
@@ -466,7 +481,7 @@ function renderAuthModal() {
       bindProfileAvatarControls(profile);
       document.getElementById('profileEditForm')?.addEventListener('submit', handleProfileSaveSubmit);
       document.getElementById('cancelProfileEditBtn')?.addEventListener('click', () => {
-        state.pendingProfileAvatarFile = null;
+        clearPendingProfileAvatarState();
         state.accountMode = 'summary';
         renderAuthModal();
       });
@@ -534,6 +549,7 @@ function renderAuthModal() {
       </div>`;
 
     document.getElementById('editProfileBtn')?.addEventListener('click', () => {
+      clearPendingProfileAvatarState();
       state.accountMode = 'edit';
       renderAuthModal();
     });
@@ -730,82 +746,91 @@ async function logoutCurrentUser() {
 
 function bindProfileAvatarControls(profile) {
   const preview = document.getElementById('profileAvatarPreview');
-  const fileInput = document.getElementById('profileAvatarFile');
   const chooseButton = document.getElementById('chooseAvatarBtn');
   const removeInput = document.getElementById('profileRemoveAvatar');
   const removeButton = document.getElementById('removeAvatarBtn');
   const status = document.getElementById('profileAvatarStatus');
-  if (!preview || !fileInput || !removeInput || !removeButton || !chooseButton) return;
+  if (!preview || !removeInput || !removeButton || !chooseButton) return;
 
   const fallbackSrc = buildAvatarPlaceholderDataUri(getUserDisplayName());
-  state.pendingProfileAvatarFile = null;
 
   const setStatus = (message) => {
     if (status) status.textContent = message;
   };
 
-  const clearPreviewObjectUrl = () => {
-    const objectUrl = preview.dataset.objectUrl;
-    if (objectUrl) {
-      URL.revokeObjectURL(objectUrl);
-      delete preview.dataset.objectUrl;
+  const applyPendingAvatarUi = () => {
+    if (state.pendingProfileAvatarFile && state.pendingProfileAvatarPreviewUrl) {
+      preview.src = state.pendingProfileAvatarPreviewUrl;
+      removeInput.value = '0';
+      setStatus(`Selected: ${state.pendingProfileAvatarFile.name}`);
+      return;
     }
+
+    if (state.pendingProfileRemoveAvatar) {
+      preview.src = fallbackSrc;
+      removeInput.value = '1';
+      setStatus('Using the generic avatar.');
+      return;
+    }
+
+    preview.src = profile.avatar_url || fallbackSrc;
+    removeInput.value = '0';
+    setStatus('No new file selected.');
   };
 
+  applyPendingAvatarUi();
+
   chooseButton.addEventListener('click', () => {
-    fileInput.click();
-  });
+    const picker = document.createElement('input');
+    picker.type = 'file';
+    picker.accept = 'image/*,.heic,.heif,.avif';
+    picker.style.position = 'fixed';
+    picker.style.left = '-9999px';
+    picker.style.top = '0';
+    document.body.appendChild(picker);
 
-  fileInput.addEventListener('change', () => {
-    clearPreviewObjectUrl();
-    const file = fileInput.files?.[0];
-    if (!file) {
-      state.pendingProfileAvatarFile = null;
-      preview.src = profile.avatar_url || fallbackSrc;
+    picker.addEventListener('change', () => {
+      const file = picker.files?.[0];
+      picker.remove();
+
+      if (!file) {
+        applyPendingAvatarUi();
+        return;
+      }
+
+      if (!isSupportedAvatarFile(file)) {
+        applyPendingAvatarUi();
+        showToast('Please choose a PNG, JPG, JPEG, WEBP, HEIC, HEIF, or AVIF image.', 'error');
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        applyPendingAvatarUi();
+        showToast('Please choose an image smaller than 5 MB.', 'error');
+        return;
+      }
+
+      clearPendingProfileAvatarState();
+      state.pendingProfileAvatarFile = file;
+      state.pendingProfileRemoveAvatar = false;
       removeInput.value = '0';
-      setStatus('No new file selected.');
-      return;
-    }
+      setStatus(`Selected: ${file.name}`);
+      try {
+        state.pendingProfileAvatarPreviewUrl = URL.createObjectURL(file);
+        preview.src = state.pendingProfileAvatarPreviewUrl;
+      } catch (error) {
+        console.warn('Avatar preview creation failed:', error);
+        preview.src = profile.avatar_url || fallbackSrc;
+        setStatus(`Selected: ${file.name} (preview not available in this browser)`);
+      }
+    }, { once: true });
 
-    if (!isSupportedAvatarFile(file)) {
-      state.pendingProfileAvatarFile = null;
-      fileInput.value = '';
-      preview.src = profile.avatar_url || fallbackSrc;
-      setStatus('No new file selected.');
-      showToast('Please choose a PNG, JPG, JPEG, WEBP, HEIC, HEIF, or AVIF image.', 'error');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      state.pendingProfileAvatarFile = null;
-      fileInput.value = '';
-      preview.src = profile.avatar_url || fallbackSrc;
-      setStatus('No new file selected.');
-      showToast('Please choose an image smaller than 5 MB.', 'error');
-      return;
-    }
-
-    state.pendingProfileAvatarFile = file;
-    removeInput.value = '0';
-    setStatus(`Selected: ${file.name}`);
-    const objectUrl = URL.createObjectURL(file);
-    preview.dataset.objectUrl = objectUrl;
-    preview.onerror = () => {
-      preview.onerror = null;
-      preview.src = profile.avatar_url || fallbackSrc;
-      setStatus(`Selected: ${file.name} (preview not available in this browser)`);
-    };
-    preview.onload = () => {
-      preview.onload = null;
-      preview.onerror = null;
-    };
-    preview.src = objectUrl;
+    picker.click();
   });
 
   removeButton.addEventListener('click', () => {
-    clearPreviewObjectUrl();
-    state.pendingProfileAvatarFile = null;
-    fileInput.value = '';
+    clearPendingProfileAvatarState({ keepRemove: true });
+    state.pendingProfileRemoveAvatar = true;
     removeInput.value = '1';
     preview.src = fallbackSrc;
     setStatus('Using the generic avatar.');
@@ -884,8 +909,8 @@ async function handleProfileSaveSubmit(event) {
   button.textContent = 'Saving profile...';
 
   try {
-    const removeAvatar = formData.get('remove_avatar') === '1';
-    const avatarFile = state.pendingProfileAvatarFile || formData.get('avatar_file');
+    const removeAvatar = formData.get('remove_avatar') === '1' || state.pendingProfileRemoveAvatar;
+    const avatarFile = state.pendingProfileAvatarFile;
     const currentAvatarPath = String(getUserMetadata().avatar_path || '').trim();
 
     let avatarPath = currentAvatarPath || null;
@@ -915,7 +940,8 @@ async function handleProfileSaveSubmit(event) {
     if (error) throw error;
 
     state.user = data?.user || state.user;
-    state.pendingProfileAvatarFile = null;
+    clearPendingProfileAvatarState();
+    state.pendingProfileRemoveAvatar = false;
     state.accountMode = 'summary';
     refreshAuthDependentUI();
     populateRegistrationFormFromUser(document.getElementById('sessionRegistrationForm'), { overwrite: true });
@@ -1037,7 +1063,7 @@ function initAuth() {
       if (!wasEditingProfile) state.accountMode = 'summary';
     } else {
       state.accountMode = 'summary';
-      state.pendingProfileAvatarFile = null;
+      clearPendingProfileAvatarState();
     }
     refreshAuthDependentUI();
   });
