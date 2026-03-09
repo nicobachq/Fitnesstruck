@@ -1,4 +1,4 @@
-// force fresh deploy for live registration count sync
+// force fresh deploy for registration delete management
 const CONFIG = {
   SUPABASE_URL: 'https://xqmwipogfcfjmqsiqdbu.supabase.co',
   SUPABASE_KEY: 'sb_publishable_acr4jKu8IG-THTIn40q3eA_uOiEaOCj'
@@ -233,6 +233,7 @@ function refreshAdminDataView() {
   renderEvents();
   renderRegistrations();
   updateStats();
+  refreshEditingSessionFormLiveCounts();
 }
 
 async function loadEvents() {
@@ -325,6 +326,57 @@ function getFilteredRegistrations() {
   });
 }
 
+
+function refreshEditingSessionFormLiveCounts() {
+  if (!editingEventId || !sessionForms.length) return;
+
+  const editingEvent = events.find((event) => event.id === editingEventId);
+  if (!editingEvent) return;
+
+  sessionForms.forEach((form) => {
+    const sessionId = form.dataset.sessionId;
+    const countInput = form.querySelector('.session-registered');
+    if (!countInput) return;
+
+    if (!sessionId) {
+      countInput.value = '0';
+      return;
+    }
+
+    const matchingSession = (editingEvent.sessions || []).find((session) => session.id === sessionId);
+    countInput.value = String(matchingSession?.registered || 0);
+  });
+}
+
+async function deleteRegistrationFromSupabase(registrationId) {
+  if (!registrationId) {
+    throw new Error('This registration has no id, so it cannot be deleted.');
+  }
+
+  const { error } = await supabaseClient
+    .from('registrations')
+    .delete()
+    .eq('id', registrationId);
+
+  if (error) throw error;
+}
+
+async function deleteRegistration(registrationId) {
+  const registration = registrations.find((item) => item.id === registrationId);
+  const participantName = registration?.full_name || 'this registration';
+
+  if (!confirm(`Delete ${participantName}? This cannot be undone.`)) return;
+
+  try {
+    await deleteRegistrationFromSupabase(registrationId);
+    await loadRegistrations();
+    showToast('Registration deleted.', 'success');
+  } catch (error) {
+    console.error('Registration delete failed:', error);
+    showToast(error.message || 'Could not delete registration.', 'error');
+  }
+}
+
 function updateRegistrationsSearchSummary(visibleCount, totalCount) {
   const summary = document.getElementById('registrationsSearchSummary');
   if (!summary) return;
@@ -365,7 +417,7 @@ function renderRegistrations() {
 
     return `
       <div class="event-item">
-        <div class="event-header">
+        <div class="event-header" style="align-items:flex-start; gap:16px;">
           <div class="event-info">
             <h3>${escapeHtml(registration.full_name || 'No name')}</h3>
 
@@ -396,6 +448,9 @@ function renderRegistrations() {
             <div class="event-meta" style="margin-top:4px;">
               ${registration.created_at ? new Date(registration.created_at).toLocaleString() : ''}
             </div>
+          </div>
+          <div class="event-actions" style="flex-shrink:0;">
+            <button class="btn btn-danger btn-sm" onclick="deleteRegistration('${escapeJs(registration.id || '')}')">Delete</button>
           </div>
         </div>
       </div>
@@ -862,3 +917,4 @@ window.removeSessionForm = removeSessionForm;
 window.resetForm = resetForm;
 window.exportData = exportData;
 window.clearRegistrationSearch = clearRegistrationSearch;
+window.deleteRegistration = deleteRegistration;
