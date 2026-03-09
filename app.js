@@ -254,8 +254,10 @@ function refreshAuthDependentUI() {
   if (!state.user) state.accountMode = 'summary';
   updateAccountButton();
   scheduleHeroSideCardRender();
-  if (document.getElementById('authOverlay')?.getAttribute('aria-hidden') === 'false') {
-    renderAuthModal();
+  if (isAuthModalOpen()) {
+    if (!(state.user && state.accountMode === 'edit')) {
+      renderAuthModal();
+    }
   }
   populateRegistrationFormFromUser(document.getElementById('sessionRegistrationForm'));
 }
@@ -363,6 +365,11 @@ function closeAuthModal() {
   const eventModalOpen = eventOverlay && eventOverlay.getAttribute('aria-hidden') === 'false';
   document.body.style.overflow = eventModalOpen ? 'hidden' : '';
   if (state.lastAuthTriggerEl) state.lastAuthTriggerEl.focus();
+}
+
+function isAuthModalOpen() {
+  const overlay = document.getElementById('authOverlay');
+  return !!overlay && overlay.getAttribute('aria-hidden') === 'false';
 }
 
 function renderAuthModal() {
@@ -1013,11 +1020,14 @@ function initAuth() {
   syncAuthUI({ refreshFromServer: true });
 
   window.addEventListener('focus', () => {
+    if (isAuthModalOpen() && state.user && state.accountMode === 'edit') return;
     syncAuthUI();
   });
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') syncAuthUI();
+    if (document.visibilityState !== 'visible') return;
+    if (isAuthModalOpen() && state.user && state.accountMode === 'edit') return;
+    syncAuthUI();
   });
 
   supabaseClient.auth.onAuthStateChange((_event, session) => {
