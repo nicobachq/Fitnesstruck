@@ -27,6 +27,7 @@
         <a href="#experience">Experience</a>
         <a href="#team">Team</a>
         <a href="#contact">Contact</a>
+        <button type="button" class="nav-auth-btn" id="accountBtn">Account</button>
         <a href="#newsletter" class="nav-cta">Join Movement</a>
       </div>
       <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="navLinks">
@@ -273,9 +274,16 @@
     </div>
   </div>
 
+  <div class="modal-overlay auth-overlay" id="authOverlay" role="dialog" aria-modal="true" aria-labelledby="authModalTitle" aria-hidden="true">
+    <div class="modal auth-modal" role="document">
+      <button class="modal-close" id="authModalClose" aria-label="Close account panel">×</button>
+      <div class="modal-content auth-modal-content" id="authModalContent"></div>
+    </div>
+  </div>
+
   <div class="toast-container" id="toastContainer" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=2"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
