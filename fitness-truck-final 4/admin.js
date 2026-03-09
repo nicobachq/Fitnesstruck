@@ -314,6 +314,7 @@ function getFilteredRegistrations() {
       registration.phone,
       registration.emergency_contact_name,
       registration.emergency_contact_phone,
+      registration.gender,
       registration.food_allergies,
       registration.medical_conditions,
       matchedEvent?.title,
@@ -433,6 +434,7 @@ function renderRegistrations() {
 
             <div class="event-meta" style="margin-top:4px;">
               ${registration.age ? `Age: ${escapeHtml(String(registration.age))}` : 'Age: —'}
+              ${registration.gender ? ` · Gender: ${escapeHtml(formatGenderLabel(registration.gender))}` : ''}
               ${registration.emergency_contact_name ? ` · Emergency Contact: ${escapeHtml(registration.emergency_contact_name)}` : ''}
               ${registration.emergency_contact_phone ? ` (${escapeHtml(registration.emergency_contact_phone)})` : ''}
             </div>
