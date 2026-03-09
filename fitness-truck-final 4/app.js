@@ -24,7 +24,10 @@ const state = {
   authNotice: null,
   accountMode: 'summary',
   heroRenderFrame: null,
-  heroRenderTimeout: null
+  heroRenderTimeout: null,
+  pendingProfileAvatarFile: null,
+  pendingProfileAvatarPreviewUrl: null,
+  pendingProfileRemoveAvatar: false
 };
 
 function getUserMetadata(user = state.user) {
@@ -137,6 +140,20 @@ function getAvatarContentType(file) {
   };
   return contentTypes[extension] || 'image/jpeg';
 }
+function clearPendingProfileAvatarState(options = {}) {
+  const { keepRemove = false } = options;
+  if (state.pendingProfileAvatarPreviewUrl) {
+    try {
+      URL.revokeObjectURL(state.pendingProfileAvatarPreviewUrl);
+    } catch (error) {
+      console.warn('Avatar preview cleanup failed:', error);
+    }
+  }
+  state.pendingProfileAvatarFile = null;
+  state.pendingProfileAvatarPreviewUrl = null;
+  if (!keepRemove) state.pendingProfileRemoveAvatar = false;
+}
+
 
 function getAvatarUrl(user = state.user) {
   const metadata = getUserMetadata(user);
@@ -253,8 +270,10 @@ function refreshAuthDependentUI() {
   if (!state.user) state.accountMode = 'summary';
   updateAccountButton();
   scheduleHeroSideCardRender();
-  if (document.getElementById('authOverlay')?.getAttribute('aria-hidden') === 'false') {
-    renderAuthModal();
+  if (isAuthModalOpen()) {
+    if (!(state.user && state.accountMode === 'edit')) {
+      renderAuthModal();
+    }
   }
   populateRegistrationFormFromUser(document.getElementById('sessionRegistrationForm'));
 }
@@ -364,6 +383,11 @@ function closeAuthModal() {
   if (state.lastAuthTriggerEl) state.lastAuthTriggerEl.focus();
 }
 
+function isAuthModalOpen() {
+  const overlay = document.getElementById('authOverlay');
+  return !!overlay && overlay.getAttribute('aria-hidden') === 'false';
+}
+
 function renderAuthModal() {
   const mount = document.getElementById('authModalContent');
   if (!mount) return;
@@ -381,7 +405,7 @@ function renderAuthModal() {
           </div>
           <div class="auth-profile-layout">
             <div class="auth-avatar-panel">
-              <img src="${escapeAttr(profile.avatar_url)}" alt="${escapeAttr(`${getUserDisplayName()} profile photo`)}" class="auth-avatar-image auth-avatar-image-large" id="profileAvatarPreview" />
+              <img src="${escapeAttr(state.pendingProfileAvatarPreviewUrl || (state.pendingProfileRemoveAvatar ? buildAvatarPlaceholderDataUri(getUserDisplayName()) : profile.avatar_url))}" alt="${escapeAttr(`${getUserDisplayName()} profile photo`)}" class="auth-avatar-image auth-avatar-image-large" id="profileAvatarPreview" />
               <div class="auth-avatar-copy">
                 <strong>Profile photo</strong>
                 <span>Add a photo for your account, or keep the generic avatar.</span>
@@ -394,16 +418,16 @@ function renderAuthModal() {
             </div>
           </div>
           <form id="profileEditForm" class="auth-form auth-profile-form">
-            <input type="hidden" name="remove_avatar" id="profileRemoveAvatar" value="0" />
+            <input type="hidden" name="remove_avatar" id="profileRemoveAvatar" value="${state.pendingProfileRemoveAvatar ? '1' : '0'}" />
             <div class="auth-profile-grid">
               <div class="form-group form-group-full">
-                <label for="profileAvatarFile">Profile photo</label>
-                <input id="profileAvatarFile" name="avatar_file" type="file" accept="image/*,.heic,.heif,.avif" />
-                <div class="auth-avatar-actions">
+                <label>Profile photo</label>
+                <div class="auth-avatar-picker-row">
+                  <button type="button" class="btn btn-secondary btn-inline" id="chooseAvatarBtn">Choose photo</button>
                   <button type="button" class="btn btn-secondary btn-inline" id="removeAvatarBtn">Use generic avatar</button>
-                  <span class="auth-profile-note">PNG, JPG, WEBP, HEIC, HEIF, or AVIF up to 5 MB.</span>
                 </div>
-                <div class="auth-profile-note" id="profileAvatarStatus">No new file selected.</div>
+                <div class="auth-profile-note">PNG, JPG, JPEG, WEBP, HEIC, HEIF, or AVIF up to 5 MB.</div>
+                <div class="auth-profile-note" id="profileAvatarStatus">${escapeHtml(state.pendingProfileAvatarFile?.name ? `Selected: ${state.pendingProfileAvatarFile.name}` : (state.pendingProfileRemoveAvatar ? 'Using the generic avatar.' : 'No new file selected.'))}</div>
               </div>
               <div class="form-group">
                 <label for="profileFullName">Full name *</label>
@@ -414,15 +438,15 @@ function renderAuthModal() {
                 <input id="profilePhone" name="phone" type="tel" required autocomplete="tel" value="${escapeAttr(profile.phone)}" />
               </div>
               <div class="form-group">
-                <label for="profileAge">Age</label>
-                <input id="profileAge" name="age" type="number" min="1" max="120" inputmode="numeric" value="${escapeAttr(profile.age)}" />
-              </div>
-              <div class="form-group">
                 <label for="profileGender">Gender</label>
                 <select id="profileGender" name="gender">
                   <option value="">Prefer to choose later</option>
                   ${buildGenderOptionsHtml(profile.gender)}
                 </select>
+              </div>
+              <div class="form-group">
+                <label for="profileAge">Age</label>
+                <input id="profileAge" name="age" type="number" min="1" max="120" inputmode="numeric" value="${escapeAttr(profile.age)}" />
               </div>
               <div class="form-group">
                 <label for="profileEmergencyName">Emergency contact name</label>
@@ -457,6 +481,7 @@ function renderAuthModal() {
       bindProfileAvatarControls(profile);
       document.getElementById('profileEditForm')?.addEventListener('submit', handleProfileSaveSubmit);
       document.getElementById('cancelProfileEditBtn')?.addEventListener('click', () => {
+        clearPendingProfileAvatarState();
         state.accountMode = 'summary';
         renderAuthModal();
       });
@@ -524,6 +549,7 @@ function renderAuthModal() {
       </div>`;
 
     document.getElementById('editProfileBtn')?.addEventListener('click', () => {
+      clearPendingProfileAvatarState();
       state.accountMode = 'edit';
       renderAuthModal();
     });
@@ -720,11 +746,11 @@ async function logoutCurrentUser() {
 
 function bindProfileAvatarControls(profile) {
   const preview = document.getElementById('profileAvatarPreview');
-  const fileInput = document.getElementById('profileAvatarFile');
+  const chooseButton = document.getElementById('chooseAvatarBtn');
   const removeInput = document.getElementById('profileRemoveAvatar');
   const removeButton = document.getElementById('removeAvatarBtn');
   const status = document.getElementById('profileAvatarStatus');
-  if (!preview || !fileInput || !removeInput || !removeButton) return;
+  if (!preview || !removeInput || !removeButton || !chooseButton) return;
 
   const fallbackSrc = buildAvatarPlaceholderDataUri(getUserDisplayName());
 
@@ -732,59 +758,97 @@ function bindProfileAvatarControls(profile) {
     if (status) status.textContent = message;
   };
 
-  const clearPreviewObjectUrl = () => {
-    const objectUrl = preview.dataset.objectUrl;
-    if (objectUrl) {
-      URL.revokeObjectURL(objectUrl);
-      delete preview.dataset.objectUrl;
+  const applyPendingAvatarUi = () => {
+    if (state.pendingProfileAvatarFile && state.pendingProfileAvatarPreviewUrl) {
+      preview.src = state.pendingProfileAvatarPreviewUrl;
+      removeInput.value = '0';
+      setStatus(`Selected: ${state.pendingProfileAvatarFile.name}`);
+      return;
     }
+
+    if (state.pendingProfileRemoveAvatar) {
+      preview.src = fallbackSrc;
+      removeInput.value = '1';
+      setStatus('Using the generic avatar.');
+      return;
+    }
+
+    preview.src = profile.avatar_url || fallbackSrc;
+    removeInput.value = '0';
+    setStatus('No new file selected.');
   };
 
-  fileInput.addEventListener('change', () => {
-    clearPreviewObjectUrl();
-    const file = fileInput.files?.[0];
-    if (!file) {
-      preview.src = profile.avatar_url || fallbackSrc;
-      removeInput.value = '0';
-      setStatus('No new file selected.');
-      return;
-    }
+  applyPendingAvatarUi();
 
-    if (!isSupportedAvatarFile(file)) {
-      fileInput.value = '';
-      preview.src = profile.avatar_url || fallbackSrc;
-      setStatus('No new file selected.');
-      showToast('Please choose a PNG, JPG, WEBP, HEIC, HEIF, or AVIF image.', 'error');
-      return;
-    }
+  chooseButton.addEventListener('click', () => {
+    const picker = document.createElement('input');
+    picker.type = 'file';
+    picker.accept = 'image/*,.heic,.heif,.avif';
+    picker.style.position = 'fixed';
+    picker.style.left = '-9999px';
+    picker.style.top = '0';
+    document.body.appendChild(picker);
 
-    if (file.size > 5 * 1024 * 1024) {
-      fileInput.value = '';
-      preview.src = profile.avatar_url || fallbackSrc;
-      setStatus('No new file selected.');
-      showToast('Please choose an image smaller than 5 MB.', 'error');
-      return;
-    }
+    picker.addEventListener('change', async () => {
+      const selectedFile = picker.files?.[0];
+      picker.remove();
 
-    removeInput.value = '0';
-    setStatus(`Selected: ${file.name}`);
-    const objectUrl = URL.createObjectURL(file);
-    preview.dataset.objectUrl = objectUrl;
-    preview.onerror = () => {
-      preview.onerror = null;
-      preview.src = profile.avatar_url || fallbackSrc;
-      setStatus(`Selected: ${file.name} (preview not available in this browser)`);
-    };
-    preview.onload = () => {
-      preview.onload = null;
-      preview.onerror = null;
-    };
-    preview.src = objectUrl;
+      if (!selectedFile) {
+        applyPendingAvatarUi();
+        return;
+      }
+
+      if (!isSupportedAvatarFile(selectedFile)) {
+        applyPendingAvatarUi();
+        showToast('Please choose a PNG, JPG, JPEG, WEBP, HEIC, HEIF, or AVIF image.', 'error');
+        return;
+      }
+
+      if (selectedFile.size > 5 * 1024 * 1024) {
+        applyPendingAvatarUi();
+        showToast('Please choose an image smaller than 5 MB.', 'error');
+        return;
+      }
+
+      try {
+        const arrayBuffer = await selectedFile.arrayBuffer();
+        const contentType = getAvatarContentType(selectedFile);
+        const blob = new Blob([arrayBuffer], { type: contentType });
+
+        clearPendingProfileAvatarState();
+        state.pendingProfileAvatarFile = {
+          name: selectedFile.name,
+          size: selectedFile.size,
+          type: contentType,
+          extension: getAvatarFileExtension(selectedFile),
+          arrayBuffer
+        };
+        state.pendingProfileRemoveAvatar = false;
+        removeInput.value = '0';
+        setStatus(`Selected: ${selectedFile.name}`);
+
+        try {
+          state.pendingProfileAvatarPreviewUrl = URL.createObjectURL(blob);
+          preview.src = state.pendingProfileAvatarPreviewUrl;
+        } catch (previewError) {
+          console.warn('Avatar preview creation failed:', previewError);
+          preview.src = profile.avatar_url || fallbackSrc;
+          setStatus(`Selected: ${selectedFile.name} (preview not available in this browser)`);
+        }
+      } catch (readError) {
+        console.error('Avatar file read failed:', readError);
+        clearPendingProfileAvatarState();
+        applyPendingAvatarUi();
+        showToast('We could not read that image file. Please try a different image.', 'error');
+      }
+    }, { once: true });
+
+    picker.click();
   });
 
   removeButton.addEventListener('click', () => {
-    clearPreviewObjectUrl();
-    fileInput.value = '';
+    clearPendingProfileAvatarState({ keepRemove: true });
+    state.pendingProfileRemoveAvatar = true;
     removeInput.value = '1';
     preview.src = fallbackSrc;
     setStatus('Using the generic avatar.');
@@ -798,14 +862,24 @@ async function uploadAvatarFile(file) {
   if (file.size > 5 * 1024 * 1024) throw new Error('Please choose an image smaller than 5 MB.');
 
   const extensionFromName = getAvatarFileExtension(file);
+  const contentType = getAvatarContentType(file);
   const extension = ['png', 'jpg', 'jpeg', 'webp', 'heic', 'heif', 'avif'].includes(extensionFromName)
     ? extensionFromName
-    : (getAvatarContentType(file) === 'image/png' ? 'png'
-      : getAvatarContentType(file) === 'image/webp' ? 'webp'
-      : getAvatarContentType(file) === 'image/heic' ? 'heic'
-      : getAvatarContentType(file) === 'image/heif' ? 'heif'
-      : getAvatarContentType(file) === 'image/avif' ? 'avif'
+    : (contentType === 'image/png' ? 'png'
+      : contentType === 'image/webp' ? 'webp'
+      : contentType === 'image/heic' ? 'heic'
+      : contentType === 'image/heif' ? 'heif'
+      : contentType === 'image/avif' ? 'avif'
       : 'jpg');
+
+  let payload = file;
+  if (!(file instanceof Blob)) {
+    if (file.arrayBuffer) {
+      payload = new Blob([file.arrayBuffer], { type: contentType });
+    } else {
+      throw new Error('The selected image could not be prepared for upload. Please choose it again.');
+    }
+  }
 
   const previousPath = String(getUserMetadata().avatar_path || '').trim();
   const updatedAt = Date.now();
@@ -813,10 +887,10 @@ async function uploadAvatarFile(file) {
 
   const { error } = await supabaseClient.storage
     .from(CONFIG.AVATAR_BUCKET)
-    .upload(path, file, {
+    .upload(path, payload, {
       cacheControl: '3600',
       upsert: false,
-      contentType: getAvatarContentType(file)
+      contentType
     });
 
   if (error) throw error;
@@ -863,8 +937,8 @@ async function handleProfileSaveSubmit(event) {
   button.textContent = 'Saving profile...';
 
   try {
-    const removeAvatar = formData.get('remove_avatar') === '1';
-    const avatarFile = formData.get('avatar_file');
+    const removeAvatar = formData.get('remove_avatar') === '1' || state.pendingProfileRemoveAvatar;
+    const avatarFile = state.pendingProfileAvatarFile;
     const currentAvatarPath = String(getUserMetadata().avatar_path || '').trim();
 
     let avatarPath = currentAvatarPath || null;
@@ -894,6 +968,8 @@ async function handleProfileSaveSubmit(event) {
     if (error) throw error;
 
     state.user = data?.user || state.user;
+    clearPendingProfileAvatarState();
+    state.pendingProfileRemoveAvatar = false;
     state.accountMode = 'summary';
     refreshAuthDependentUI();
     populateRegistrationFormFromUser(document.getElementById('sessionRegistrationForm'), { overwrite: true });
@@ -998,16 +1074,25 @@ function initAuth() {
   syncAuthUI({ refreshFromServer: true });
 
   window.addEventListener('focus', () => {
+    if (isAuthModalOpen() && state.user && state.accountMode === 'edit') return;
     syncAuthUI();
   });
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') syncAuthUI();
+    if (document.visibilityState !== 'visible') return;
+    if (isAuthModalOpen() && state.user && state.accountMode === 'edit') return;
+    syncAuthUI();
   });
 
   supabaseClient.auth.onAuthStateChange((_event, session) => {
+    const wasEditingProfile = isAuthModalOpen() && state.user && state.accountMode === 'edit';
     state.user = session?.user || null;
-    if (state.user) state.accountMode = 'summary';
+    if (state.user) {
+      if (!wasEditingProfile) state.accountMode = 'summary';
+    } else {
+      state.accountMode = 'summary';
+      clearPendingProfileAvatarState();
+    }
     refreshAuthDependentUI();
   });
 }
