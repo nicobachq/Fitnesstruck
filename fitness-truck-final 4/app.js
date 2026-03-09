@@ -19,7 +19,10 @@ const state = {
   animationsInitialized: false,
   user: null,
   authView: 'login',
-  lastAuthTriggerEl: null
+  lastAuthTriggerEl: null,
+  authNotice: null,
+  heroRenderFrame: null,
+  heroRenderTimeout: null
 };
 
 function getUserMetadata(user = state.user) {
@@ -52,6 +55,151 @@ function updateAccountButton() {
     button.setAttribute('aria-label', 'Open account');
     button.removeAttribute('title');
   }
+}
+
+function setAuthNotice(message = '', type = 'info') {
+  state.authNotice = message ? { message, type } : null;
+}
+
+function renderSignedInHeroFallback(mount) {
+  mount.hidden = false;
+  mount.innerHTML = `
+    <div class="floating-card next-event-hero-card">
+      <div class="card-glow"></div>
+      <span class="next-event-kicker">Signed in</span>
+      <h3>Welcome back, ${escapeHtml(getUserDisplayName())}</h3>
+      <p>Your account is active. Browse the schedule or open your account details anytime.</p>
+      <div class="account-card-actions">
+        <button type="button" class="btn btn-primary" id="heroBrowseEventsBtn">View schedule</button>
+        <button type="button" class="btn btn-secondary" id="heroFallbackAccountBtn">My account</button>
+      </div>
+    </div>`;
+
+  document.getElementById('heroBrowseEventsBtn')?.addEventListener('click', () => {
+    const eventsSection = document.getElementById('events');
+    if (eventsSection) {
+      const offsetTop = eventsSection.offsetTop - 80;
+      window.scrollTo({ top: offsetTop, behavior: 'smooth' });
+    }
+  });
+  document.getElementById('heroFallbackAccountBtn')?.addEventListener('click', (event) => openAuthModal('login', event.currentTarget));
+}
+
+function scheduleHeroSideCardRender() {
+  if (state.heroRenderFrame) cancelAnimationFrame(state.heroRenderFrame);
+  if (state.heroRenderTimeout) clearTimeout(state.heroRenderTimeout);
+
+  state.heroRenderFrame = requestAnimationFrame(() => {
+    state.heroRenderFrame = null;
+    try {
+      renderHeroSideCard();
+    } catch (error) {
+      console.error('Hero side card render error:', error);
+      const mount = document.getElementById('heroSideCard');
+      if (mount && state.user) renderSignedInHeroFallback(mount);
+    }
+  });
+
+  state.heroRenderTimeout = setTimeout(() => {
+    state.heroRenderTimeout = null;
+    try {
+      renderHeroSideCard();
+    } catch (error) {
+      console.error('Delayed hero side card render error:', error);
+      const mount = document.getElementById('heroSideCard');
+      if (mount && state.user) renderSignedInHeroFallback(mount);
+    }
+  }, 180);
+}
+
+function refreshAuthDependentUI() {
+  document.body.dataset.authState = state.user ? 'logged-in' : 'logged-out';
+  updateAccountButton();
+  scheduleHeroSideCardRender();
+  if (document.getElementById('authOverlay')?.getAttribute('aria-hidden') === 'false') {
+    renderAuthModal();
+  }
+  populateRegistrationFormFromUser(document.getElementById('sessionRegistrationForm'));
+}
+
+function bindAuthLaunchers(root = document) {
+  root.querySelectorAll('[data-open-auth]').forEach((button) => {
+    if (button.dataset.authBound === '1') return;
+    button.dataset.authBound = '1';
+    button.addEventListener('click', (event) => {
+      const view = button.dataset.openAuth === 'signup' ? 'signup' : 'login';
+      openAuthModal(view, event.currentTarget);
+    });
+  });
+}
+
+function renderHeroSideCard() {
+  const mount = document.getElementById('heroSideCard');
+  if (!mount) return;
+
+  mount.dataset.authState = state.user ? 'logged-in' : 'logged-out';
+
+  if (!state.user) {
+    mount.hidden = false;
+    mount.innerHTML = `
+      <div class="floating-card account-hero-card">
+        <div class="card-glow"></div>
+        <span class="account-hero-label">Member access</span>
+        <h3>Create your account</h3>
+        <p>Save your details for faster bookings, view your account anytime, and choose whether to receive event news and early-access updates.</p>
+        <div class="account-card-actions">
+          <button type="button" class="btn btn-primary" data-open-auth="signup">Create account</button>
+          <button type="button" class="btn btn-secondary" data-open-auth="login">Log in</button>
+        </div>
+        <div class="account-benefits" aria-label="Account benefits">
+          <div class="account-benefit">✓ Faster repeat registrations</div>
+          <div class="account-benefit">✓ Optional event news opt-in</div>
+          <div class="account-benefit">✓ Guest booking still available</div>
+        </div>
+      </div>`;
+    bindAuthLaunchers(mount);
+    return;
+  }
+
+  const nextEvent = getUpcomingEvents()[0] || null;
+  if (!nextEvent || !Array.isArray(nextEvent.sessions)) {
+    renderSignedInHeroFallback(mount);
+    return;
+  }
+
+  const totalSpots = nextEvent.sessions.reduce((sum, session) => sum + Number(session.maxParticipants || 0), 0);
+  const totalRegistered = nextEvent.sessions.reduce((sum, session) => sum + Number(session.registered || 0), 0);
+  const remainingSpots = Math.max(totalSpots - totalRegistered, 0);
+
+  mount.hidden = false;
+  mount.innerHTML = `
+    <div class="floating-card next-event-hero-card">
+      <div class="card-glow"></div>
+      <span class="next-event-kicker">Next event</span>
+      <h3>${escapeHtml(nextEvent.title)}</h3>
+      <p>You're signed in. Here is the next event you can book right away.</p>
+      <div class="next-event-meta">
+        <span>${escapeHtml(formatDate(nextEvent.date))}</span>
+        <span>${escapeHtml(nextEvent.location)}</span>
+      </div>
+      <div class="next-event-summary">
+        <div class="next-event-summary-item">
+          <strong>Sessions</strong>
+          ${nextEvent.sessions.length} available session${nextEvent.sessions.length === 1 ? '' : 's'}
+        </div>
+        <div class="next-event-summary-item">
+          <strong>Availability</strong>
+          ${remainingSpots} of ${totalSpots} spots still open
+        </div>
+      </div>
+      <div class="account-card-actions">
+        <button type="button" class="btn btn-primary" id="heroNextEventBtn">View next event</button>
+        <button type="button" class="btn btn-secondary" id="heroMyAccountBtn">My account</button>
+      </div>
+    </div>`;
+
+  document.getElementById('heroNextEventBtn')?.addEventListener('click', () => openEventModal(nextEvent.id));
+  document.getElementById('heroMyAccountBtn')?.addEventListener('click', (event) => openAuthModal('login', event.currentTarget));
 }
 
 function openAuthModal(view = 'login', triggerEl = document.activeElement) {
@@ -129,6 +277,7 @@ function renderAuthModal() {
         <button type="button" class="auth-switch-btn ${state.authView === 'login' ? 'active' : ''}" data-auth-view="login">Log in</button>
         <button type="button" class="auth-switch-btn ${state.authView === 'signup' ? 'active' : ''}" data-auth-view="signup">Create account</button>
       </div>
+      ${state.authNotice ? `<div class="auth-notice ${escapeAttr(state.authNotice.type || 'info')}">${escapeHtml(state.authNotice.message)}</div>` : ''}
       ${state.authView === 'signup' ? `
         <form id="signupForm" class="auth-form">
           <div class="form-group">
@@ -147,6 +296,10 @@ function renderAuthModal() {
             <label for="signupPassword">Password *</label>
             <input id="signupPassword" name="password" type="password" minlength="6" required autocomplete="new-password" />
           </div>
+          <div class="form-group">
+            <label for="signupConfirmPassword">Confirm password *</label>
+            <input id="signupConfirmPassword" name="confirm_password" type="password" minlength="6" required autocomplete="new-password" />
+          </div>
           <div class="form-group form-checkbox-group">
             <label class="checkbox-row auth-checkbox-row" for="signupMarketingOptIn">
               <input id="signupMarketingOptIn" name="marketing_opt_in" type="checkbox" />
@@ -155,6 +308,7 @@ function renderAuthModal() {
             <p class="auth-optin-note">Optional and separate from your account login.</p>
           </div>
           <button type="submit" class="btn btn-primary">Create account</button>
+          <p class="auth-confirm-hint">After signup, confirm your email from the message we send you before your first login.</p>
         </form>
       ` : `
         <form id="loginForm" class="auth-form">
@@ -175,6 +329,7 @@ function renderAuthModal() {
   mount.querySelectorAll('[data-auth-view]').forEach((button) => {
     button.addEventListener('click', () => {
       state.authView = button.dataset.authView === 'signup' ? 'signup' : 'login';
+      if (state.authView === 'signup' && state.authNotice?.type === 'success') setAuthNotice();
       renderAuthModal();
     });
   });
@@ -198,13 +353,22 @@ async function handleLoginSubmit(event) {
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) throw error;
     state.user = data.user || null;
-    updateAccountButton();
-    populateRegistrationFormFromUser(document.getElementById('sessionRegistrationForm'));
+    setAuthNotice();
+    refreshAuthDependentUI();
     showToast('You are now logged in.', 'success');
     closeAuthModal();
   } catch (error) {
     console.error('Login error:', error);
-    showToast(error.message || 'Login failed.', 'error');
+    const errorMessage = error?.message || 'Login failed.';
+    if (/email not confirmed/i.test(errorMessage)) {
+      setAuthNotice('Please confirm your email first. Open the confirmation email we sent after signup, then come back and log in.', 'info');
+      renderAuthModal();
+      const loginEmail = document.getElementById('loginEmail');
+      if (loginEmail) loginEmail.value = email;
+      showToast('Please confirm your email before logging in.', 'error');
+    } else {
+      showToast(errorMessage, 'error');
+    }
     button.disabled = false;
     button.textContent = 'Log in';
   }
@@ -219,7 +383,18 @@ async function handleSignupSubmit(event) {
   const phone = String(formData.get('phone') || '').trim();
   const email = String(formData.get('email') || '').trim().toLowerCase();
   const password = String(formData.get('password') || '');
+  const confirmPassword = String(formData.get('confirm_password') || '');
   const marketingOptIn = formData.get('marketing_opt_in') === 'on';
+
+  if (password !== confirmPassword) {
+    showToast('Please re-enter the same password in both fields.', 'error');
+    const confirmInput = document.getElementById('signupConfirmPassword');
+    if (confirmInput) {
+      confirmInput.value = '';
+      confirmInput.focus();
+    }
+    return;
+  }
 
   button.disabled = true;
   button.textContent = 'Creating account...';
@@ -240,18 +415,19 @@ async function handleSignupSubmit(event) {
 
     if (data.session) {
       state.user = data.user || null;
-      updateAccountButton();
-      populateRegistrationFormFromUser(document.getElementById('sessionRegistrationForm'));
+      setAuthNotice();
+      refreshAuthDependentUI();
       showToast('Account created and you are now logged in.', 'success');
       closeAuthModal();
       return;
     }
 
     state.authView = 'login';
+    setAuthNotice(`Your account was created for ${email}. Please confirm your email from your inbox before you try to log in.`, 'success');
     renderAuthModal();
     const loginEmail = document.getElementById('loginEmail');
     if (loginEmail) loginEmail.value = email;
-    showToast('Account created. Please confirm your email, then log in.', 'success');
+    showToast('Account created. Confirm your email first, then log in.', 'success');
   } catch (error) {
     console.error('Signup error:', error);
     showToast(error.message || 'Account creation failed.', 'error');
@@ -265,7 +441,8 @@ async function logoutCurrentUser() {
     const { error } = await supabaseClient.auth.signOut();
     if (error) throw error;
     state.user = null;
-    updateAccountButton();
+    setAuthNotice();
+    refreshAuthDependentUI();
     renderAuthModal();
     showToast('You are now logged out.', 'success');
   } catch (error) {
@@ -290,8 +467,30 @@ function populateRegistrationFormFromUser(form) {
   });
 }
 
+async function syncAuthUI(options = {}) {
+  const { refreshFromServer = false } = options;
+
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+
+    state.user = data?.session?.user || null;
+
+    if (!state.user && refreshFromServer) {
+      const { data: userData, error: userError } = await supabaseClient.auth.getUser();
+      if (userError) throw userError;
+      state.user = userData?.user || null;
+    }
+  } catch (error) {
+    console.error('Auth state sync error:', error);
+    state.user = null;
+  }
+
+  refreshAuthDependentUI();
+}
+
 function initAuth() {
-  updateAccountButton();
+  refreshAuthDependentUI();
 
   document.getElementById('accountBtn')?.addEventListener('click', (event) => {
     const navLinks = document.getElementById('navLinks');
@@ -300,7 +499,7 @@ function initAuth() {
       navLinks.classList.remove('active');
       mobileMenuBtn?.setAttribute('aria-expanded', 'false');
     }
-    openAuthModal(state.user ? 'login' : 'login', event.currentTarget);
+    openAuthModal('login', event.currentTarget);
   });
 
   document.getElementById('authModalClose')?.addEventListener('click', closeAuthModal);
@@ -328,20 +527,19 @@ function initAuth() {
     }
   });
 
-  supabaseClient.auth.getUser().then(({ data, error }) => {
-    if (error) {
-      console.error('Auth state load error:', error);
-      return;
-    }
-    state.user = data.user || null;
-    updateAccountButton();
+  syncAuthUI({ refreshFromServer: true });
+
+  window.addEventListener('focus', () => {
+    syncAuthUI();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') syncAuthUI();
   });
 
   supabaseClient.auth.onAuthStateChange((_event, session) => {
     state.user = session?.user || null;
-    updateAccountButton();
-    if (document.getElementById('authOverlay')?.getAttribute('aria-hidden') === 'false') renderAuthModal();
-    populateRegistrationFormFromUser(document.getElementById('sessionRegistrationForm'));
+    refreshAuthDependentUI();
   });
 }
 
@@ -390,6 +588,7 @@ async function loadEvents() {
   renderEvents();
   renderCalendar();
   updateEmptyState();
+  scheduleHeroSideCardRender();
   observeAnimatable();
 }
 
@@ -804,12 +1003,7 @@ function initNavigation() {
     });
   }
 
-  document.querySelectorAll('[data-open-auth]').forEach((button) => {
-    button.addEventListener('click', (event) => {
-      const view = button.dataset.openAuth === 'signup' ? 'signup' : 'login';
-      openAuthModal(view, event.currentTarget);
-    });
-  });
+  bindAuthLaunchers(document);
 
   document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
     anchor.addEventListener('click', function (event) {
