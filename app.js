@@ -789,39 +789,57 @@ function bindProfileAvatarControls(profile) {
     picker.style.top = '0';
     document.body.appendChild(picker);
 
-    picker.addEventListener('change', () => {
-      const file = picker.files?.[0];
+    picker.addEventListener('change', async () => {
+      const selectedFile = picker.files?.[0];
       picker.remove();
 
-      if (!file) {
+      if (!selectedFile) {
         applyPendingAvatarUi();
         return;
       }
 
-      if (!isSupportedAvatarFile(file)) {
+      if (!isSupportedAvatarFile(selectedFile)) {
         applyPendingAvatarUi();
         showToast('Please choose a PNG, JPG, JPEG, WEBP, HEIC, HEIF, or AVIF image.', 'error');
         return;
       }
 
-      if (file.size > 5 * 1024 * 1024) {
+      if (selectedFile.size > 5 * 1024 * 1024) {
         applyPendingAvatarUi();
         showToast('Please choose an image smaller than 5 MB.', 'error');
         return;
       }
 
-      clearPendingProfileAvatarState();
-      state.pendingProfileAvatarFile = file;
-      state.pendingProfileRemoveAvatar = false;
-      removeInput.value = '0';
-      setStatus(`Selected: ${file.name}`);
       try {
-        state.pendingProfileAvatarPreviewUrl = URL.createObjectURL(file);
-        preview.src = state.pendingProfileAvatarPreviewUrl;
-      } catch (error) {
-        console.warn('Avatar preview creation failed:', error);
-        preview.src = profile.avatar_url || fallbackSrc;
-        setStatus(`Selected: ${file.name} (preview not available in this browser)`);
+        const arrayBuffer = await selectedFile.arrayBuffer();
+        const contentType = getAvatarContentType(selectedFile);
+        const blob = new Blob([arrayBuffer], { type: contentType });
+
+        clearPendingProfileAvatarState();
+        state.pendingProfileAvatarFile = {
+          name: selectedFile.name,
+          size: selectedFile.size,
+          type: contentType,
+          extension: getAvatarFileExtension(selectedFile),
+          arrayBuffer
+        };
+        state.pendingProfileRemoveAvatar = false;
+        removeInput.value = '0';
+        setStatus(`Selected: ${selectedFile.name}`);
+
+        try {
+          state.pendingProfileAvatarPreviewUrl = URL.createObjectURL(blob);
+          preview.src = state.pendingProfileAvatarPreviewUrl;
+        } catch (previewError) {
+          console.warn('Avatar preview creation failed:', previewError);
+          preview.src = profile.avatar_url || fallbackSrc;
+          setStatus(`Selected: ${selectedFile.name} (preview not available in this browser)`);
+        }
+      } catch (readError) {
+        console.error('Avatar file read failed:', readError);
+        clearPendingProfileAvatarState();
+        applyPendingAvatarUi();
+        showToast('We could not read that image file. Please try a different image.', 'error');
       }
     }, { once: true });
 
@@ -844,14 +862,24 @@ async function uploadAvatarFile(file) {
   if (file.size > 5 * 1024 * 1024) throw new Error('Please choose an image smaller than 5 MB.');
 
   const extensionFromName = getAvatarFileExtension(file);
+  const contentType = getAvatarContentType(file);
   const extension = ['png', 'jpg', 'jpeg', 'webp', 'heic', 'heif', 'avif'].includes(extensionFromName)
     ? extensionFromName
-    : (getAvatarContentType(file) === 'image/png' ? 'png'
-      : getAvatarContentType(file) === 'image/webp' ? 'webp'
-      : getAvatarContentType(file) === 'image/heic' ? 'heic'
-      : getAvatarContentType(file) === 'image/heif' ? 'heif'
-      : getAvatarContentType(file) === 'image/avif' ? 'avif'
+    : (contentType === 'image/png' ? 'png'
+      : contentType === 'image/webp' ? 'webp'
+      : contentType === 'image/heic' ? 'heic'
+      : contentType === 'image/heif' ? 'heif'
+      : contentType === 'image/avif' ? 'avif'
       : 'jpg');
+
+  let payload = file;
+  if (!(file instanceof Blob)) {
+    if (file.arrayBuffer) {
+      payload = new Blob([file.arrayBuffer], { type: contentType });
+    } else {
+      throw new Error('The selected image could not be prepared for upload. Please choose it again.');
+    }
+  }
 
   const previousPath = String(getUserMetadata().avatar_path || '').trim();
   const updatedAt = Date.now();
@@ -859,10 +887,10 @@ async function uploadAvatarFile(file) {
 
   const { error } = await supabaseClient.storage
     .from(CONFIG.AVATAR_BUCKET)
-    .upload(path, file, {
+    .upload(path, payload, {
       cacheControl: '3600',
       upsert: false,
-      contentType: getAvatarContentType(file)
+      contentType
     });
 
   if (error) throw error;
