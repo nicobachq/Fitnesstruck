@@ -105,6 +105,39 @@ function buildAvatarPlaceholderDataUri(label = 'Fitness Truck') {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg.replace(/\s+/g, ' ').trim())}`;
 }
 
+
+function getAvatarFileExtension(file) {
+  const name = String(file?.name || '').trim().toLowerCase();
+  return name.includes('.') ? name.split('.').pop() : '';
+}
+
+function isSupportedAvatarFile(file) {
+  if (!file) return false;
+  const extension = getAvatarFileExtension(file);
+  const type = String(file.type || '').trim().toLowerCase();
+  const allowedExtensions = ['png', 'jpg', 'jpeg', 'webp', 'heic', 'heif', 'avif'];
+  const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/heic', 'image/heif', 'image/avif'];
+  if (allowedTypes.includes(type)) return true;
+  if (allowedExtensions.includes(extension)) return true;
+  return /^image\//i.test(type);
+}
+
+function getAvatarContentType(file) {
+  const type = String(file?.type || '').trim().toLowerCase();
+  if (type) return type;
+  const extension = getAvatarFileExtension(file);
+  const contentTypes = {
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    webp: 'image/webp',
+    heic: 'image/heic',
+    heif: 'image/heif',
+    avif: 'image/avif'
+  };
+  return contentTypes[extension] || 'image/jpeg';
+}
+
 function getAvatarUrl(user = state.user) {
   const metadata = getUserMetadata(user);
   const avatarPath = String(metadata.avatar_path || '').trim();
@@ -365,11 +398,12 @@ function renderAuthModal() {
             <div class="auth-profile-grid">
               <div class="form-group form-group-full">
                 <label for="profileAvatarFile">Profile photo</label>
-                <input id="profileAvatarFile" name="avatar_file" type="file" accept="image/png,image/jpeg,image/webp" />
+                <input id="profileAvatarFile" name="avatar_file" type="file" accept="image/*,.heic,.heif,.avif" />
                 <div class="auth-avatar-actions">
                   <button type="button" class="btn btn-secondary btn-inline" id="removeAvatarBtn">Use generic avatar</button>
-                  <span class="auth-profile-note">PNG, JPG, or WEBP up to 5 MB.</span>
+                  <span class="auth-profile-note">PNG, JPG, WEBP, HEIC, HEIF, or AVIF up to 5 MB.</span>
                 </div>
+                <div class="auth-profile-note" id="profileAvatarStatus">No new file selected.</div>
               </div>
               <div class="form-group">
                 <label for="profileFullName">Full name *</label>
@@ -689,9 +723,14 @@ function bindProfileAvatarControls(profile) {
   const fileInput = document.getElementById('profileAvatarFile');
   const removeInput = document.getElementById('profileRemoveAvatar');
   const removeButton = document.getElementById('removeAvatarBtn');
+  const status = document.getElementById('profileAvatarStatus');
   if (!preview || !fileInput || !removeInput || !removeButton) return;
 
   const fallbackSrc = buildAvatarPlaceholderDataUri(getUserDisplayName());
+
+  const setStatus = (message) => {
+    if (status) status.textContent = message;
+  };
 
   const clearPreviewObjectUrl = () => {
     const objectUrl = preview.dataset.objectUrl;
@@ -707,19 +746,39 @@ function bindProfileAvatarControls(profile) {
     if (!file) {
       preview.src = profile.avatar_url || fallbackSrc;
       removeInput.value = '0';
+      setStatus('No new file selected.');
       return;
     }
 
-    if (!/^image\//i.test(file.type)) {
+    if (!isSupportedAvatarFile(file)) {
       fileInput.value = '';
       preview.src = profile.avatar_url || fallbackSrc;
-      showToast('Please choose an image file.', 'error');
+      setStatus('No new file selected.');
+      showToast('Please choose a PNG, JPG, WEBP, HEIC, HEIF, or AVIF image.', 'error');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      fileInput.value = '';
+      preview.src = profile.avatar_url || fallbackSrc;
+      setStatus('No new file selected.');
+      showToast('Please choose an image smaller than 5 MB.', 'error');
       return;
     }
 
     removeInput.value = '0';
+    setStatus(`Selected: ${file.name}`);
     const objectUrl = URL.createObjectURL(file);
     preview.dataset.objectUrl = objectUrl;
+    preview.onerror = () => {
+      preview.onerror = null;
+      preview.src = profile.avatar_url || fallbackSrc;
+      setStatus(`Selected: ${file.name} (preview not available in this browser)`);
+    };
+    preview.onload = () => {
+      preview.onload = null;
+      preview.onerror = null;
+    };
     preview.src = objectUrl;
   });
 
@@ -728,19 +787,25 @@ function bindProfileAvatarControls(profile) {
     fileInput.value = '';
     removeInput.value = '1';
     preview.src = fallbackSrc;
+    setStatus('Using the generic avatar.');
   });
 }
 
 async function uploadAvatarFile(file) {
   if (!state.user?.id) throw new Error('You need to be logged in to upload a profile photo.');
   if (!file) return null;
-  if (!/^image\//i.test(file.type)) throw new Error('Please choose a PNG, JPG, or WEBP image.');
+  if (!isSupportedAvatarFile(file)) throw new Error('Please choose a PNG, JPG, WEBP, HEIC, HEIF, or AVIF image.');
   if (file.size > 5 * 1024 * 1024) throw new Error('Please choose an image smaller than 5 MB.');
 
-  const extensionFromName = String(file.name.split('.').pop() || '').toLowerCase();
-  const extension = ['png', 'jpg', 'jpeg', 'webp'].includes(extensionFromName)
+  const extensionFromName = getAvatarFileExtension(file);
+  const extension = ['png', 'jpg', 'jpeg', 'webp', 'heic', 'heif', 'avif'].includes(extensionFromName)
     ? extensionFromName
-    : (file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg');
+    : (getAvatarContentType(file) === 'image/png' ? 'png'
+      : getAvatarContentType(file) === 'image/webp' ? 'webp'
+      : getAvatarContentType(file) === 'image/heic' ? 'heic'
+      : getAvatarContentType(file) === 'image/heif' ? 'heif'
+      : getAvatarContentType(file) === 'image/avif' ? 'avif'
+      : 'jpg');
 
   const previousPath = String(getUserMetadata().avatar_path || '').trim();
   const updatedAt = Date.now();
@@ -751,7 +816,7 @@ async function uploadAvatarFile(file) {
     .upload(path, file, {
       cacheControl: '3600',
       upsert: false,
-      contentType: file.type || undefined
+      contentType: getAvatarContentType(file)
     });
 
   if (error) throw error;
