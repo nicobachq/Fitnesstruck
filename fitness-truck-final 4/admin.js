@@ -11,6 +11,7 @@ let editingEventId = null;
 let sessionForms = [];
 let currentAdminUser = null;
 let registrations = [];
+let registrationSearchTerm = '';
 
 async function isCurrentUserAdmin(user) {
   if (!user?.id) return false;
@@ -206,16 +207,80 @@ async function loadRegistrations() {
   updateStats();
 }
 
+function getFilteredRegistrations() {
+  const term = registrationSearchTerm.trim().toLowerCase();
+
+  if (!term) {
+    return registrations;
+  }
+
+  return registrations.filter((registration) => {
+    let matchedEvent = null;
+    let matchedSession = null;
+
+    for (const event of events) {
+      const session = (event.sessions || []).find((s) => s.id === registration.session_id);
+      if (session) {
+        matchedEvent = event;
+        matchedSession = session;
+        break;
+      }
+    }
+
+    const searchableText = [
+      registration.full_name,
+      registration.email,
+      registration.phone,
+      registration.emergency_contact_name,
+      registration.emergency_contact_phone,
+      registration.food_allergies,
+      registration.medical_conditions,
+      matchedEvent?.title,
+      matchedSession?.title,
+      matchedSession?.startTime,
+      matchedSession?.endTime
+    ].filter(Boolean).join(' ').toLowerCase();
+
+    return searchableText.includes(term);
+  });
+}
+
+function updateRegistrationsSearchSummary(visibleCount, totalCount) {
+  const summary = document.getElementById('registrationsSearchSummary');
+  if (!summary) return;
+
+  if (!totalCount) {
+    summary.textContent = '';
+    return;
+  }
+
+  if (!registrationSearchTerm.trim()) {
+    summary.textContent = `Showing all ${totalCount} registration${totalCount === 1 ? '' : 's'}.`;
+    return;
+  }
+
+  summary.textContent = `Showing ${visibleCount} of ${totalCount} registration${totalCount === 1 ? '' : 's'} for “${registrationSearchTerm.trim()}”.`;
+}
+
 function renderRegistrations() {
   const container = document.getElementById('registrationsList');
   if (!container) return;
 
   if (!registrations.length) {
     container.innerHTML = '<div class="empty-state"><p>No registrations yet.</p></div>';
+    updateRegistrationsSearchSummary(0, 0);
     return;
   }
 
-  container.innerHTML = registrations.map((registration) => {
+  const filteredRegistrations = getFilteredRegistrations();
+  updateRegistrationsSearchSummary(filteredRegistrations.length, registrations.length);
+
+  if (!filteredRegistrations.length) {
+    container.innerHTML = '<div class="empty-state"><p>No registrations match your search.</p></div>';
+    return;
+  }
+
+  container.innerHTML = filteredRegistrations.map((registration) => {
     let matchedEvent = null;
     let matchedSession = null;
 
@@ -266,6 +331,22 @@ function renderRegistrations() {
       </div>
     `;
   }).join('');
+}
+
+function handleRegistrationSearch() {
+  const input = document.getElementById('registrationSearch');
+  registrationSearchTerm = input?.value || '';
+  renderRegistrations();
+}
+
+function clearRegistrationSearch() {
+  const input = document.getElementById('registrationSearch');
+  if (input) {
+    input.value = '';
+  }
+
+  registrationSearchTerm = '';
+  renderRegistrations();
 }
 
 function saveButtonLoading(isLoading) {
@@ -684,6 +765,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const emailInput = document.getElementById('adminEmail');
   const passwordInput = document.getElementById('adminPassword');
+  const registrationSearchInput = document.getElementById('registrationSearch');
 
   emailInput?.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') attemptLogin();
@@ -692,6 +774,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   passwordInput?.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') attemptLogin();
   });
+
+  registrationSearchInput?.addEventListener('input', handleRegistrationSearch);
 
   await initializeAdminAuth();
 });
@@ -705,3 +789,4 @@ window.addSessionForm = addSessionForm;
 window.removeSessionForm = removeSessionForm;
 window.resetForm = resetForm;
 window.exportData = exportData;
+window.clearRegistrationSearch = clearRegistrationSearch;
