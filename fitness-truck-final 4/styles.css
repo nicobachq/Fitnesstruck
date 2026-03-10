@@ -1009,3 +1009,49 @@ body.admin-page{
   border-radius:999px 999px 40% 40%;
   background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
 }
+
+/* Final copy + mobile alignment pass */
+.section-header.centered .section-desc{
+  margin-left:auto;
+  margin-right:auto;
+}
+
+.hero-subtitle,
+.section-desc{
+  max-width:62ch;
+}
+
+@media (max-width:768px){
+  .section-header.centered{
+    text-align:center;
+  }
+
+  .section-header.centered .section-eyebrow,
+  .section-header.centered .section-title,
+  .calendar-title,
+  .auth-title{
+    text-align:center;
+  }
+
+  .section-header.centered .section-desc,
+  .hero-subtitle,
+  .process-card p,
+  .expect-card p,
+  .team-bio,
+  .contact-item,
+  .contact-form .form-group label,
+  .auth-card p,
+  .auth-muted,
+  .auth-helper,
+  .auth-confirm-hint,
+  .auth-optin-note{
+    text-align:left;
+  }
+
+  .section-header.centered .section-desc,
+  .hero-subtitle{
+    margin-left:auto;
+    margin-right:auto;
+    max-width:34rem;
+  }
+}

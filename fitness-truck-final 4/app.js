@@ -263,7 +263,7 @@ function getRegistrationPriceLabel(item) {
   return price > 0 ? `CHF ${price.toFixed(2)}` : 'Price not set yet';
 }
 
-function renderUpcomingRegistrationCards(items = [], emptyMessage = 'No upcoming bookings yet.') {
+function renderUpcomingRegistrationCards(items = [], emptyMessage = 'No upcoming events yet.') {
   if (!items.length) {
     return `<div class="auth-registrations-empty">${escapeHtml(emptyMessage)}</div>`;
   }
@@ -272,7 +272,7 @@ function renderUpcomingRegistrationCards(items = [], emptyMessage = 'No upcoming
     <article class="auth-registration-card">
       <div class="auth-registration-card-top">
         <div>
-          <div class="auth-registration-kicker">Upcoming booking</div>
+          <div class="auth-registration-kicker">Upcoming event</div>
           <h4>${escapeHtml(item.event_title || 'Event')}</h4>
         </div>
         <span class="auth-registration-status upcoming">Upcoming</span>
@@ -307,7 +307,7 @@ function renderUpcomingRegistrationCards(items = [], emptyMessage = 'No upcoming
   `).join('');
 }
 
-function renderPastRegistrationCards(items = [], emptyMessage = 'Your completed sessions will appear here later.') {
+function renderPastRegistrationCards(items = [], emptyMessage = 'Your recent past events will appear here once you have trained with us.') {
   if (!items.length) {
     return `<div class="auth-registrations-empty">${escapeHtml(emptyMessage)}</div>`;
   }
@@ -359,7 +359,7 @@ async function claimGuestRegistrationsByEmail(options = {}) {
     state.claimRegistrationsCount = Number.isFinite(claimedCount) ? claimedCount : 0;
 
     if (!quiet && state.claimRegistrationsCount > 0) {
-      showToast(`${state.claimRegistrationsCount} previous booking${state.claimRegistrationsCount === 1 ? '' : 's'} linked to your account.`, 'success');
+      showToast(`${state.claimRegistrationsCount} earlier booking${state.claimRegistrationsCount === 1 ? '' : 's'} linked to your account.`, 'success');
     }
 
     return state.claimRegistrationsCount;
@@ -410,7 +410,7 @@ function getMyRegistrationsMarkup() {
       <div class="auth-registrations-header">
         <div>
           <h3>My registrations</h3>
-          <p>${state.claimRegistrationsCount > 0 ? `Linked ${state.claimRegistrationsCount} earlier booking${state.claimRegistrationsCount === 1 ? '' : 's'} from your guest email.` : 'See the sessions you already booked with this email address. Older guest bookings with the same email are linked automatically.'}</p>
+          <p>${state.claimRegistrationsCount > 0 ? `Linked ${state.claimRegistrationsCount} earlier booking${state.claimRegistrationsCount === 1 ? '' : 's'} from your guest email.` : 'See the events you already booked with this email address. Older guest bookings with the same email are linked automatically.'}</p>
         </div>
         <span class="auth-registrations-count">${state.myRegistrations.length} total</span>
       </div>
@@ -419,7 +419,7 @@ function getMyRegistrationsMarkup() {
           <strong>Upcoming</strong>
           <span>${upcoming.length}</span>
         </div>
-        ${renderUpcomingRegistrationCards(upcoming, 'No upcoming bookings yet.')}
+        ${renderUpcomingRegistrationCards(upcoming, 'No upcoming events yet.')}
       </div>
       <div class="auth-registrations-group">
         <div class="auth-registrations-group-header">
@@ -427,7 +427,7 @@ function getMyRegistrationsMarkup() {
           <span>${past.length}</span>
         </div>
         <div class="auth-group-note">Recent history only. We keep your full participation log in admin.</div>
-        ${renderPastRegistrationCards(past, 'Your completed sessions will appear here later.')}
+        ${renderPastRegistrationCards(past, 'Your recent past events will appear here once you have trained with us.')}
       </div>
     </section>`;
 }
@@ -587,15 +587,15 @@ function renderHeroSideCard() {
     mount.innerHTML = `
       <div class="floating-card account-hero-card">
         <div class="card-glow"></div>
-        <span class="account-hero-label">Member access</span>
+        <span class="account-hero-label">Account</span>
         <h3>Create your account</h3>
-        <p>Save your details for faster bookings, view your account anytime, and choose whether to receive event news and early-access updates.</p>
+        <p>Book faster, save your details once, and stay close to the next activation in Ticino.</p>
         <div class="account-card-actions">
           <button type="button" class="btn btn-primary" data-open-auth="signup">Create account</button>
           <button type="button" class="btn btn-secondary" data-open-auth="login">Log in</button>
         </div>
         <div class="account-benefits" aria-label="Account benefits">
-          <div class="account-benefit">✓ Faster repeat registrations</div>
+          <div class="account-benefit">✓ Faster future bookings</div>
           <div class="account-benefit">✓ Optional event news opt-in</div>
           <div class="account-benefit">✓ Guest booking still available</div>
         </div>
@@ -623,7 +623,7 @@ function renderHeroSideCard() {
       ${nextEventPhotoUrl ? `<div class="next-event-hero-media"><img src="${escapeAttr(nextEventPhotoUrl)}" alt="${escapeAttr(nextEvent.title)}"></div>` : ''}
       <span class="next-event-kicker">Next event</span>
       <h3>${escapeHtml(nextEvent.title)}</h3>
-      <p>You're signed in. Here is the next event you can book right away in Ticino.</p>
+      <p>You are signed in. Here is the next event you can book right away.</p>
       <div class="next-event-meta">
         <span>${escapeHtml(formatDate(nextEvent.date))}</span>
         <span>${escapeHtml(nextEvent.location)}</span>
@@ -694,7 +694,7 @@ function renderAuthModal() {
           <span class="auth-status-pill">Signed in</span>
           <div>
             <h2 class="auth-title" id="authModalTitle">Edit profile</h2>
-            <p class="auth-muted">Save your default booking details once so future registrations are faster.</p>
+            <p class="auth-muted">Save your default details once so future registrations feel faster and easier.</p>
           </div>
           <div class="auth-profile-layout">
             <div class="auth-avatar-panel">
@@ -786,7 +786,7 @@ function renderAuthModal() {
         <span class="auth-status-pill">Signed in</span>
         <div>
           <h2 class="auth-title" id="authModalTitle">Your account</h2>
-          <p class="auth-muted">These saved details can be reused automatically when you register for a session.</p>
+          <p class="auth-muted">These saved details are reused automatically when you register for the next event.</p>
         </div>
         <div class="auth-account-header">
           <img src="${escapeAttr(profile.avatar_url)}" alt="${escapeAttr(`${getUserDisplayName()} profile photo`)}" class="auth-avatar-image auth-avatar-image-large" />
@@ -867,7 +867,7 @@ function renderAuthModal() {
     <div class="auth-card">
       <div>
         <h2 class="auth-title" id="authModalTitle">Account</h2>
-        <p class="auth-muted">Create a secure Fitness Truck login, or sign in to reuse your details faster.</p>
+        <p class="auth-muted">Create a secure login or sign in to book faster and stay close to the next activation.</p>
       </div>
       <div class="auth-switch" role="tablist" aria-label="Choose account action">
         <button type="button" class="auth-switch-btn ${state.authView === 'login' ? 'active' : ''}" data-auth-view="login">Log in</button>
@@ -901,7 +901,7 @@ function renderAuthModal() {
               <input id="signupMarketingOptIn" name="marketing_opt_in" type="checkbox" />
               <span>Email me news, early access, and event updates.</span>
             </label>
-            <p class="auth-optin-note">Optional and separate from your account login.</p>
+            <p class="auth-optin-note">Optional and always separate from your account login.</p>
           </div>
           <button type="submit" class="btn btn-primary">Create account</button>
           <p class="auth-confirm-hint">After signup, confirm your email from the message we send you before your first login.</p>
@@ -919,7 +919,7 @@ function renderAuthModal() {
           <button type="submit" class="btn btn-primary">Log in</button>
         </form>
       `}
-      <p class="auth-helper">Guest booking still works. This account option just saves time for returning users.</p>
+      <p class="auth-helper">Guest booking still works. Creating an account simply makes future booking faster and smoother.</p>
     </div>`;
 
   mount.querySelectorAll('[data-auth-view]').forEach((button) => {
@@ -1638,7 +1638,7 @@ function renderRegistrationForm() {
 
   const authBanner = state.user
     ? `<div class="auth-registration-banner logged-in"><strong>Signed in as ${escapeHtml(getUserDisplayName())}</strong><br>We prefilled your saved account details below. You can still adjust anything for this registration.</div>`
-    : `<div class="auth-registration-banner">Want faster bookings next time? <button type="button" class="auth-inline-btn" id="openAuthFromRegistration">Create an account or log in</button>.</div>`;
+    : `<div class="auth-registration-banner">Want faster booking next time? <button type="button" class="auth-inline-btn" id="openAuthFromRegistration">Create an account or log in</button>.</div>`;
 
   mount.innerHTML = `
     <div class="registration-panel">
