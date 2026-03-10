@@ -221,3 +221,454 @@ nav{max-width:var(--container-width);margin:0 auto;padding:0 24px;display:flex;j
 .auth-past-history-item time{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.03);font-size:.84rem;color:var(--text-secondary);white-space:nowrap}
 .auth-load-more-history-btn{align-self:flex-start}
 @media (max-width:768px){.auth-past-history-item{flex-direction:column;align-items:flex-start}.auth-past-history-item time{white-space:normal}}
+
+
+/* --- Safe aesthetics pass v20 --- */
+:root{
+  --panel-shadow:0 24px 80px rgba(0,0,0,.28);
+  --soft-shadow:0 16px 44px rgba(0,0,0,.22);
+  --card-highlight:linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
+}
+
+body{
+  background:
+    radial-gradient(circle at top, rgba(255,26,26,.14), transparent 32%),
+    radial-gradient(circle at 85% 20%, rgba(255,255,255,.055), transparent 24%),
+    var(--bg);
+}
+
+.nav-container{
+  backdrop-filter:blur(18px);
+  background:rgba(10,10,10,.62);
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+
+nav{
+  min-height:84px;
+}
+
+.nav-links a,
+.nav-auth-btn{
+  letter-spacing:.01em;
+}
+
+.nav-auth-btn.nav-cta,
+.nav-auth-btn.account-pill,
+.btn{
+  border-radius:16px;
+  min-height:54px;
+}
+
+.btn{
+  box-shadow:0 12px 30px rgba(0,0,0,.18);
+}
+
+.btn-primary{
+  box-shadow:0 16px 34px rgba(255,26,26,.22);
+}
+
+.btn:hover{
+  transform:translateY(-1px);
+}
+
+.hero::after{
+  content:'';
+  position:absolute;
+  inset:auto 0 0;
+  height:180px;
+  background:linear-gradient(180deg, rgba(6,6,6,0), rgba(6,6,6,.92));
+  pointer-events:none;
+}
+
+.hero-content{
+  gap:56px;
+  align-items:center;
+}
+
+.hero-left,
+.hero-right{
+  position:relative;
+  z-index:1;
+}
+
+.hero-badge,
+.next-event-kicker,
+.badge{
+  backdrop-filter:blur(12px);
+}
+
+.hero-title{
+  line-height:.92;
+  letter-spacing:-.04em;
+}
+
+.hero-subtitle,
+.section-desc,
+.expect-card p,
+.process-card p,
+.team-bio,
+.contact-item,
+.auth-card p,
+.auth-registrations-header p{
+  color:rgba(255,255,255,.74);
+}
+
+.hero-actions{
+  gap:14px;
+}
+
+.location-badges{
+  gap:12px;
+}
+
+#heroSideCard > *,
+.floating-card,
+.event-card,
+.process-card,
+.expect-card,
+.team-card,
+.contact-form-wrapper,
+.calendar-item,
+.auth-registrations-panel,
+.auth-account-header,
+.auth-summary-item,
+.auth-profile-static,
+.auth-avatar-panel,
+.auth-registration-card,
+.auth-past-history-item,
+.form-panel,
+.login-box,
+.event-item,
+.stat-card{
+  background:var(--card-highlight), var(--bg-card);
+  box-shadow:var(--soft-shadow);
+}
+
+.floating-card,
+#heroSideCard > *{
+  border-radius:28px;
+}
+
+.section-header{
+  margin-bottom:40px;
+}
+
+.section-header.centered{
+  max-width:760px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+.section-title{
+  letter-spacing:-.03em;
+}
+
+.events-showcase,
+.process-grid,
+.expect-cards,
+.team-grid,
+.contact-grid{
+  gap:24px;
+}
+
+.event-card,
+.process-card,
+.expect-card,
+.team-card,
+.contact-form-wrapper{
+  transition:transform .24s ease, border-color .24s ease, box-shadow .24s ease;
+}
+
+.event-card:hover,
+.process-card:hover,
+.expect-card:hover,
+.team-card:hover,
+.calendar-item:hover,
+.auth-registration-card:hover,
+.auth-past-history-item:hover,
+.event-item:hover{
+  transform:translateY(-3px);
+  border-color:rgba(255,255,255,.14);
+}
+
+.event-card{
+  border-radius:24px;
+  overflow:hidden;
+}
+
+.event-card-content,
+.process-card,
+.expect-card,
+.team-card,
+.contact-form-wrapper{
+  padding:26px;
+}
+
+.event-card-hero,
+.calendar-day-card{
+  border-radius:22px;
+}
+
+.process-icon,
+.contact-icon{
+  box-shadow:0 10px 26px rgba(255,26,26,.18);
+}
+
+.feature-item,
+.auth-registrations-count,
+.auth-registration-meta span,
+.auth-registration-footer span,
+.auth-past-history-item time{
+  background:rgba(255,255,255,.04);
+}
+
+.modal-backdrop{
+  backdrop-filter:blur(8px);
+}
+
+.modal-content,
+.auth-modal,
+.auth-modal-content{
+  border-radius:28px;
+}
+
+.modal-content,
+.auth-modal-content,
+.form-panel,
+.login-box{
+  box-shadow:var(--panel-shadow);
+}
+
+.form-group label,
+.auth-summary-item strong,
+.auth-profile-static strong,
+.auth-registration-detail strong,
+.auth-registration-kicker,
+.auth-past-history-main p,
+.stat-label{
+  letter-spacing:.06em;
+}
+
+input,
+textarea,
+select{
+  border-radius:16px;
+  min-height:56px;
+  background:rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.1);
+  transition:border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+
+textarea{
+  min-height:120px;
+}
+
+input:focus,
+textarea:focus,
+select:focus{
+  background:rgba(255,255,255,.06);
+  box-shadow:0 0 0 4px rgba(255,26,26,.09);
+}
+
+.auth-account-header{
+  padding:22px;
+}
+
+.auth-avatar-image-large{
+  box-shadow:0 18px 36px rgba(0,0,0,.24);
+}
+
+.auth-summary-grid,
+.auth-profile-grid{
+  gap:14px;
+}
+
+.auth-registration-card,
+.auth-past-history-item,
+.auth-avatar-panel,
+.auth-summary-item,
+.auth-profile-static{
+  border-color:rgba(255,255,255,.09);
+}
+
+.auth-registration-card-top h4,
+.auth-past-history-main h4,
+.auth-card h2,
+.auth-card h3{
+  letter-spacing:-.02em;
+}
+
+.auth-load-more-history-btn,
+.auth-actions .btn,
+.account-card-actions .btn{
+  min-height:50px;
+}
+
+.site-footer{
+  background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01)), var(--bg-elevated);
+}
+
+/* Admin refinement */
+.admin-header{
+  background:rgba(8,8,8,.82);
+  backdrop-filter:blur(18px);
+  box-shadow:0 10px 30px rgba(0,0,0,.2);
+}
+
+.admin-header-content{
+  max-width:1440px;
+}
+
+.admin-nav a,
+.logout-btn{
+  transition:color .2s ease, border-color .2s ease, background .2s ease;
+}
+
+.logout-btn:hover,
+.admin-nav a:hover{
+  color:var(--text);
+  border-color:rgba(255,255,255,.14);
+}
+
+.demo-banner{
+  border-radius:18px;
+  padding:18px 22px;
+  background:linear-gradient(90deg, rgba(255,149,0,.12), rgba(255,149,0,.08));
+}
+
+.stats-bar{
+  grid-template-columns:repeat(5, minmax(0,1fr));
+  gap:18px;
+}
+
+.stat-card{
+  border-radius:22px;
+  padding:26px 22px;
+  border-color:rgba(255,255,255,.08);
+}
+
+.stat-value{
+  font-size:2.25rem;
+}
+
+.admin-grid{
+  gap:28px;
+  align-items:start;
+}
+
+.events-section,
+.form-section{
+  min-width:0;
+}
+
+.section-title{
+  gap:16px;
+}
+
+.section-title .btn{
+  min-height:44px;
+}
+
+.event-item{
+  border-radius:22px;
+  border-color:rgba(255,255,255,.08);
+}
+
+.event-header{
+  padding:22px 24px;
+}
+
+.event-sessions-preview{
+  padding:0 24px 22px;
+}
+
+.events-list{
+  gap:18px;
+}
+
+.form-panel{
+  padding:30px;
+  border-radius:26px;
+  border-color:rgba(255,255,255,.08);
+  background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)), var(--bg-card);
+}
+
+.sessions-builder{
+  margin-top:28px;
+  padding-top:28px;
+}
+
+.session-form{
+  border-radius:18px;
+  padding:18px;
+  background:rgba(255,255,255,.04);
+}
+
+#registrationsSearchSummary{
+  color:rgba(255,255,255,.72);
+}
+
+#registrationsList .event-item{
+  position:relative;
+}
+
+.login-box{
+  max-width:430px;
+  padding:44px;
+}
+
+.login-box h1{
+  margin-bottom:8px;
+}
+
+.login-box input{
+  margin-bottom:12px;
+}
+
+.toast{
+  border-radius:18px;
+  box-shadow:var(--panel-shadow);
+}
+
+@media (max-width:1180px){
+  .stats-bar{grid-template-columns:repeat(3,minmax(0,1fr));}
+}
+
+@media (max-width:1024px){
+  .hero-content{gap:42px;}
+  .event-card-content,
+  .process-card,
+  .expect-card,
+  .team-card,
+  .contact-form-wrapper{padding:22px;}
+  .stats-bar{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+
+@media (max-width:768px){
+  .nav-container{background:rgba(8,8,8,.78);}
+  nav{min-height:74px;}
+  .hero::after{height:120px;}
+  .hero-content{gap:28px;}
+  .hero-title{font-size:2.9rem;}
+  .hero-actions{width:100%;}
+  .hero-actions .btn{flex:1;justify-content:center;}
+  .event-card-content,
+  .process-card,
+  .expect-card,
+  .team-card,
+  .contact-form-wrapper,
+  .form-panel,
+  .login-box{padding:20px;}
+  .floating-card,
+  #heroSideCard > *{border-radius:24px;}
+  .stats-bar{grid-template-columns:1fr 1fr;}
+  .stat-card{padding:20px 16px;}
+  .event-header{padding:20px;}
+  .event-sessions-preview{padding:0 20px 20px;}
+}
+
+@media (max-width:560px){
+  .stats-bar{grid-template-columns:1fr;}
+  .section-title{font-size:1.9rem;}
+  .auth-account-header{padding:18px;}
+}
