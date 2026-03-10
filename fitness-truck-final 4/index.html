@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="preload" as="image" href="assets/hero-banner-draft.png">
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=22" />
 </head>
 <body>
   <div class="noise-overlay"></div>
@@ -17,7 +17,7 @@
   <div class="nav-container" id="navbar">
     <nav>
       <a href="#top" class="logo">
-        <img src="assets/logo-transparent.png" alt="Fitness Truck - The Gym That Moves" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <img src="assets/logo-transparent.png" alt="Fitness Truck - The Gym That Moves" class="logo-img" onerror="this.closest(\'.team-image\').classList.add(\'team-image--placeholder\'); this.remove();">
         <div class="logo-fallback" style="display:none;">
           <div class="logo-icon">FT</div>
           <span>FITNESS TRUCK</span>
@@ -150,6 +150,20 @@
           <div class="feature-item"><span class="feature-label">Expert Coaching</span></div>
           <div class="feature-item"><span class="feature-label">Premium Equipment</span></div>
         </div>
+        <div class="expect-photo-strip">
+          <figure class="expect-photo-card">
+            <img src="assets/expect-photo-1.jpg" alt="Placeholder image for a Fitness Truck training moment by the lake" class="expect-photo">
+            <figcaption>Lakefront energy</figcaption>
+          </figure>
+          <figure class="expect-photo-card">
+            <img src="assets/expect-photo-2.jpg" alt="Placeholder image for a Fitness Truck functional training session outdoors" class="expect-photo">
+            <figcaption>Functional outdoor training</figcaption>
+          </figure>
+          <figure class="expect-photo-card">
+            <img src="assets/expect-photo-3.jpg" alt="Placeholder image for a Fitness Truck recovery and community moment" class="expect-photo">
+            <figcaption>Recovery and connection</figcaption>
+          </figure>
+        </div>
         <div class="expect-cards">
           <div class="expect-card">
             <h4>Session Format</h4>
@@ -172,8 +186,7 @@
         <div class="team-grid">
           <div class="team-card">
             <div class="team-image">
-              <img src="assets/team-nicolas.jpg" alt="Nicolas Bachmann" class="team-photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-              <div class="team-initials">NB</div>
+              <img src="assets/team-nicolas.jpg" alt="Nicolas Bachmann" class="team-photo" onerror="this.closest(\'.team-image\').classList.add(\'team-image--placeholder\'); this.remove();">
             </div>
             <h3>Nicolas Bachmann</h3>
             <p class="team-role">COO · Brand & Product Vision</p>
@@ -181,8 +194,7 @@
           </div>
           <div class="team-card">
             <div class="team-image">
-              <img src="assets/team-nazareno.jpg" alt="Nazareno Piella" class="team-photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-              <div class="team-initials">NP</div>
+              <img src="assets/team-nazareno.jpg" alt="Nazareno Piella" class="team-photo" onerror="this.closest(\'.team-image\').classList.add(\'team-image--placeholder\'); this.remove();">
             </div>
             <h3>Nazareno Piella</h3>
             <p class="team-role">Exercise Science · Athletic Trainer</p>
@@ -190,8 +202,7 @@
           </div>
           <div class="team-card">
             <div class="team-image">
-              <img src="assets/team-lorenzo.jpg" alt="Lorenzo Fornasari" class="team-photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-              <div class="team-initials">LF</div>
+              <img src="assets/team-lorenzo.jpg" alt="Lorenzo Fornasari" class="team-photo" onerror="this.closest(\'.team-image\').classList.add(\'team-image--placeholder\'); this.remove();">
             </div>
             <h3>Lorenzo Fornasari</h3>
             <p class="team-role">Physiotherapist · Osteopath · Nutrition</p>
@@ -277,6 +288,6 @@
   <div class="toast-container" id="toastContainer" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=21"></script>
+  <script src="app.js?v=22"></script>
 </body>
 </html>

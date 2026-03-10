@@ -1485,7 +1485,8 @@ function renderEvents() {
 
     return `
       <article class="event-card" tabindex="0" data-event-id="${escapeAttr(event.id)}">
-        <div class="event-image ${getEventPhotoUrl(event) ? 'has-photo' : ''}" data-location="${escapeAttr(getEventLocationMarker(event))}" ${getEventPhotoStyle(event)}>
+        <div class="event-image ${getEventPhotoUrl(event) ? 'has-photo' : ''}" data-location="${escapeAttr(getEventLocationMarker(event))}">
+          ${getEventPhotoUrl(event) ? `<img class="event-image-photo" src="${escapeAttr(getEventPhotoUrl(event))}" alt="${escapeAttr(event.title)}">` : ''}
           ${isSoldOut ? '<span class="event-badge sold-out">Sold Out</span>' : fillPercentage > 80 ? '<span class="event-badge">Almost Full</span>' : ''}
           ${getEventPhotoUrl(event) ? '' : `<span class="event-image-caption">${escapeHtml(getEventLocationMarker(event))}</span>`}
         </div>
