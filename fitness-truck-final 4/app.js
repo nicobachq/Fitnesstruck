@@ -670,78 +670,12 @@ function rerenderLanguageUI() {
   initForms();
 }
 
-
-let languageSwitchUnlockTimer = null;
-
-function lockLanguageSwitchLayout() {
-  document.documentElement.classList.add('is-lang-switching');
-  [
-    '.hero-left',
-    '.hero-right',
-    '.hero-subtitle',
-    '.hero-actions',
-    '#heroSideCard'
-  ].forEach((selector) => {
-    const el = document.querySelector(selector);
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    if (rect.height > 0) {
-      el.dataset.langSwitchLock = '1';
-      el.style.minHeight = `${Math.ceil(rect.height)}px`;
-    }
-  });
-
-  const heroCard = document.querySelector('#heroSideCard > *');
-  if (heroCard) {
-    const rect = heroCard.getBoundingClientRect();
-    if (rect.height > 0) {
-      heroCard.dataset.langSwitchLock = '1';
-      heroCard.style.minHeight = `${Math.ceil(rect.height)}px`;
-    }
-  }
-
-  const media = document.querySelector('#heroSideCard .next-event-hero-media');
-  if (media) {
-    const rect = media.getBoundingClientRect();
-    if (rect.height > 0) {
-      media.dataset.langSwitchLock = '1';
-      media.style.height = `${Math.ceil(rect.height)}px`;
-      media.style.minHeight = `${Math.ceil(rect.height)}px`;
-    }
-  }
-}
-
-function unlockLanguageSwitchLayout() {
-  document.documentElement.classList.remove('is-lang-switching');
-  document.querySelectorAll('[data-lang-switch-lock]').forEach((el) => {
-    el.style.minHeight = '';
-    el.style.height = '';
-    el.removeAttribute('data-lang-switch-lock');
-  });
-}
-
-function scheduleLanguageSwitchUnlock() {
-  if (languageSwitchUnlockTimer) clearTimeout(languageSwitchUnlockTimer);
-
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      unlockLanguageSwitchLayout();
-    });
-  });
-
-  languageSwitchUnlockTimer = setTimeout(() => {
-    unlockLanguageSwitchLayout();
-  }, 260);
-}
-
 function setLanguage(language) {
   const nextLanguage = language === 'en' ? 'en' : 'it';
   if (state.language === nextLanguage) return;
-  lockLanguageSwitchLayout();
   state.language = nextLanguage;
   try { localStorage.setItem('ft_lang', nextLanguage); } catch (error) { /* noop */ }
   rerenderLanguageUI();
-  scheduleLanguageSwitchUnlock();
 }
 
 function initLanguage() {
