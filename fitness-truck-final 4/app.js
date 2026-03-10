@@ -31,7 +31,10 @@ const state = {
   myRegistrations: [],
   myRegistrationsStatus: 'idle',
   myRegistrationsError: '',
-  myRegistrationsForEmail: ''
+  myRegistrationsForEmail: '',
+  claimRegistrationsStatus: 'idle',
+  claimRegistrationsForEmail: '',
+  claimRegistrationsCount: 0
 };
 
 function getUserMetadata(user = state.user) {
@@ -205,6 +208,12 @@ function resetMyRegistrationsState() {
   state.myRegistrationsForEmail = '';
 }
 
+function resetClaimRegistrationsState() {
+  state.claimRegistrationsStatus = 'idle';
+  state.claimRegistrationsForEmail = '';
+  state.claimRegistrationsCount = 0;
+}
+
 function normalizeMyRegistrationItem(item = {}) {
   return {
     registration_id: String(item.registration_id || ''),
@@ -282,6 +291,46 @@ function renderMyRegistrationCards(items = [], emptyMessage = 'No registrations 
   `).join('');
 }
 
+async function claimGuestRegistrationsByEmail(options = {}) {
+  const { force = false, quiet = false } = options;
+  const userEmail = String(state.user?.email || '').trim().toLowerCase();
+
+  if (!state.user || !userEmail) {
+    resetClaimRegistrationsState();
+    return 0;
+  }
+
+  if (!force && state.claimRegistrationsStatus === 'loading') return state.claimRegistrationsCount;
+  if (!force && state.claimRegistrationsStatus === 'success' && state.claimRegistrationsForEmail === userEmail) {
+    return state.claimRegistrationsCount;
+  }
+
+  state.claimRegistrationsStatus = 'loading';
+  state.claimRegistrationsForEmail = userEmail;
+
+  try {
+    const { data, error } = await supabaseClient.rpc('claim_my_registrations_by_email');
+    if (error) throw error;
+
+    const claimedCount = Number(data?.claimed_count || data?.claimedCount || 0);
+    state.claimRegistrationsStatus = 'success';
+    state.claimRegistrationsForEmail = userEmail;
+    state.claimRegistrationsCount = Number.isFinite(claimedCount) ? claimedCount : 0;
+
+    if (!quiet && state.claimRegistrationsCount > 0) {
+      showToast(`${state.claimRegistrationsCount} previous booking${state.claimRegistrationsCount === 1 ? '' : 's'} linked to your account.`, 'success');
+    }
+
+    return state.claimRegistrationsCount;
+  } catch (error) {
+    console.error('Claim registrations error:', error);
+    state.claimRegistrationsStatus = 'error';
+    state.claimRegistrationsForEmail = userEmail;
+    state.claimRegistrationsCount = 0;
+    return 0;
+  }
+}
+
 function getMyRegistrationsMarkup() {
   if (!state.user) return '';
 
@@ -320,7 +369,7 @@ function getMyRegistrationsMarkup() {
       <div class="auth-registrations-header">
         <div>
           <h3>My registrations</h3>
-          <p>See the sessions you already booked with this email address.</p>
+          <p>${state.claimRegistrationsCount > 0 ? `Linked ${state.claimRegistrationsCount} earlier booking${state.claimRegistrationsCount === 1 ? '' : 's'} from your guest email.` : 'See the sessions you already booked with this email address. Older guest bookings with the same email are linked automatically.'}</p>
         </div>
         <span class="auth-registrations-count">${state.myRegistrations.length} total</span>
       </div>
@@ -346,7 +395,13 @@ async function loadMyRegistrations(options = {}) {
   const userEmail = String(state.user?.email || '').trim().toLowerCase();
   if (!userEmail) {
     resetMyRegistrationsState();
+    resetClaimRegistrationsState();
     return [];
+  }
+
+  const alreadyClaimedForEmail = state.claimRegistrationsStatus === 'success' && state.claimRegistrationsForEmail === userEmail;
+  if (!alreadyClaimedForEmail || force) {
+    await claimGuestRegistrationsByEmail({ force, quiet: false });
   }
 
   if (!force && state.myRegistrationsStatus === 'loading') return state.myRegistrations;
@@ -452,8 +507,10 @@ function refreshAuthDependentUI() {
   if (!state.user) {
     state.accountMode = 'summary';
     resetMyRegistrationsState();
+    resetClaimRegistrationsState();
   } else if (state.myRegistrationsForEmail && state.myRegistrationsForEmail !== String(state.user.email || '').trim().toLowerCase()) {
     resetMyRegistrationsState();
+    resetClaimRegistrationsState();
   }
   updateAccountButton();
   scheduleHeroSideCardRender();
@@ -1292,6 +1349,7 @@ function initAuth() {
       state.accountMode = 'summary';
       clearPendingProfileAvatarState();
       resetMyRegistrationsState();
+      resetClaimRegistrationsState();
     }
     refreshAuthDependentUI();
     if (state.user && !wasEditingProfile) loadMyRegistrations();
