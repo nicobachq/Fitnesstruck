@@ -1,4 +1,4 @@
-// force fresh deploy for registration delete management
+// admin attendance tracking update
 const CONFIG = {
   SUPABASE_URL: 'https://xqmwipogfcfjmqsiqdbu.supabase.co',
   SUPABASE_KEY: 'sb_publishable_acr4jKu8IG-THTIn40q3eA_uOiEaOCj'
@@ -13,6 +13,44 @@ let currentAdminUser = null;
 let registrations = [];
 let registrationSearchTerm = '';
 let isSyncingSessionCounts = false;
+
+
+const REGISTRATION_STATUS_LABELS = {
+  registered: 'Registered',
+  attended: 'Attended',
+  cancelled: 'Cancelled',
+  no_show: 'No-show'
+};
+
+function normalizeRegistrationStatus(status) {
+  const value = String(status || '').trim().toLowerCase();
+  return REGISTRATION_STATUS_LABELS[value] ? value : 'registered';
+}
+
+function formatRegistrationStatusLabel(status) {
+  return REGISTRATION_STATUS_LABELS[normalizeRegistrationStatus(status)] || 'Registered';
+}
+
+function isSeatCountingStatus(status) {
+  return normalizeRegistrationStatus(status) !== 'cancelled';
+}
+
+function getRegistrationStatusBadgeStyles(status) {
+  switch (normalizeRegistrationStatus(status)) {
+    case 'attended':
+      return 'background:rgba(34,197,94,0.14);color:#166534;border:1px solid rgba(34,197,94,0.28);';
+    case 'cancelled':
+      return 'background:rgba(239,68,68,0.12);color:#991b1b;border:1px solid rgba(239,68,68,0.22);';
+    case 'no_show':
+      return 'background:rgba(245,158,11,0.14);color:#92400e;border:1px solid rgba(245,158,11,0.28);';
+    default:
+      return 'background:rgba(59,130,246,0.12);color:#1d4ed8;border:1px solid rgba(59,130,246,0.22);';
+  }
+}
+
+function getRegistrationStatusSelectId(registrationId) {
+  return `registration-status-${String(registrationId || '').replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+}
 
 async function isCurrentUserAdmin(user) {
   if (!user?.id) return false;
@@ -167,6 +205,7 @@ function buildLiveRegistrationCountMap() {
 
   registrations.forEach((registration) => {
     if (!registration?.session_id) return;
+    if (!isSeatCountingStatus(registration.attendance_status)) return;
     countMap.set(registration.session_id, (countMap.get(registration.session_id) || 0) + 1);
   });
 
@@ -298,6 +337,23 @@ function getRegistrationMatchDetails(registration) {
   return { matchedEvent, matchedSession };
 }
 
+function getEventRegistrationStatusCounts(event) {
+  const sessionIds = new Set((event?.sessions || []).map((session) => session.id));
+  const counts = {
+    registered: 0,
+    attended: 0,
+    cancelled: 0,
+    no_show: 0
+  };
+
+  registrations.forEach((registration) => {
+    if (!sessionIds.has(registration.session_id)) return;
+    counts[normalizeRegistrationStatus(registration.attendance_status)] += 1;
+  });
+
+  return counts;
+}
+
 function getFilteredRegistrations() {
   const term = registrationSearchTerm.trim().toLowerCase();
 
@@ -317,6 +373,7 @@ function getFilteredRegistrations() {
       registration.gender,
       registration.food_allergies,
       registration.medical_conditions,
+      formatRegistrationStatusLabel(registration.attendance_status),
       matchedEvent?.title,
       matchedSession?.title,
       matchedSession?.startTime,
@@ -378,6 +435,43 @@ async function deleteRegistration(registrationId) {
   }
 }
 
+async function updateRegistrationStatus(registrationId, nextStatus) {
+  const normalizedStatus = normalizeRegistrationStatus(nextStatus);
+  const registration = registrations.find((item) => item.id === registrationId);
+
+  if (!registrationId || !registration) {
+    showToast('Could not find this registration.', 'error');
+    return;
+  }
+
+  try {
+    const { error } = await supabaseClient
+      .from('registrations')
+      .update({ attendance_status: normalizedStatus })
+      .eq('id', registrationId);
+
+    if (error) throw error;
+
+    registration.attendance_status = normalizedStatus;
+    refreshAdminDataView();
+    await syncStoredSessionCountsToSupabase();
+    showToast(`${registration.full_name || 'Registration'} marked as ${formatRegistrationStatusLabel(normalizedStatus).toLowerCase()}.`, 'success');
+  } catch (error) {
+    console.error('Registration status update failed:', error);
+    showToast(error.message || 'Could not update registration status.', 'error');
+  }
+}
+
+function saveRegistrationStatus(registrationId) {
+  const select = document.getElementById(getRegistrationStatusSelectId(registrationId));
+  if (!select) {
+    showToast('Status selector not found.', 'error');
+    return;
+  }
+
+  updateRegistrationStatus(registrationId, select.value);
+}
+
 function updateRegistrationsSearchSummary(visibleCount, totalCount) {
   const summary = document.getElementById('registrationsSearchSummary');
   if (!summary) return;
@@ -415,14 +509,21 @@ function renderRegistrations() {
 
   container.innerHTML = filteredRegistrations.map((registration) => {
     const { matchedEvent, matchedSession } = getRegistrationMatchDetails(registration);
+    const normalizedStatus = normalizeRegistrationStatus(registration.attendance_status);
+    const statusLabel = formatRegistrationStatusLabel(normalizedStatus);
+    const statusSelectId = getRegistrationStatusSelectId(registration.id || '');
 
     return `
       <div class="event-item">
         <div class="event-header" style="align-items:flex-start; gap:16px;">
           <div class="event-info">
-            <h3>${escapeHtml(registration.full_name || 'No name')}</h3>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <h3 style="margin:0;">${escapeHtml(registration.full_name || 'No name')}</h3>
+              <span style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;font-size:0.82rem;font-weight:600;${getRegistrationStatusBadgeStyles(normalizedStatus)}">${escapeHtml(statusLabel)}</span>
+              <span style="font-size:0.82rem;opacity:0.72;">${registration.user_id ? 'Linked account' : 'Guest booking'}</span>
+            </div>
 
-            <div class="event-meta">
+            <div class="event-meta" style="margin-top:8px;">
               ${escapeHtml(registration.email || 'No email')}
               ${registration.phone ? ` · ${escapeHtml(registration.phone)}` : ''}
             </div>
@@ -448,11 +549,18 @@ function renderRegistrations() {
             </div>
 
             <div class="event-meta" style="margin-top:4px;">
-              ${registration.created_at ? new Date(registration.created_at).toLocaleString() : ''}
+              ${registration.created_at ? `Booked: ${new Date(registration.created_at).toLocaleString()}` : ''}
             </div>
           </div>
-          <div class="event-actions" style="flex-shrink:0;">
-            <button class="btn btn-danger btn-sm" onclick="deleteRegistration('${escapeJs(registration.id || '')}')">Delete</button>
+          <div class="event-actions" style="flex-shrink:0;min-width:210px;display:flex;flex-direction:column;gap:8px;align-items:stretch;">
+            <label for="${escapeAttr(statusSelectId)}" style="font-size:0.82rem;font-weight:600;opacity:0.78;">Attendance status</label>
+            <select id="${escapeAttr(statusSelectId)}" style="padding:10px 12px;border-radius:12px;border:1px solid rgba(15,23,42,0.14);background:#fff;">
+              ${Object.entries(REGISTRATION_STATUS_LABELS).map(([value, label]) => `<option value="${escapeAttr(value)}" ${normalizedStatus === value ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}
+            </select>
+            <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
+              <button class="btn btn-secondary btn-sm" onclick="saveRegistrationStatus('${escapeJs(registration.id || '')}')">Update</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteRegistration('${escapeJs(registration.id || '')}')">Delete</button>
+            </div>
           </div>
         </div>
       </div>
@@ -595,13 +703,15 @@ function renderEvents() {
     const isPast = new Date(event.date) < today;
     const totalSpots = event.sessions.reduce((sum, session) => sum + session.maxParticipants, 0);
     const totalRegistered = event.sessions.reduce((sum, session) => sum + (session.registered || 0), 0);
+    const statusCounts = getEventRegistrationStatusCounts(event);
 
     return `
       <div class="event-item">
         <div class="event-header" onclick="toggleEvent('${escapeJs(event.id)}')">
           <div class="event-info">
             <h3>${escapeHtml(event.title)} ${isPast ? '<span style="color:var(--text-muted);font-size:.8rem;">(Past)</span>' : ''}</h3>
-            <div class="event-meta">${formatDate(event.date)} · ${escapeHtml(event.location)} · ${totalRegistered}/${totalSpots} registered</div>
+            <div class="event-meta">${formatDate(event.date)} · ${escapeHtml(event.location)} · ${totalRegistered}/${totalSpots} active</div>
+            <div class="event-meta" style="margin-top:4px;">Attended: ${statusCounts.attended} · No-show: ${statusCounts.no_show} · Cancelled: ${statusCounts.cancelled}</div>
           </div>
           <div class="event-actions" onclick="event.stopPropagation()">
             <button class="btn btn-secondary btn-sm" onclick="editEvent('${escapeJs(event.id)}')">Edit</button>
@@ -624,10 +734,13 @@ function updateStats() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  const attendedCount = registrations.filter((registration) => normalizeRegistrationStatus(registration.attendance_status) === 'attended').length;
+
   document.getElementById('totalEvents').textContent = events.length;
   document.getElementById('upcomingEvents').textContent = events.filter((event) => new Date(event.date) >= today).length;
   document.getElementById('totalSessions').textContent = events.reduce((sum, event) => sum + event.sessions.length, 0);
   document.getElementById('totalRegistrations').textContent = registrations.length;
+  document.getElementById('attendedRegistrations').textContent = attendedCount;
 }
 
 function initForm() {
@@ -920,3 +1033,4 @@ window.resetForm = resetForm;
 window.exportData = exportData;
 window.clearRegistrationSearch = clearRegistrationSearch;
 window.deleteRegistration = deleteRegistration;
+window.saveRegistrationStatus = saveRegistrationStatus;
