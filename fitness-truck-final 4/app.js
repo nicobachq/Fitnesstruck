@@ -34,7 +34,8 @@ const state = {
   myRegistrationsForEmail: '',
   claimRegistrationsStatus: 'idle',
   claimRegistrationsForEmail: '',
-  claimRegistrationsCount: 0
+  claimRegistrationsCount: 0,
+  visiblePastRegistrations: 5
 };
 
 function getUserMetadata(user = state.user) {
@@ -206,6 +207,7 @@ function resetMyRegistrationsState() {
   state.myRegistrationsStatus = 'idle';
   state.myRegistrationsError = '';
   state.myRegistrationsForEmail = '';
+  state.visiblePastRegistrations = 5;
 }
 
 function resetClaimRegistrationsState() {
@@ -247,7 +249,7 @@ function getRegistrationPriceLabel(item) {
   return price > 0 ? `CHF ${price.toFixed(2)}` : 'Price not set yet';
 }
 
-function renderMyRegistrationCards(items = [], emptyMessage = 'No registrations yet.') {
+function renderUpcomingRegistrationCards(items = [], emptyMessage = 'No upcoming bookings yet.') {
   if (!items.length) {
     return `<div class="auth-registrations-empty">${escapeHtml(emptyMessage)}</div>`;
   }
@@ -256,10 +258,10 @@ function renderMyRegistrationCards(items = [], emptyMessage = 'No registrations 
     <article class="auth-registration-card">
       <div class="auth-registration-card-top">
         <div>
-          <div class="auth-registration-kicker">${item.is_upcoming ? 'Upcoming booking' : 'Past booking'}</div>
+          <div class="auth-registration-kicker">Upcoming booking</div>
           <h4>${escapeHtml(item.event_title || 'Event')}</h4>
         </div>
-        <span class="auth-registration-status ${item.is_upcoming ? 'upcoming' : 'past'}">${item.is_upcoming ? 'Upcoming' : 'Completed'}</span>
+        <span class="auth-registration-status upcoming">Upcoming</span>
       </div>
       <div class="auth-registration-meta">
         <span>${escapeHtml(formatDate(item.event_date))}</span>
@@ -289,6 +291,31 @@ function renderMyRegistrationCards(items = [], emptyMessage = 'No registrations 
       </div>
     </article>
   `).join('');
+}
+
+function renderPastRegistrationCards(items = [], emptyMessage = 'Your completed sessions will appear here later.') {
+  if (!items.length) {
+    return `<div class="auth-registrations-empty">${escapeHtml(emptyMessage)}</div>`;
+  }
+
+  const visibleCount = Math.max(5, Number(state.visiblePastRegistrations || 5));
+  const visibleItems = items.slice(0, visibleCount);
+  const remainingCount = Math.max(0, items.length - visibleItems.length);
+
+  return `
+    <div class="auth-past-history-list">
+      ${visibleItems.map((item) => `
+        <article class="auth-past-history-item">
+          <div class="auth-past-history-main">
+            <h4>${escapeHtml(item.event_title || 'Event')}</h4>
+            <p>${escapeHtml(item.event_location || 'Location to be confirmed')}</p>
+          </div>
+          <time datetime="${escapeAttr(item.event_date || '')}">${escapeHtml(formatDate(item.event_date))}</time>
+        </article>
+      `).join('')}
+    </div>
+    ${remainingCount > 0 ? `<button type="button" class="btn btn-secondary btn-inline auth-load-more-history-btn" id="loadMorePastRegistrationsBtn">Load ${Math.min(5, remainingCount)} more past events</button>` : ''}
+  `;
 }
 
 async function claimGuestRegistrationsByEmail(options = {}) {
@@ -378,14 +405,15 @@ function getMyRegistrationsMarkup() {
           <strong>Upcoming</strong>
           <span>${upcoming.length}</span>
         </div>
-        ${renderMyRegistrationCards(upcoming, 'No upcoming bookings yet.')}
+        ${renderUpcomingRegistrationCards(upcoming, 'No upcoming bookings yet.')}
       </div>
       <div class="auth-registrations-group">
         <div class="auth-registrations-group-header">
           <strong>Past</strong>
           <span>${past.length}</span>
         </div>
-        ${renderMyRegistrationCards(past, 'Your completed sessions will appear here later.')}
+        <div class="auth-group-note">Recent history only. We keep your full participation log in admin.</div>
+        ${renderPastRegistrationCards(past, 'Your completed sessions will appear here later.')}
       </div>
     </section>`;
 }
@@ -416,6 +444,7 @@ async function loadMyRegistrations(options = {}) {
     if (error) throw error;
 
     state.myRegistrations = Array.isArray(data) ? data.map(normalizeMyRegistrationItem) : [];
+    state.visiblePastRegistrations = 5;
     state.myRegistrationsStatus = 'success';
     state.myRegistrationsForEmail = userEmail;
     state.myRegistrationsError = '';
@@ -804,6 +833,10 @@ function renderAuthModal() {
     document.getElementById('closeAuthAndBrowseBtn')?.addEventListener('click', closeAuthModal);
     document.getElementById('logoutAccountBtn')?.addEventListener('click', logoutCurrentUser);
     document.getElementById('retryMyRegistrationsBtn')?.addEventListener('click', () => loadMyRegistrations({ force: true }));
+    document.getElementById('loadMorePastRegistrationsBtn')?.addEventListener('click', () => {
+      state.visiblePastRegistrations += 5;
+      renderAuthModal();
+    });
     mount.querySelectorAll('[data-open-booking-event-id]').forEach((button) => {
       button.addEventListener('click', () => {
         closeAuthModal();

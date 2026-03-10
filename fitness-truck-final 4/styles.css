@@ -211,3 +211,13 @@ nav{max-width:var(--container-width);margin:0 auto;padding:0 24px;display:flex;j
 .auth-registration-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .auth-registrations-empty{padding:20px;border:1px dashed rgba(255,255,255,.12);border-radius:16px;color:var(--text-secondary);background:rgba(255,255,255,.02)}
 @media (max-width:768px){.auth-registrations-header,.auth-registration-card-top,.auth-registration-footer{flex-direction:column;align-items:flex-start}.auth-registration-details{grid-template-columns:1fr}.auth-registrations-count{white-space:normal}}
+
+.auth-group-note{margin-top:-4px;color:var(--text-muted);font-size:.84rem}
+.auth-past-history-list{display:flex;flex-direction:column;gap:10px}
+.auth-past-history-item{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px 16px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.025)}
+.auth-past-history-main{min-width:0}
+.auth-past-history-main h4{margin:0 0 4px;font-size:1rem}
+.auth-past-history-main p{margin:0;color:var(--text-secondary)}
+.auth-past-history-item time{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.03);font-size:.84rem;color:var(--text-secondary);white-space:nowrap}
+.auth-load-more-history-btn{align-self:flex-start}
+@media (max-width:768px){.auth-past-history-item{flex-direction:column;align-items:flex-start}.auth-past-history-item time{white-space:normal}}
