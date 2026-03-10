@@ -1055,3 +1055,49 @@ body.admin-page{
     max-width:34rem;
   }
 }
+
+
+/* Header + team titles pass */
+.nav-container{
+  padding:12px 0;
+}
+
+.nav-container.scrolled{
+  padding:10px 0;
+}
+
+nav{
+  min-height:68px;
+}
+
+.logo-img{
+  height:56px;
+}
+
+@media (max-width:768px){
+  .nav-container{
+    padding:10px 0;
+    background:rgba(8,8,8,.82);
+  }
+
+  nav{
+    min-height:62px;
+  }
+
+  .logo-img{
+    height:56px;
+  }
+
+  .mobile-menu-btn{
+    padding:6px;
+  }
+
+  .nav-links{
+    padding:88px 32px 32px;
+  }
+}
+
+.team-role{
+  font-size:.93rem;
+  letter-spacing:.04em;
+}
