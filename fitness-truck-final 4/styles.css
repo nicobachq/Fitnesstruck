@@ -1111,3 +1111,91 @@ nav{
 .nav-links .lang-switch{margin-left:-8px;margin-right:4px}
 html[lang="it"] .team-role, html[lang="it"] .contact-item, html[lang="it"] .auth-helper, html[lang="it"] .auth-muted{hyphens:auto}
 @media (max-width:768px){.nav-links .lang-switch{margin:8px 0 4px;align-self:flex-start}.lang-btn{font-size:.82rem;padding:8px 12px}}
+
+
+/* Language switch stability + cleaner hero */
+.hero-grid-pattern{display:none !important;}
+
+.nav-links > a{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:96px;
+  text-align:center;
+}
+
+.nav-links .lang-switch{
+  width:78px;
+  justify-content:center;
+  flex:0 0 78px;
+  margin-left:0;
+  margin-right:0;
+}
+
+.nav-auth-btn.nav-cta,
+.nav-auth-btn.account-pill{
+  min-width:168px;
+  justify-content:center;
+  white-space:nowrap;
+}
+
+.hero-subtitle{
+  min-height:142px;
+}
+
+#heroSideCard .next-event-hero-card p,
+#heroSideCard .account-hero-card p{
+  min-height:64px;
+}
+
+#heroSideCard .account-card-actions .btn,
+.hero-actions .btn{
+  min-width:170px;
+  justify-content:center;
+  text-align:center;
+}
+
+#heroSideCard .account-card-actions{
+  align-items:stretch;
+}
+
+.hero-card-placeholder{
+  min-height:640px;
+}
+
+.hero-skeleton{
+  border-radius:18px;
+  background:linear-gradient(90deg, rgba(255,255,255,.05) 25%, rgba(255,255,255,.12) 50%, rgba(255,255,255,.05) 75%);
+  background-size:220% 100%;
+  animation:heroSkeletonPulse 1.4s ease-in-out infinite;
+}
+
+.hero-skeleton-media{min-height:210px; border-radius:22px;}
+.hero-skeleton-kicker{width:132px; height:36px;}
+.hero-skeleton-title{width:62%; height:34px;}
+.hero-skeleton-copy{width:100%; height:16px;}
+.hero-skeleton-copy.short{width:72%;}
+.hero-skeleton-meta{width:78%; height:40px;}
+.hero-skeleton-summary{width:100%; height:124px; border-radius:20px;}
+.hero-skeleton-actions{width:100%; height:54px; border-radius:16px;}
+
+@keyframes heroSkeletonPulse{
+  0%{background-position:100% 50%;}
+  100%{background-position:0 50%;}
+}
+
+@media (max-width: 1024px){
+  .hero-subtitle{min-height:auto;}
+  #heroSideCard .next-event-hero-card p,
+  #heroSideCard .account-hero-card p{min-height:auto;}
+}
+
+@media (max-width: 768px){
+  .nav-links > a{min-width:0; justify-content:flex-start;}
+  .nav-links .lang-switch{width:auto; flex:0 0 auto; justify-content:flex-start;}
+  .nav-auth-btn.nav-cta,
+  .nav-auth-btn.account-pill{min-width:0;}
+  .hero-actions .btn,
+  #heroSideCard .account-card-actions .btn{min-width:0;}
+  .hero-card-placeholder{min-height:0;}
+}

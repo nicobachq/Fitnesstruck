@@ -36,6 +36,7 @@ const state = {
   claimRegistrationsForEmail: '',
   claimRegistrationsCount: 0,
   visiblePastRegistrations: 5,
+  eventsLoaded: false,
   language: (() => {
     try {
       const saved = localStorage.getItem('ft_lang');
@@ -92,7 +93,7 @@ const TRANSLATIONS = {
       statStops: 'Tappe in Ticino',
       statSpots: 'Posti/sessione',
       statEvents: 'Eventi/anno',
-      viewUpcoming: 'Vedi i prossimi eventi',
+      viewUpcoming: 'Vedi eventi',
       createAccount: 'Crea account',
       lugano: 'Lugano',
       monteBar: 'Monte Bar',
@@ -110,7 +111,7 @@ const TRANSLATIONS = {
       availableSession: '{count} sessione disponibile',
       availability: 'Disponibilità',
       availabilityText: '{remaining} posti su {total} ancora liberi',
-      viewNextEvent: 'Vedi prossimo evento',
+      viewNextEvent: 'Apri evento',
       myAccount: 'Il mio account',
       accountCardLabel: 'Account',
       accountCardTitle: 'Crea il tuo account',
@@ -368,7 +369,7 @@ const TRANSLATIONS = {
       statStops: 'Ticino stops',
       statSpots: 'Spots/session',
       statEvents: 'Events/year',
-      viewUpcoming: 'View upcoming events',
+      viewUpcoming: 'View events',
       createAccount: 'Create account',
       lugano: 'Lugano',
       monteBar: 'Monte Bar',
@@ -386,7 +387,7 @@ const TRANSLATIONS = {
       availableSession: '{count} available session',
       availability: 'Availability',
       availabilityText: '{remaining} of {total} spots still open',
-      viewNextEvent: 'View next event',
+      viewNextEvent: 'Open event',
       myAccount: 'My account',
       accountCardLabel: 'Account',
       accountCardTitle: 'Create your account',
@@ -1230,6 +1231,22 @@ function renderHeroSideCard() {
   if (!mount) return;
 
   mount.dataset.authState = state.user ? 'logged-in' : 'logged-out';
+
+  if (state.user && !state.eventsLoaded) {
+    mount.hidden = false;
+    mount.innerHTML = `
+      <div class="floating-card next-event-hero-card hero-card-placeholder" aria-hidden="true">
+        <div class="hero-skeleton hero-skeleton-media"></div>
+        <div class="hero-skeleton hero-skeleton-kicker"></div>
+        <div class="hero-skeleton hero-skeleton-title"></div>
+        <div class="hero-skeleton hero-skeleton-copy"></div>
+        <div class="hero-skeleton hero-skeleton-copy short"></div>
+        <div class="hero-skeleton hero-skeleton-meta"></div>
+        <div class="hero-skeleton hero-skeleton-summary"></div>
+        <div class="hero-skeleton hero-skeleton-actions"></div>
+      </div>`;
+    return;
+  }
 
   if (!state.user) {
     mount.hidden = false;
@@ -2099,6 +2116,8 @@ async function loadEvents() {
     console.error('Failed to load events:', error);
     showToast('Failed to load events. Please refresh.', 'error');
     state.events = [];
+  } finally {
+    state.eventsLoaded = true;
   }
 
   renderEvents();
