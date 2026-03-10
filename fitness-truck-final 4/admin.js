@@ -31,6 +31,15 @@ function formatRegistrationStatusLabel(status) {
   return REGISTRATION_STATUS_LABELS[normalizeRegistrationStatus(status)] || 'Registered';
 }
 
+function formatGenderLabel(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'male') return 'Male';
+  if (normalized === 'female') return 'Female';
+  if (normalized === 'other') return 'Other';
+  if (normalized === 'prefer_not_to_say') return 'Prefer not to say';
+  return value || '';
+}
+
 function isSeatCountingStatus(status) {
   return normalizeRegistrationStatus(status) !== 'cancelled';
 }
