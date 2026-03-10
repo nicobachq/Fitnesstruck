@@ -179,6 +179,20 @@ function getAvatarUrl(user = state.user) {
   return buildAvatarPlaceholderDataUri(getUserDisplayName(user));
 }
 
+function getEventPhotoUrl(event) {
+  return String(event?.photoUrl || event?.photo_url || '').trim();
+}
+
+function getEventPhotoStyle(event) {
+  const photoUrl = getEventPhotoUrl(event);
+  if (!photoUrl) return '';
+  return `style="background-image:linear-gradient(180deg, rgba(8,8,8,0.08) 0%, rgba(8,8,8,0.58) 100%), url('${escapeAttr(photoUrl)}');"`;
+}
+
+function getEventLocationMarker(event) {
+  return String(event?.location || '').split(/[,·-]/)[0].trim() || 'Ticino';
+}
+
 function getUserProfileData(user = state.user) {
   const metadata = getUserMetadata(user);
   return {
@@ -600,13 +614,16 @@ function renderHeroSideCard() {
   const totalRegistered = nextEvent.sessions.reduce((sum, session) => sum + Number(session.registered || 0), 0);
   const remainingSpots = Math.max(totalSpots - totalRegistered, 0);
 
+  const nextEventPhotoUrl = getEventPhotoUrl(nextEvent);
+
   mount.hidden = false;
   mount.innerHTML = `
     <div class="floating-card next-event-hero-card">
       <div class="card-glow"></div>
+      ${nextEventPhotoUrl ? `<div class="next-event-hero-media"><img src="${escapeAttr(nextEventPhotoUrl)}" alt="${escapeAttr(nextEvent.title)}"></div>` : ''}
       <span class="next-event-kicker">Next event</span>
       <h3>${escapeHtml(nextEvent.title)}</h3>
-      <p>You're signed in. Here is the next event you can book right away.</p>
+      <p>You're signed in. Here is the next event you can book right away in Ticino.</p>
       <div class="next-event-meta">
         <span>${escapeHtml(formatDate(nextEvent.date))}</span>
         <span>${escapeHtml(nextEvent.location)}</span>
@@ -1412,6 +1429,8 @@ async function loadEvents() {
       description: event.description || '',
       heroPhrase: event.hero_phrase || '',
       basePriceChf: event.base_price_chf || 0,
+      photoUrl: event.photo_url || '',
+      photoPath: event.photo_path || '',
       sessions: (sessions || [])
         .filter((session) => session.event_id === event.id)
         .map((session) => ({
@@ -1466,8 +1485,9 @@ function renderEvents() {
 
     return `
       <article class="event-card" tabindex="0" data-event-id="${escapeAttr(event.id)}">
-        <div class="event-image" data-location="${escapeAttr(event.location.split(' ')[0] || event.location)}">
+        <div class="event-image ${getEventPhotoUrl(event) ? 'has-photo' : ''}" data-location="${escapeAttr(getEventLocationMarker(event))}" ${getEventPhotoStyle(event)}>
           ${isSoldOut ? '<span class="event-badge sold-out">Sold Out</span>' : fillPercentage > 80 ? '<span class="event-badge">Almost Full</span>' : ''}
+          ${getEventPhotoUrl(event) ? '' : `<span class="event-image-caption">${escapeHtml(getEventLocationMarker(event))}</span>`}
         </div>
         <div class="event-content">
           <div class="event-date">${formatDate(event.date)}</div>
@@ -1569,8 +1589,10 @@ function openEventModal(eventId) {
 }
 
 function renderEventModal(event) {
+  const eventPhotoUrl = getEventPhotoUrl(event);
   return `
     <div class="modal-header">
+      ${eventPhotoUrl ? `<div class="modal-event-photo"><img src="${escapeAttr(eventPhotoUrl)}" alt="${escapeAttr(event.title)}"></div>` : ''}
       <h2 id="modalTitle">${escapeHtml(event.title)}</h2>
       <p>${formatDate(event.date)} · ${escapeHtml(event.location)}</p>
       ${event.description ? `<p style="margin-top:8px;">${escapeHtml(event.description)}</p>` : ''}

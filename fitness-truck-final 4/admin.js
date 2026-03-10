@@ -1,7 +1,8 @@
 // admin attendance tracking update
 const CONFIG = {
   SUPABASE_URL: 'https://xqmwipogfcfjmqsiqdbu.supabase.co',
-  SUPABASE_KEY: 'sb_publishable_acr4jKu8IG-THTIn40q3eA_uOiEaOCj'
+  SUPABASE_KEY: 'sb_publishable_acr4jKu8IG-THTIn40q3eA_uOiEaOCj',
+  EVENT_MEDIA_BUCKET: 'event-media'
 };
 
 const supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
@@ -13,7 +14,9 @@ let currentAdminUser = null;
 let registrations = [];
 let registrationSearchTerm = '';
 let isSyncingSessionCounts = false;
-
+let pendingEventPhotoFile = null;
+let pendingEventPhotoPreviewUrl = '';
+let pendingRemoveEventPhoto = false;
 
 const REGISTRATION_STATUS_LABELS = {
   registered: 'Registered',
@@ -38,6 +41,143 @@ function formatGenderLabel(value) {
   if (normalized === 'other') return 'Other';
   if (normalized === 'prefer_not_to_say') return 'Prefer not to say';
   return value || '';
+}
+
+function getEventPhotoUrl(event) {
+  return String(event?.photoUrl || event?.photo_url || '').trim();
+}
+
+function getEventPhotoPath(event) {
+  return String(event?.photoPath || event?.photo_path || '').trim();
+}
+
+function getEventLocationMarker(event) {
+  return String(event?.location || '').split(/[,·-]/)[0].trim() || 'Ticino';
+}
+
+function isSupportedEventImageFile(file) {
+  if (!file) return false;
+  const name = String(file.name || '').toLowerCase();
+  const extension = name.includes('.') ? name.split('.').pop() : '';
+  const type = String(file.type || '').toLowerCase();
+  const allowedExtensions = ['png', 'jpg', 'jpeg', 'webp', 'avif', 'heic', 'heif'];
+  if (type.startsWith('image/')) return true;
+  return allowedExtensions.includes(extension);
+}
+
+function clearPendingEventPhotoState() {
+  if (pendingEventPhotoPreviewUrl) {
+    try { URL.revokeObjectURL(pendingEventPhotoPreviewUrl); } catch (error) {}
+  }
+  pendingEventPhotoFile = null;
+  pendingEventPhotoPreviewUrl = '';
+  pendingRemoveEventPhoto = false;
+  const input = document.getElementById('eventPhotoFile');
+  if (input) input.value = '';
+}
+
+function getCurrentEventPhotoContext(eventLike = null) {
+  if (eventLike) return eventLike;
+  if (editingEventId) {
+    return events.find((event) => event.id === editingEventId) || { location: document.getElementById('eventLocation')?.value || 'Ticino' };
+  }
+  return { location: document.getElementById('eventLocation')?.value || 'Ticino' };
+}
+
+function renderEventPhotoPreview(eventLike = null) {
+  const preview = document.getElementById('eventPhotoPreview');
+  const meta = document.getElementById('eventPhotoMeta');
+  if (!preview || !meta) return;
+
+  const context = getCurrentEventPhotoContext(eventLike);
+  const locationLabel = getEventLocationMarker(context);
+  const activePhotoUrl = pendingRemoveEventPhoto ? '' : (pendingEventPhotoPreviewUrl || getEventPhotoUrl(context));
+
+  if (activePhotoUrl) {
+    preview.style.backgroundImage = `linear-gradient(180deg, rgba(8,8,8,0.12) 0%, rgba(8,8,8,0.58) 100%), url("${activePhotoUrl}")`;
+    preview.innerHTML = `<span>${escapeHtml(locationLabel)}</span>`;
+    meta.textContent = pendingEventPhotoFile ? `Selected: ${pendingEventPhotoFile.name}` : 'This dedicated photo will be shown on the homepage event card and next-event panel.';
+  } else {
+    preview.style.backgroundImage = '';
+    preview.innerHTML = `<span>${escapeHtml(locationLabel)}</span>`;
+    meta.textContent = pendingRemoveEventPhoto ? 'Using the location fallback until a new photo is uploaded.' : 'Upload a dedicated photo for this event card. If empty, the site will show a clean location fallback.';
+  }
+}
+
+function bindEventPhotoControls(eventLike = null) {
+  const input = document.getElementById('eventPhotoFile');
+  const removeButton = document.getElementById('removeEventPhotoBtn');
+  if (input && !input.dataset.bound) {
+    input.dataset.bound = '1';
+    input.addEventListener('change', () => {
+      const [file] = Array.from(input.files || []);
+      if (!file) return;
+      if (!isSupportedEventImageFile(file)) {
+        showToast('Please choose a supported image file.', 'error');
+        input.value = '';
+        return;
+      }
+      pendingEventPhotoFile = file;
+      pendingEventPhotoPreviewUrl = URL.createObjectURL(file);
+      pendingRemoveEventPhoto = false;
+      renderEventPhotoPreview();
+    });
+  }
+  if (removeButton && !removeButton.dataset.bound) {
+    removeButton.dataset.bound = '1';
+    removeButton.addEventListener('click', () => {
+      if (pendingEventPhotoPreviewUrl) {
+        try { URL.revokeObjectURL(pendingEventPhotoPreviewUrl); } catch (error) {}
+      }
+      pendingEventPhotoPreviewUrl = '';
+      pendingEventPhotoFile = null;
+      pendingRemoveEventPhoto = true;
+      if (input) input.value = '';
+      renderEventPhotoPreview();
+    });
+  }
+  renderEventPhotoPreview(eventLike);
+}
+
+async function uploadEventPhotoIfNeeded(eventData, existingEvent = null) {
+  const existingPhotoPath = getEventPhotoPath(existingEvent);
+  let photoUrl = getEventPhotoUrl(existingEvent);
+  let photoPath = existingPhotoPath;
+
+  if (pendingRemoveEventPhoto && existingPhotoPath) {
+    await supabaseClient.storage.from(CONFIG.EVENT_MEDIA_BUCKET).remove([existingPhotoPath]);
+    photoUrl = '';
+    photoPath = '';
+  } else if (pendingRemoveEventPhoto) {
+    photoUrl = '';
+    photoPath = '';
+  }
+
+  if (pendingEventPhotoFile) {
+    const extension = String(pendingEventPhotoFile.name || 'jpg').split('.').pop().toLowerCase() || 'jpg';
+    const safeExtension = extension.replace(/[^a-z0-9]/g, '') || 'jpg';
+    const filePath = `events/${eventData.id}-${Date.now()}.${safeExtension}`;
+    const { error: uploadError } = await supabaseClient.storage
+      .from(CONFIG.EVENT_MEDIA_BUCKET)
+      .upload(filePath, pendingEventPhotoFile, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: pendingEventPhotoFile.type || 'image/jpeg'
+      });
+
+    if (uploadError) throw uploadError;
+
+    if (existingPhotoPath && existingPhotoPath !== filePath) {
+      await supabaseClient.storage.from(CONFIG.EVENT_MEDIA_BUCKET).remove([existingPhotoPath]);
+    }
+
+    const { data } = supabaseClient.storage.from(CONFIG.EVENT_MEDIA_BUCKET).getPublicUrl(filePath);
+    photoUrl = String(data?.publicUrl || '');
+    photoPath = filePath;
+  }
+
+  eventData.photoUrl = photoUrl;
+  eventData.photoPath = photoPath;
 }
 
 function isSeatCountingStatus(status) {
@@ -193,6 +333,8 @@ function mapDatabaseToUi(eventRows, sessionRows) {
     description: event.description || '',
     heroPhrase: event.hero_phrase || '',
     basePriceChf: event.base_price_chf || 0,
+    photoUrl: event.photo_url || '',
+    photoPath: event.photo_path || '',
     sessions: (sessionRows || [])
       .filter((session) => session.event_id === event.id)
       .map((session) => ({
@@ -611,7 +753,9 @@ async function saveEventToSupabase(eventData) {
     location: eventData.location,
     description: eventData.description,
     hero_phrase: eventData.heroPhrase,
-    base_price_chf: eventData.basePriceChf
+    base_price_chf: eventData.basePriceChf,
+    photo_url: eventData.photoUrl || '',
+    photo_path: eventData.photoPath || ''
   };
 
   if (editingEventId) {
@@ -675,7 +819,8 @@ async function saveEventToSupabase(eventData) {
 }
 
 async function deleteEventFromSupabase(eventId) {
-  const sessionIds = (events.find((event) => event.id === eventId)?.sessions || []).map((session) => session.id);
+  const existingEvent = events.find((event) => event.id === eventId);
+  const sessionIds = (existingEvent?.sessions || []).map((session) => session.id);
 
   if (sessionIds.length) {
     const { error: deleteSessionsError } = await supabaseClient
@@ -692,6 +837,11 @@ async function deleteEventFromSupabase(eventId) {
     .eq('id', eventId);
 
   if (deleteEventError) throw deleteEventError;
+
+  const existingPhotoPath = getEventPhotoPath(existingEvent);
+  if (existingPhotoPath) {
+    await supabaseClient.storage.from(CONFIG.EVENT_MEDIA_BUCKET).remove([existingPhotoPath]);
+  }
 }
 
 function renderEvents() {
@@ -717,10 +867,13 @@ function renderEvents() {
     return `
       <div class="event-item">
         <div class="event-header" onclick="toggleEvent('${escapeJs(event.id)}')">
-          <div class="event-info">
+          <div class="admin-event-header-media">
+            <div class="admin-event-thumb ${getEventPhotoUrl(event) ? '' : 'admin-event-thumb--fallback'}" ${getEventPhotoUrl(event) ? `style="background-image:url('${escapeAttr(getEventPhotoUrl(event))}')"` : ''}>${getEventPhotoUrl(event) ? '' : escapeHtml(getEventLocationMarker(event))}</div>
+            <div class="event-info">
             <h3>${escapeHtml(event.title)} ${isPast ? '<span style="color:var(--text-muted);font-size:.8rem;">(Past)</span>' : ''}</h3>
             <div class="event-meta">${formatDate(event.date)} · ${escapeHtml(event.location)} · ${totalRegistered}/${totalSpots} active</div>
             <div class="event-meta" style="margin-top:4px;">Attended: ${statusCounts.attended} · No-show: ${statusCounts.no_show} · Cancelled: ${statusCounts.cancelled}</div>
+          </div>
           </div>
           <div class="event-actions" onclick="event.stopPropagation()">
             <button class="btn btn-secondary btn-sm" onclick="editEvent('${escapeJs(event.id)}')">Edit</button>
@@ -824,6 +977,7 @@ async function handleSubmit(e) {
 
   try {
     saveButtonLoading(true);
+    await uploadEventPhotoIfNeeded(eventData, existingEvent);
     await saveEventToSupabase(eventData);
     await loadEvents();
     resetForm();
@@ -922,6 +1076,9 @@ function editEvent(eventId) {
   document.getElementById('eventDescription').value = event.description || '';
   document.getElementById('heroPhrase').value = event.heroPhrase || '';
   document.getElementById('basePriceChf').value = event.basePriceChf ?? 0;
+  clearPendingEventPhotoState();
+  bindEventPhotoControls(event);
+  renderEventPhotoPreview(event);
   document.getElementById('sessionsContainer').innerHTML = '';
   sessionForms = [];
   (event.sessions?.length ? event.sessions : [{}]).forEach((session) => addSessionForm(session));
@@ -951,6 +1108,9 @@ function resetForm() {
   document.getElementById('eventForm').reset();
   document.getElementById('formTitle').textContent = 'Create Event';
   document.getElementById('submitBtn').textContent = 'Create Event';
+  clearPendingEventPhotoState();
+  bindEventPhotoControls({ location: document.getElementById('eventLocation').value || 'Ticino' });
+  renderEventPhotoPreview({ location: document.getElementById('eventLocation').value || 'Ticino' });
   document.getElementById('sessionsContainer').innerHTML = '';
   sessionForms = [];
   addSessionForm();
@@ -1027,6 +1187,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   registrationSearchInput?.addEventListener('input', handleRegistrationSearch);
+  document.getElementById('eventLocation')?.addEventListener('input', () => {
+    if (!editingEventId) renderEventPhotoPreview();
+  });
+  bindEventPhotoControls();
+  renderEventPhotoPreview();
 
   await initializeAdminAuth();
 });
