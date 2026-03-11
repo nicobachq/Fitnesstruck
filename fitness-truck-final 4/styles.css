@@ -1433,3 +1433,46 @@ html[lang="it"] .team-role, html[lang="it"] .contact-item, html[lang="it"] .auth
     min-width: auto;
   }
 }
+
+
+/* Stable events visibility */
+.event-card,
+.calendar-item {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* iPhone manual account login */
+.auth-decoy-input {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.auth-form--manual input[data-manual-auth-field] {
+  -webkit-user-select: text;
+  user-select: text;
+  touch-action: manipulation;
+}
+
+.auth-helper-manual {
+  margin-bottom: 4px;
+}
+
+@media (max-width: 768px) {
+  .account-page .auth-card {
+    gap: 18px;
+  }
+
+  .account-page .auth-form .form-group {
+    margin-bottom: 14px;
+  }
+
+  .account-page .auth-form input,
+  .account-page .auth-form button,
+  .account-page .auth-switch-btn {
+    min-height: 52px;
+  }
+}
