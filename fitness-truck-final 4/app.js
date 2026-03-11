@@ -71,45 +71,24 @@ function goToAccountPage(view = 'login') {
   window.location.href = buildAccountPageUrl(view);
 }
 
-function isIOSDevice() {
-  const ua = navigator.userAgent || '';
-  const platform = navigator.platform || '';
-  return /iP(hone|od|ad)/i.test(ua) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function buildEventsPageUrl() {
+  const target = new URL('index.html', window.location.href);
+  target.hash = 'events';
+  return `${target.pathname}${target.search}${target.hash}`;
 }
 
-function shouldUseManualAccountLogin() {
-  return isAccountPage() && isIOSDevice();
-}
-
-function initManualAccountLoginFields(scope = document) {
-  if (!shouldUseManualAccountLogin()) return;
-  scope.querySelectorAll('[data-manual-auth-field]').forEach((field) => {
-    if (field.dataset.manualBound === 'true') return;
-    field.dataset.manualBound = 'true';
-
-    const unlock = () => {
-      if (!field.readOnly) return;
-      field.readOnly = false;
-      field.removeAttribute('readonly');
-    };
-
-    const focusField = () => {
-      unlock();
-      requestAnimationFrame(() => {
-        try {
-          field.focus({ preventScroll: false });
-        } catch (error) {
-          field.focus();
-        }
-      });
-    };
-
-    field.addEventListener('touchstart', unlock, { passive: true });
-    field.addEventListener('pointerdown', unlock);
-    field.addEventListener('mousedown', unlock);
-    field.addEventListener('focus', unlock);
-    field.addEventListener('click', focusField);
-  });
+function continueBookingFromAccount() {
+  if (isAccountPage()) {
+    window.location.href = buildEventsPageUrl();
+    return;
+  }
+  closeAuthModal();
+  const eventsSection = document.getElementById('events');
+  if (eventsSection) {
+    eventsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  window.location.href = buildEventsPageUrl();
 }
 
 const TRANSLATIONS = {
@@ -722,7 +701,6 @@ function rerenderLanguageUI() {
   renderEvents();
   renderCalendar();
   updateEmptyState();
-  observeAnimatable();
   if (isAuthModalOpen() || isAccountPage()) renderAuthModal();
   if (state.currentEvent) {
     const content = document.getElementById('modalContent');
@@ -1602,7 +1580,7 @@ function renderAuthModal() {
       state.accountMode = 'edit';
       renderAuthModal();
     });
-    document.getElementById('closeAuthAndBrowseBtn')?.addEventListener('click', closeAuthModal);
+    document.getElementById('closeAuthAndBrowseBtn')?.addEventListener('click', continueBookingFromAccount);
     document.getElementById('logoutAccountBtn')?.addEventListener('click', logoutCurrentUser);
     document.getElementById('retryMyRegistrationsBtn')?.addEventListener('click', () => loadMyRegistrations({ force: true }));
     document.getElementById('loadMorePastRegistrationsBtn')?.addEventListener('click', () => {
@@ -1661,45 +1639,38 @@ function renderAuthModal() {
           <button type="submit" class="btn btn-primary">${escapeHtml(t('account.createAccount'))}</button>
           <p class="auth-confirm-hint">${escapeHtml(t('account.confirmEmailHint'))}</p>
         </form>
-      ` : (() => {
-        const manualLogin = shouldUseManualAccountLogin();
-        return `
-        <form id="loginForm" class="auth-form ${manualLogin ? 'auth-form--manual' : ''}" autocomplete="${manualLogin ? 'off' : 'on'}" novalidate>
-          ${manualLogin ? `<p class="auth-helper auth-helper-manual">If saved-password autofill gets in the way on iPhone, type your email and password manually here.</p>` : ''}
-          <input type="text" tabindex="-1" aria-hidden="true" class="auth-decoy-input" autocomplete="off" />
-          <input type="password" tabindex="-1" aria-hidden="true" class="auth-decoy-input" autocomplete="new-password" />
+      ` : `
+        <form id="loginForm" class="auth-form" autocomplete="on">
           <div class="form-group">
             <label for="loginEmail">${escapeHtml(t('account.email'))} *</label>
             <input
               id="loginEmail"
-              name="${manualLogin ? 'login_identifier' : 'email'}"
-              type="${manualLogin ? 'text' : 'email'}"
+              name="email"
+              type="email"
               required
-              autocomplete="${manualLogin ? 'off' : 'username'}"
+              autocomplete="username"
               inputmode="email"
               autocapitalize="none"
               autocorrect="off"
               spellcheck="false"
-              ${manualLogin ? 'readonly data-manual-auth-field="email"' : ''}
             />
           </div>
           <div class="form-group">
             <label for="loginPassword">${escapeHtml(t('account.password'))}</label>
             <input
               id="loginPassword"
-              name="${manualLogin ? 'login_secret' : 'password'}"
+              name="password"
               type="password"
               required
-              autocomplete="${manualLogin ? 'off' : 'current-password'}"
+              autocomplete="current-password"
               autocapitalize="none"
               autocorrect="off"
               spellcheck="false"
-              ${manualLogin ? 'readonly data-manual-auth-field="password"' : ''}
             />
           </div>
           <button type="submit" class="btn btn-primary">${escapeHtml(t('account.login'))}</button>
-        </form>`;
-      })()}
+        </form>
+      `}
       <p class="auth-helper">${escapeHtml(t('account.helperGuest'))}</p>
     </div>`;
 
@@ -1713,7 +1684,6 @@ function renderAuthModal() {
 
   document.getElementById('loginForm')?.addEventListener('submit', handleLoginSubmit);
   document.getElementById('signupForm')?.addEventListener('submit', handleSignupSubmit);
-  initManualAccountLoginFields(mount);
 }
 
 async function handleLoginSubmit(event) {
@@ -1721,8 +1691,8 @@ async function handleLoginSubmit(event) {
   const form = event.currentTarget;
   const button = form.querySelector('button[type="submit"]');
   const formData = new FormData(form);
-  const email = String(formData.get('email') || formData.get('login_identifier') || '').trim().toLowerCase();
-  const password = String(formData.get('password') || formData.get('login_secret') || '');
+  const email = String(formData.get('email') || '').trim().toLowerCase();
+  const password = String(formData.get('password') || '');
 
   button.disabled = true;
   button.textContent = t('account.loggingIn');
@@ -2795,6 +2765,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  rerenderLanguageUI();
   await loadEvents();
+  rerenderLanguageUI();
 });
