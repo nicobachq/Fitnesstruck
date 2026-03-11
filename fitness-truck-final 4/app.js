@@ -2355,21 +2355,24 @@ function renderEventModal(event) {
     </div>
     <div class="modal-sessions" role="list">
       ${event.sessions.map((session) => {
-        const isFull = session.registered >= session.maxParticipants;
-        const available = Math.max(0, session.maxParticipants - session.registered);
+        const sessionState = getSessionBookingState(event, session);
+        const isFull = sessionState.key === 'full';
+        const isClosed = sessionState.key === 'closed';
+        const available = Math.max(0, Number(session.maxParticipants || 0) - Number(session.registered || 0));
         const priceLabel = getSessionPriceLabel(event, session);
         return `
-          <div class="modal-session ${isFull ? 'full' : ''}" role="listitem">
+          <div class="modal-session ${isFull ? 'full' : ''} ${isClosed ? 'modal-session-closed' : ''}" role="listitem">
             <div class="modal-session-info">
               <h4>${escapeHtml(session.title)}</h4>
               <p>${escapeHtml(session.startTime)} - ${escapeHtml(session.endTime)} · ${escapeHtml(session.exerciseType)}</p>
               ${priceLabel ? `<p class="modal-price">${priceLabel}</p>` : ''}
+              ${sessionState.note ? `<p class="session-note">${escapeHtml(sessionState.note)}</p>` : ''}
             </div>
             <div class="modal-session-capacity">
-              <div class="spots ${isFull ? 'full' : ''}">${available}</div>
-              <div class="label">${escapeHtml(isFull ? t('booking.full') : t('booking.spotsLeft'))}</div>
+              <div class="spots ${isFull || isClosed ? 'full' : ''}">${escapeHtml(isClosed ? '—' : String(available))}</div>
+              <div class="label">${escapeHtml(isClosed ? sessionState.label : (isFull ? t('booking.full') : t('booking.spotsLeft')))}</div>
             </div>
-            <button class="btn-register" data-session-id="${escapeAttr(session.id)}" ${isFull ? 'disabled' : ''}>${escapeHtml(isFull ? t('booking.full') : t('booking.register'))}</button>
+            <button type="button" class="btn-register" data-session-id="${escapeAttr(session.id)}" ${sessionState.disabled ? 'disabled' : ''}>${escapeHtml(sessionState.buttonLabel)}</button>
           </div>`;
       }).join('')}
     </div>
@@ -2390,6 +2393,15 @@ function renderRegistrationForm() {
   const event = state.currentEvent;
   const session = event?.sessions.find((item) => item.id === state.selectedSessionId);
   if (!mount || !event || !session) return;
+
+  const bookingState = getSessionBookingState(event, session);
+  if (bookingState.disabled) {
+    mount.innerHTML = `
+      <div class="registration-panel">
+        <div class="auth-notice info">${escapeHtml(bookingState.note || t('booking.closedToast'))}</div>
+      </div>`;
+    return;
+  }
 
   const authBanner = state.user
     ? `<div class="auth-registration-banner logged-in"><strong>${escapeHtml(t('booking.signedInBanner', { name: getUserDisplayName() }))}</strong><br>${escapeHtml(t('booking.signedInBannerDesc'))}</div>`
