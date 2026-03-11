@@ -335,6 +335,7 @@ function mapDatabaseToUi(eventRows, sessionRows) {
     basePriceChf: event.base_price_chf || 0,
     photoUrl: event.photo_url || '',
     photoPath: event.photo_path || '',
+    registrationOpen: event.registration_open !== false,
     sessions: (sessionRows || [])
       .filter((session) => session.event_id === event.id)
       .map((session) => ({
@@ -346,9 +347,22 @@ function mapDatabaseToUi(eventRows, sessionRows) {
         maxParticipants: session.max_participants,
         storedRegisteredCount: session.registered_count || 0,
         registered: session.registered_count || 0,
-        priceChf: session.price_chf || 0
+        priceChf: session.price_chf || 0,
+        registrationOpen: session.registration_open !== false
       }))
   }));
+}
+
+function isEventRegistrationOpen(event) {
+  return event?.registrationOpen !== false;
+}
+
+function isSessionRegistrationOpen(session) {
+  return session?.registrationOpen !== false;
+}
+
+function getRegistrationToggleBadge(isOpen) {
+  return `<span class="admin-reg-badge ${isOpen ? 'open' : 'closed'}">${isOpen ? 'Open' : 'Closed'}</span>`;
 }
 
 function buildLiveRegistrationCountMap() {
@@ -755,7 +769,8 @@ async function saveEventToSupabase(eventData) {
     hero_phrase: eventData.heroPhrase,
     base_price_chf: eventData.basePriceChf,
     photo_url: eventData.photoUrl || '',
-    photo_path: eventData.photoPath || ''
+    photo_path: eventData.photoPath || '',
+    registration_open: !!eventData.registrationOpen
   };
 
   if (editingEventId) {
@@ -782,7 +797,8 @@ async function saveEventToSupabase(eventData) {
     exercise_type: session.exerciseType,
     max_participants: session.maxParticipants,
     registered_count: session.registered,
-    price_chf: session.priceChf || 0
+    price_chf: session.priceChf || 0,
+    registration_open: !!session.registrationOpen
   }));
 
   if (editingEventId) {
@@ -863,6 +879,7 @@ function renderEvents() {
     const totalSpots = event.sessions.reduce((sum, session) => sum + session.maxParticipants, 0);
     const totalRegistered = event.sessions.reduce((sum, session) => sum + (session.registered || 0), 0);
     const statusCounts = getEventRegistrationStatusCounts(event);
+    const openSessions = event.sessions.filter((session) => isSessionRegistrationOpen(session)).length;
 
     return `
       <div class="event-item">
@@ -870,21 +887,81 @@ function renderEvents() {
           <div class="admin-event-header-media">
             <div class="admin-event-thumb ${getEventPhotoUrl(event) ? '' : 'admin-event-thumb--fallback'}" ${getEventPhotoUrl(event) ? `style="background-image:url('${escapeAttr(getEventPhotoUrl(event))}')"` : ''}>${getEventPhotoUrl(event) ? '' : escapeHtml(getEventLocationMarker(event))}</div>
             <div class="event-info">
-            <h3>${escapeHtml(event.title)} ${isPast ? '<span style="color:var(--text-muted);font-size:.8rem;">(Past)</span>' : ''}</h3>
-            <div class="event-meta">${formatDate(event.date)} · ${escapeHtml(event.location)} · ${totalRegistered}/${totalSpots} active</div>
-            <div class="event-meta" style="margin-top:4px;">Attended: ${statusCounts.attended} · No-show: ${statusCounts.no_show} · Cancelled: ${statusCounts.cancelled}</div>
-          </div>
+              <div class="admin-event-title-row">
+                <h3>${escapeHtml(event.title)} ${isPast ? '<span style="color:var(--text-muted);font-size:.8rem;">(Past)</span>' : ''}</h3>
+                ${getRegistrationToggleBadge(isEventRegistrationOpen(event))}
+              </div>
+              <div class="event-meta">${formatDate(event.date)} · ${escapeHtml(event.location)} · ${totalRegistered}/${totalSpots} active</div>
+              <div class="event-meta" style="margin-top:4px;">Open sessions: ${openSessions}/${event.sessions.length} · Attended: ${statusCounts.attended} · No-show: ${statusCounts.no_show} · Cancelled: ${statusCounts.cancelled}</div>
+            </div>
           </div>
           <div class="event-actions" onclick="event.stopPropagation()">
+            <button class="btn btn-secondary btn-sm" onclick="setEventRegistrationOpen('${escapeJs(event.id)}', ${isEventRegistrationOpen(event) ? 'false' : 'true'})">${isEventRegistrationOpen(event) ? 'Close event' : 'Open event'}</button>
             <button class="btn btn-secondary btn-sm" onclick="editEvent('${escapeJs(event.id)}')">Edit</button>
             <button class="btn btn-danger btn-sm" onclick="deleteEvent('${escapeJs(event.id)}')">Delete</button>
           </div>
         </div>
         <div class="event-sessions-preview" id="sessions-${escapeAttr(event.id)}" style="display:none;">
-          ${event.sessions.map((session) => `<span class="session-tag ${session.registered >= session.maxParticipants ? 'full' : ''}"><span class="time">${escapeHtml(session.startTime)}</span>${escapeHtml(session.title)} <span class="capacity">(${session.registered}/${session.maxParticipants})</span></span>`).join('')}
+          ${event.sessions.map((session) => `<div class="admin-session-row"><span class="session-tag ${session.registered >= session.maxParticipants ? 'full' : ''}"><span class="time">${escapeHtml(session.startTime)}</span>${escapeHtml(session.title)} <span class="capacity">(${session.registered}/${session.maxParticipants})</span></span><div class="admin-session-actions">${getRegistrationToggleBadge(isSessionRegistrationOpen(session))}<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();setSessionRegistrationOpen('${escapeJs(event.id)}','${escapeJs(session.id)}', ${isSessionRegistrationOpen(session) ? 'false' : 'true'})">${isSessionRegistrationOpen(session) ? 'Close session' : 'Open session'}</button></div></div>`).join('')}
         </div>
       </div>`;
   }).join('');
+}
+
+async function setEventRegistrationOpen(eventId, shouldOpen) {
+  const event = events.find((item) => item.id === eventId);
+  if (!event) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from('events')
+      .update({ registration_open: shouldOpen })
+      .eq('id', eventId);
+
+    if (error) throw error;
+
+    event.registrationOpen = shouldOpen;
+
+    if (editingEventId === eventId) {
+      const checkbox = document.getElementById('eventRegistrationOpen');
+      if (checkbox) checkbox.checked = shouldOpen;
+    }
+
+    refreshAdminDataView();
+    showToast(`Event registration ${shouldOpen ? 'opened' : 'closed'}.`, 'success');
+  } catch (error) {
+    console.error('Event registration toggle failed:', error);
+    showToast(error.message || 'Could not update event registration.', 'error');
+  }
+}
+
+async function setSessionRegistrationOpen(eventId, sessionId, shouldOpen) {
+  const event = events.find((item) => item.id === eventId);
+  const session = event?.sessions?.find((item) => item.id === sessionId);
+  if (!event || !session) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from('sessions')
+      .update({ registration_open: shouldOpen })
+      .eq('id', sessionId);
+
+    if (error) throw error;
+
+    session.registrationOpen = shouldOpen;
+
+    if (editingEventId === eventId) {
+      const form = sessionForms.find((item) => item.dataset.sessionId === sessionId);
+      const checkbox = form?.querySelector('.session-registration-open');
+      if (checkbox) checkbox.checked = shouldOpen;
+    }
+
+    refreshAdminDataView();
+    showToast(`Session registration ${shouldOpen ? 'opened' : 'closed'}.`, 'success');
+  } catch (error) {
+    console.error('Session registration toggle failed:', error);
+    showToast(error.message || 'Could not update session registration.', 'error');
+  }
 }
 
 function toggleEvent(eventId) {
@@ -935,6 +1012,12 @@ function addSessionForm(sessionData = null) {
     </div>
     <div class="form-row">
       <div class="form-group"><label>Session Price (CHF)</label><input type="number" class="session-price" min="0" step="0.01" value="${sessionData?.priceChf ?? 0}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group form-group-checkbox">
+        <label class="checkbox-row admin-checkbox-row"><input type="checkbox" class="session-registration-open" ${sessionData?.registrationOpen ? 'checked' : ''}> <span>Open this session for booking</span></label>
+        <small>Leave this off if you want to release the session later.</small>
+      </div>
     </div>`;
   container.appendChild(div);
   sessionForms.push(div);
@@ -972,6 +1055,7 @@ async function handleSubmit(e) {
     description: document.getElementById('eventDescription').value.trim(),
     heroPhrase: document.getElementById('heroPhrase').value.trim(),
     basePriceChf: parseFloat(document.getElementById('basePriceChf').value) || 0,
+    registrationOpen: document.getElementById('eventRegistrationOpen')?.checked || false,
     sessions: gatherSessionsData(eventId, existingEvent)
   };
 
@@ -1057,7 +1141,8 @@ function gatherSessionsData(eventId, existingEvent = null) {
       endTime: form.querySelector('.session-end').value,
       maxParticipants: max,
       registered: reg,
-      priceChf: parseFloat(form.querySelector('.session-price')?.value) || 0
+      priceChf: parseFloat(form.querySelector('.session-price')?.value) || 0,
+      registrationOpen: form.querySelector('.session-registration-open')?.checked || false
     };
   });
 }
@@ -1076,6 +1161,7 @@ function editEvent(eventId) {
   document.getElementById('eventDescription').value = event.description || '';
   document.getElementById('heroPhrase').value = event.heroPhrase || '';
   document.getElementById('basePriceChf').value = event.basePriceChf ?? 0;
+  document.getElementById('eventRegistrationOpen').checked = !!event.registrationOpen;
   clearPendingEventPhotoState();
   bindEventPhotoControls(event);
   renderEventPhotoPreview(event);
@@ -1108,6 +1194,7 @@ function resetForm() {
   document.getElementById('eventForm').reset();
   document.getElementById('formTitle').textContent = 'Create Event';
   document.getElementById('submitBtn').textContent = 'Create Event';
+  document.getElementById('eventRegistrationOpen').checked = false;
   clearPendingEventPhotoState();
   bindEventPhotoControls({ location: document.getElementById('eventLocation').value || 'Ticino' });
   renderEventPhotoPreview({ location: document.getElementById('eventLocation').value || 'Ticino' });
