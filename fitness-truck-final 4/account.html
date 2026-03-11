@@ -4,32 +4,59 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fitness Truck | Account</title>
-  <meta name="description" content="Accedi o crea il tuo account Fitness Truck." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <meta name="description" content="Accedi o crea il tuo account Fitness Truck per prenotare più velocemente e gestire le tue registrations." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=32" />
 </head>
 <body data-page="account">
   <div class="noise-overlay"></div>
-  <main class="account-page-main" data-auth-page="true">
-    <div class="account-page-shell">
-      <div class="account-page-topbar">
-        <a href="index.html" class="account-page-back">← Torna al sito</a>
+
+  <div class="nav-container" id="navbar">
+    <nav>
+      <a href="index.html#top" class="logo">
+        <img src="assets/logo-transparent.png" alt="Fitness Truck - The Gym That Moves" class="logo-img" onerror="this.closest('.team-image').classList.add('team-image--placeholder'); this.remove();">
+        <div class="logo-fallback" style="display:none;">
+          <div class="logo-icon">FT</div>
+          <span>FITNESS TRUCK</span>
+        </div>
+      </a>
+      <div class="nav-links" id="navLinks">
+        <a href="index.html#events" data-i18n="nav.events">Eventi</a>
+        <a href="index.html#experience" data-i18n="nav.experience">Esperienza</a>
+        <a href="index.html#team" data-i18n="nav.team">Team</a>
+        <a href="index.html#contact" data-i18n="nav.contact">Contatti</a>
         <div class="lang-switch" aria-label="Language switcher">
-          <button type="button" data-lang-choice="it" class="active" aria-pressed="true">IT</button>
-          <button type="button" data-lang-choice="en" aria-pressed="false">EN</button>
+          <button type="button" class="lang-btn active" data-lang-choice="it" aria-pressed="true">IT</button>
+          <button type="button" class="lang-btn" data-lang-choice="en" aria-pressed="false">EN</button>
+        </div>
+        <a href="index.html" class="nav-auth-btn nav-cta">Home</a>
+      </div>
+      <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="navLinks">
+        <span></span>
+        <span></span>
+      </button>
+    </nav>
+  </div>
+
+  <main class="account-page-main">
+    <section class="account-page-shell">
+      <div class="account-page-intro">
+        <span class="account-page-kicker">Fitness Truck account</span>
+        <h1 class="account-page-title">Accedi in modo rapido e sicuro.</h1>
+        <p class="account-page-copy">Usa una pagina dedicata per accedere, creare il tuo account, salvare i tuoi dati una sola volta e tornare alle prossime activation senza i problemi del popup su iPhone.</p>
+        <div class="account-page-links">
+          <a href="index.html#events" class="btn btn-secondary">Torna agli eventi</a>
+          <a href="index.html" class="btn btn-primary">Homepage</a>
         </div>
       </div>
-      <div class="account-page-brand">
-        <a href="index.html" class="brand-link">
-          <img src="logo-transparent.png" alt="Fitness Truck" class="logo" />
-        </a>
-      </div>
-      <section class="account-page-surface">
+
+      <div class="account-page-panel">
+        <a href="index.html" class="account-page-close" id="accountPageClose" aria-label="Back to home">×</a>
         <div id="authPageContent"></div>
-      </section>
-    </div>
+      </div>
+    </section>
   </main>
 
   <div class="toast-container" id="toastContainer" role="status" aria-live="polite" aria-atomic="true"></div>
