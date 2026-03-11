@@ -106,13 +106,11 @@ const TRANSLATIONS = {
       viewSchedule: 'Vedi calendario',
       nextEvent: 'Prossimo evento',
       nextEventDesc: 'Sei connesso. Ecco il prossimo evento che puoi prenotare subito.',
-      nextEventSoonDesc: 'Sei connesso. Ecco il prossimo evento in calendario mentre le registrazioni sono ancora chiuse.',
       sessions: 'Sessioni',
       availableSessions: '{count} sessioni disponibili',
       availableSession: '{count} sessione disponibile',
       availability: 'Disponibilità',
       availabilityText: '{remaining} posti su {total} ancora liberi',
-      availabilityClosed: 'Registrazioni in apertura',
       viewNextEvent: 'Apri evento',
       myAccount: 'Il mio account',
       accountCardLabel: 'Account',
@@ -133,8 +131,7 @@ const TRANSLATIONS = {
       soldOut: 'Completo',
       almostFull: 'Quasi completo',
       open: 'Aperto',
-      limited: 'Limitato',
-      closed: 'Chiuso'
+      limited: 'Limitato'
     },
     experience: {
       eyebrow: 'L\'esperienza',
@@ -325,11 +322,7 @@ const TRANSLATIONS = {
       failed: 'Registrazione non riuscita.',
       register: 'Registrati',
       full: 'Completo',
-      spotsLeft: 'posti disponibili',
-      closed: 'Chiuso',
-      eventClosed: 'Le registrazioni per questo evento non sono ancora aperte.',
-      sessionClosed: 'Questa sessione aprirà più avanti.',
-      closedToast: 'Le registrazioni per questa sessione sono attualmente chiuse.'
+      spotsLeft: 'posti disponibili'
     }
   },
   en: {
@@ -389,13 +382,11 @@ const TRANSLATIONS = {
       viewSchedule: 'View schedule',
       nextEvent: 'Next event',
       nextEventDesc: 'You are signed in. Here is the next event you can book right away.',
-      nextEventSoonDesc: 'You are signed in. Here is the next event on the calendar while registration is still closed.',
       sessions: 'Sessions',
       availableSessions: '{count} available sessions',
       availableSession: '{count} available session',
       availability: 'Availability',
       availabilityText: '{remaining} of {total} spots still open',
-      availabilityClosed: 'Registration opens soon',
       viewNextEvent: 'Open event',
       myAccount: 'My account',
       accountCardLabel: 'Account',
@@ -416,8 +407,7 @@ const TRANSLATIONS = {
       soldOut: 'Sold out',
       almostFull: 'Almost full',
       open: 'Open',
-      limited: 'Limited',
-      closed: 'Closed'
+      limited: 'Limited'
     },
     experience: {
       eyebrow: 'The experience',
@@ -608,11 +598,7 @@ const TRANSLATIONS = {
       failed: 'Registration failed.',
       register: 'Register',
       full: 'Full',
-      spotsLeft: 'spots left',
-      closed: 'Closed',
-      eventClosed: 'Registration for this event is not open yet.',
-      sessionClosed: 'This session will open later.',
-      closedToast: 'Registration for this session is currently closed.'
+      spotsLeft: 'spots left'
     }
   }
 };
@@ -672,7 +658,6 @@ function rerenderLanguageUI() {
   renderEvents();
   renderCalendar();
   updateEmptyState();
-  observeAnimatable();
   if (isAuthModalOpen()) renderAuthModal();
   if (state.currentEvent) {
     const content = document.getElementById('modalContent');
@@ -1285,23 +1270,19 @@ function renderHeroSideCard() {
     return;
   }
 
-  const upcomingEvents = getUpcomingEvents();
-  const nextBookableEvent = upcomingEvents.find((event) => getBookableSessions(event).length > 0) || null;
-  const nextEvent = nextBookableEvent || upcomingEvents[0] || null;
+  const nextEvent = getUpcomingEvents()[0] || null;
   if (!nextEvent || !Array.isArray(nextEvent.sessions)) {
     renderSignedInHeroFallback(mount);
     return;
   }
 
-  const heroSessions = isEventRegistrationOpen(nextEvent) ? getOpenSessions(nextEvent) : [];
-  const totalSpots = heroSessions.reduce((sum, session) => sum + Number(session.maxParticipants || 0), 0);
-  const totalRegistered = heroSessions.reduce((sum, session) => sum + Number(session.registered || 0), 0);
+  const totalSpots = nextEvent.sessions.reduce((sum, session) => sum + Number(session.maxParticipants || 0), 0);
+  const totalRegistered = nextEvent.sessions.reduce((sum, session) => sum + Number(session.registered || 0), 0);
   const remainingSpots = Math.max(totalSpots - totalRegistered, 0);
   const nextEventPhotoUrl = getEventPhotoUrl(nextEvent);
-  const sessionsCopy = heroSessions.length === 1
-    ? t('hero.availableSession', { count: heroSessions.length })
-    : t('hero.availableSessions', { count: heroSessions.length });
-  const nextEventDescription = nextBookableEvent ? t('hero.nextEventDesc') : t('hero.nextEventSoonDesc');
+  const sessionsCopy = nextEvent.sessions.length === 1
+    ? t('hero.availableSession', { count: nextEvent.sessions.length })
+    : t('hero.availableSessions', { count: nextEvent.sessions.length });
 
   mount.hidden = false;
   mount.innerHTML = `
@@ -1310,7 +1291,7 @@ function renderHeroSideCard() {
       ${nextEventPhotoUrl ? `<div class="next-event-hero-media"><img src="${escapeAttr(nextEventPhotoUrl)}" alt="${escapeAttr(nextEvent.title)}"></div>` : ''}
       <span class="next-event-kicker">${escapeHtml(t('hero.nextEvent'))}</span>
       <h3>${escapeHtml(nextEvent.title)}</h3>
-      <p>${escapeHtml(nextEventDescription)}</p>
+      <p>${escapeHtml(t('hero.nextEventDesc'))}</p>
       <div class="next-event-meta">
         <span>${escapeHtml(formatDate(nextEvent.date))}</span>
         <span>${escapeHtml(nextEvent.location)}</span>
@@ -1322,7 +1303,7 @@ function renderHeroSideCard() {
         </div>
         <div class="next-event-summary-item">
           <strong>${escapeHtml(t('hero.availability'))}</strong>
-          ${escapeHtml(totalSpots ? t('hero.availabilityText', { remaining: remainingSpots, total: totalSpots }) : t('hero.availabilityClosed'))}
+          ${escapeHtml(t('hero.availabilityText', { remaining: remainingSpots, total: totalSpots }))}
         </div>
       </div>
       <div class="account-card-actions">
@@ -1594,14 +1575,33 @@ function renderAuthModal() {
           <p class="auth-confirm-hint">${escapeHtml(t('account.confirmEmailHint'))}</p>
         </form>
       ` : `
-        <form id="loginForm" class="auth-form">
+        <form id="loginForm" class="auth-form" autocomplete="on">
           <div class="form-group">
             <label for="loginEmail">${escapeHtml(t('account.email'))} *</label>
-            <input id="loginEmail" name="email" type="email" required autocomplete="email" />
+            <input
+              id="loginEmail"
+              name="email"
+              type="email"
+              required
+              autocomplete="username"
+              inputmode="email"
+              autocapitalize="none"
+              autocorrect="off"
+              spellcheck="false"
+            />
           </div>
           <div class="form-group">
             <label for="loginPassword">${escapeHtml(t('account.password'))}</label>
-            <input id="loginPassword" name="password" type="password" required autocomplete="current-password" />
+            <input
+              id="loginPassword"
+              name="password"
+              type="password"
+              required
+              autocomplete="current-password"
+              autocapitalize="none"
+              autocorrect="off"
+              spellcheck="false"
+            />
           </div>
           <button type="submit" class="btn btn-primary">${escapeHtml(t('account.login'))}</button>
         </form>
@@ -2118,7 +2118,6 @@ async function loadEvents() {
       basePriceChf: event.base_price_chf || 0,
       photoUrl: event.photo_url || '',
       photoPath: event.photo_path || '',
-      registrationOpen: event.registration_open !== false,
       sessions: (sessions || [])
         .filter((session) => session.event_id === event.id)
         .map((session) => ({
@@ -2129,8 +2128,7 @@ async function loadEvents() {
           exerciseType: session.exercise_type,
           maxParticipants: session.max_participants,
           registered: session.registered_count,
-          priceChf: session.price_chf,
-          registrationOpen: session.registration_open !== false
+          priceChf: session.price_chf
         }))
     }));
   } catch (error) {
@@ -2146,78 +2144,6 @@ async function loadEvents() {
   updateEmptyState();
   scheduleHeroSideCardRender();
   observeAnimatable();
-}
-
-function isEventRegistrationOpen(event) {
-  return event?.registrationOpen !== false;
-}
-
-function isSessionRegistrationOpen(session) {
-  return session?.registrationOpen !== false;
-}
-
-function isSessionFull(session) {
-  return Number(session?.registered || 0) >= Number(session?.maxParticipants || 0);
-}
-
-function getOpenSessions(event) {
-  return (event?.sessions || []).filter((session) => isSessionRegistrationOpen(session));
-}
-
-function getBookableSessions(event) {
-  if (!isEventRegistrationOpen(event)) return [];
-  return (event?.sessions || []).filter((session) => isSessionRegistrationOpen(session) && !isSessionFull(session));
-}
-
-function getEventAvailabilityStatus(event) {
-  const openSessions = getOpenSessions(event);
-  const closedSessions = (event?.sessions || []).filter((session) => !isSessionRegistrationOpen(session));
-  const bookableSessions = getBookableSessions(event);
-
-  if (!isEventRegistrationOpen(event)) {
-    return { key: 'closed', className: 'closed' };
-  }
-
-  if (!openSessions.length) {
-    return { key: 'closed', className: 'closed' };
-  }
-
-  if (!bookableSessions.length) {
-    if (closedSessions.length) {
-      return { key: 'closed', className: 'closed' };
-    }
-    return { key: 'soldOut', className: 'sold-out' };
-  }
-
-  const totalAvailable = bookableSessions.reduce((sum, session) => sum + Math.max(0, Number(session.maxParticipants || 0) - Number(session.registered || 0)), 0);
-  if (totalAvailable < 10) {
-    return { key: 'limited', className: 'limited' };
-  }
-
-  return { key: 'open', className: 'available' };
-}
-
-function getSessionBookingState(event, session) {
-  if (!isEventRegistrationOpen(event)) {
-    return { key: 'closed', label: t('booking.closed'), note: t('booking.eventClosed'), buttonLabel: t('booking.closed'), disabled: true };
-  }
-
-  if (!isSessionRegistrationOpen(session)) {
-    return { key: 'closed', label: t('booking.closed'), note: t('booking.sessionClosed'), buttonLabel: t('booking.closed'), disabled: true };
-  }
-
-  if (isSessionFull(session)) {
-    return { key: 'full', label: t('booking.full'), note: '', buttonLabel: t('booking.full'), disabled: true };
-  }
-
-  return { key: 'open', label: t('events.open'), note: '', buttonLabel: t('booking.register'), disabled: false };
-}
-
-function getSessionAvailabilityLabel(event, session) {
-  const stateInfo = getSessionBookingState(event, session);
-  if (stateInfo.key === 'closed') return stateInfo.label;
-  if (stateInfo.key === 'full') return stateInfo.label;
-  return `${session.registered}/${session.maxParticipants}`;
 }
 
 function getUpcomingEvents() {
@@ -2241,18 +2167,16 @@ function renderEvents() {
 
   const upcomingEvents = getUpcomingEvents().slice(0, 2);
   container.innerHTML = upcomingEvents.map((event) => {
-    const availability = getEventAvailabilityStatus(event);
-    const openSessions = isEventRegistrationOpen(event) ? getOpenSessions(event) : [];
-    const totalSpots = openSessions.reduce((sum, session) => sum + Number(session.maxParticipants || 0), 0);
-    const totalRegistered = openSessions.reduce((sum, session) => sum + Number(session.registered || 0), 0);
+    const isSoldOut = event.sessions.every((session) => session.registered >= session.maxParticipants);
+    const totalSpots = event.sessions.reduce((sum, session) => sum + session.maxParticipants, 0);
+    const totalRegistered = event.sessions.reduce((sum, session) => sum + session.registered, 0);
     const fillPercentage = totalSpots ? (totalRegistered / totalSpots) * 100 : 0;
-    const badgeText = availability.key === 'closed' ? t('events.closed') : availability.key === 'soldOut' ? t('events.soldOut') : fillPercentage > 80 ? t('events.almostFull') : '';
 
     return `
       <article class="event-card" tabindex="0" data-event-id="${escapeAttr(event.id)}">
         <div class="event-image ${getEventPhotoUrl(event) ? 'has-photo' : ''}" data-location="${escapeAttr(getEventLocationMarker(event))}">
           ${getEventPhotoUrl(event) ? `<img class="event-image-photo" src="${escapeAttr(getEventPhotoUrl(event))}" alt="${escapeAttr(event.title)}">` : ''}
-          ${badgeText ? `<span class="event-badge ${availability.className === 'sold-out' ? 'sold-out' : availability.className === 'closed' ? 'event-badge-closed' : ''}">${escapeHtml(badgeText)}</span>` : ''}
+          ${isSoldOut ? `<span class="event-badge sold-out">${escapeHtml(t('events.soldOut'))}</span>` : fillPercentage > 80 ? `<span class="event-badge">${escapeHtml(t('events.almostFull'))}</span>` : ''}
           ${getEventPhotoUrl(event) ? '' : `<span class="event-image-caption">${escapeHtml(getEventLocationMarker(event))}</span>`}
         </div>
         <div class="event-content">
@@ -2261,20 +2185,18 @@ function renderEvents() {
           <p class="event-location">${escapeHtml(event.location)}</p>
           <div class="event-sessions">
             ${event.sessions.map((session) => {
-              const sessionState = getSessionBookingState(event, session);
-              const isFull = sessionState.key === 'full';
+              const isFull = session.registered >= session.maxParticipants;
               const percentage = session.maxParticipants ? (session.registered / session.maxParticipants) * 100 : 0;
               return `
-                <div class="session-row ${isFull ? 'full' : ''} ${sessionState.key === 'closed' ? 'session-row-closed' : ''}">
+                <div class="session-row ${isFull ? 'full' : ''}">
                   <div class="session-info">
                     <span class="session-time">${escapeHtml(session.startTime)} - ${escapeHtml(session.endTime)}</span>
                     <span class="session-type">${escapeHtml(session.exerciseType)}</span>
                     ${getSessionPriceLabel(event, session) ? `<span style="display:block;margin-top:4px;font-size:0.85rem;opacity:0.9;">${getSessionPriceLabel(event, session)}</span>` : ''}
-                    ${sessionState.note ? `<span class="session-note">${escapeHtml(sessionState.note)}</span>` : ''}
                   </div>
                   <div class="session-capacity">
-                    <div class="capacity-bar"><div class="capacity-fill ${isFull || sessionState.key === 'closed' ? 'full' : ''}" style="width:${sessionState.key === 'closed' ? 100 : percentage}%"></div></div>
-                    <span class="capacity-text">${escapeHtml(getSessionAvailabilityLabel(event, session))}</span>
+                    <div class="capacity-bar"><div class="capacity-fill ${isFull ? 'full' : ''}" style="width:${percentage}%"></div></div>
+                    <span class="capacity-text">${session.registered}/${session.maxParticipants}</span>
                   </div>
                 </div>`;
             }).join('')}
@@ -2293,7 +2215,19 @@ function renderCalendar() {
   const upcomingEvents = getUpcomingEvents();
   container.innerHTML = upcomingEvents.map((event) => {
     const date = new Date(event.date);
-    const availability = getEventAvailabilityStatus(event);
+    const totalSpots = event.sessions.reduce((sum, session) => sum + session.maxParticipants, 0);
+    const totalRegistered = event.sessions.reduce((sum, session) => sum + session.registered, 0);
+    const availableSpots = totalSpots - totalRegistered;
+
+    let statusClass = 'available';
+    let statusText = t('events.open');
+    if (availableSpots <= 0) {
+      statusClass = 'sold-out';
+      statusText = t('events.soldOut');
+    } else if (availableSpots < 10) {
+      statusClass = 'limited';
+      statusText = t('events.limited');
+    }
 
     return `
       <div class="calendar-item" tabindex="0" data-event-id="${escapeAttr(event.id)}">
@@ -2305,7 +2239,7 @@ function renderCalendar() {
           <h4>${escapeHtml(event.title)}</h4>
           <p>${escapeHtml(event.location)}</p>
         </div>
-        <span class="calendar-status ${availability.className}">${escapeHtml(t(`events.${availability.key}`))}</span>
+        <span class="calendar-status ${statusClass}">${escapeHtml(statusText)}</span>
       </div>`;
   }).join('');
 
@@ -2355,24 +2289,21 @@ function renderEventModal(event) {
     </div>
     <div class="modal-sessions" role="list">
       ${event.sessions.map((session) => {
-        const sessionState = getSessionBookingState(event, session);
-        const isFull = sessionState.key === 'full';
-        const isClosed = sessionState.key === 'closed';
-        const available = Math.max(0, Number(session.maxParticipants || 0) - Number(session.registered || 0));
+        const isFull = session.registered >= session.maxParticipants;
+        const available = Math.max(0, session.maxParticipants - session.registered);
         const priceLabel = getSessionPriceLabel(event, session);
         return `
-          <div class="modal-session ${isFull ? 'full' : ''} ${isClosed ? 'modal-session-closed' : ''}" role="listitem">
+          <div class="modal-session ${isFull ? 'full' : ''}" role="listitem">
             <div class="modal-session-info">
               <h4>${escapeHtml(session.title)}</h4>
               <p>${escapeHtml(session.startTime)} - ${escapeHtml(session.endTime)} · ${escapeHtml(session.exerciseType)}</p>
               ${priceLabel ? `<p class="modal-price">${priceLabel}</p>` : ''}
-              ${sessionState.note ? `<p class="session-note">${escapeHtml(sessionState.note)}</p>` : ''}
             </div>
             <div class="modal-session-capacity">
-              <div class="spots ${isFull || isClosed ? 'full' : ''}">${escapeHtml(isClosed ? '—' : String(available))}</div>
-              <div class="label">${escapeHtml(isClosed ? sessionState.label : (isFull ? t('booking.full') : t('booking.spotsLeft')))}</div>
+              <div class="spots ${isFull ? 'full' : ''}">${available}</div>
+              <div class="label">${escapeHtml(isFull ? t('booking.full') : t('booking.spotsLeft'))}</div>
             </div>
-            <button type="button" class="btn-register" data-session-id="${escapeAttr(session.id)}" ${sessionState.disabled ? 'disabled' : ''}>${escapeHtml(sessionState.buttonLabel)}</button>
+            <button class="btn-register" data-session-id="${escapeAttr(session.id)}" ${isFull ? 'disabled' : ''}>${escapeHtml(isFull ? t('booking.full') : t('booking.register'))}</button>
           </div>`;
       }).join('')}
     </div>
@@ -2393,15 +2324,6 @@ function renderRegistrationForm() {
   const event = state.currentEvent;
   const session = event?.sessions.find((item) => item.id === state.selectedSessionId);
   if (!mount || !event || !session) return;
-
-  const bookingState = getSessionBookingState(event, session);
-  if (bookingState.disabled) {
-    mount.innerHTML = `
-      <div class="registration-panel">
-        <div class="auth-notice info">${escapeHtml(bookingState.note || t('booking.closedToast'))}</div>
-      </div>`;
-    return;
-  }
 
   const authBanner = state.user
     ? `<div class="auth-registration-banner logged-in"><strong>${escapeHtml(t('booking.signedInBanner', { name: getUserDisplayName() }))}</strong><br>${escapeHtml(t('booking.signedInBannerDesc'))}</div>`
@@ -2502,19 +2424,6 @@ async function submitRegistrationForm(event) {
 
   if (!payload.p_email || !payload.p_full_name || !payload.p_phone || !payload.p_age || !payload.p_gender || !payload.p_emergency_contact_name || !payload.p_emergency_contact_phone || !payload.p_consent_given || !payload.p_waiver_accepted) {
     showToast(t('booking.completeRequired'), 'error');
-    return;
-  }
-
-  const currentEvent = state.currentEvent;
-  const selectedSession = currentEvent?.sessions?.find((item) => item.id === state.selectedSessionId);
-  if (!currentEvent || !selectedSession) {
-    showToast(t('booking.failed'), 'error');
-    return;
-  }
-
-  const bookingState = getSessionBookingState(currentEvent, selectedSession);
-  if (bookingState.disabled) {
-    showToast(bookingState.note || t('booking.closedToast'), 'error');
     return;
   }
 
@@ -2706,17 +2615,6 @@ function initModal() {
 function setupAnimationObserver() {
   if (state.animationsInitialized) return;
   state.animationsInitialized = true;
-
-  if (typeof IntersectionObserver !== 'function') {
-    state.animationObserver = {
-      observe(element) {
-        element.classList.add('animate-in');
-      },
-      unobserve() {}
-    };
-    return;
-  }
-
   state.animationObserver = new IntersectionObserver((entries, observer) => {
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
@@ -2727,23 +2625,11 @@ function setupAnimationObserver() {
   }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
 }
 
-function revealVisibleAnimatable() {
-  const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-  document.querySelectorAll('.process-card, .team-card, .event-card, .expect-card, .feature-item, .calendar-item').forEach((element) => {
-    if (element.classList.contains('animate-in')) return;
-    const rect = element.getBoundingClientRect();
-    if (rect.top < viewportHeight - 24 && rect.bottom > 0) {
-      element.classList.add('animate-in');
-    }
-  });
-}
-
 function observeAnimatable() {
   setupAnimationObserver();
   document.querySelectorAll('.process-card, .team-card, .event-card, .expect-card, .feature-item, .calendar-item').forEach((element) => {
     if (!element.classList.contains('animate-in')) state.animationObserver.observe(element);
   });
-  requestAnimationFrame(revealVisibleAnimatable);
 }
 
 function formatDate(dateString) {
@@ -2797,4 +2683,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   initForms();
   initAuth();
   await loadEvents();
+  rerenderLanguageUI();
 });

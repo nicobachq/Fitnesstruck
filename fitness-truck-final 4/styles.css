@@ -1276,3 +1276,50 @@ html[lang="it"] .team-role, html[lang="it"] .contact-item, html[lang="it"] .auth
     line-height: 1.4;
   }
 }
+
+/* iPhone / Safari auth modal stability */
+.auth-overlay {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.auth-modal {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+}
+
+.auth-form input {
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .auth-overlay {
+    align-items: flex-start;
+    padding: 12px;
+    overflow-y: auto;
+  }
+
+  .auth-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: none;
+    min-height: auto;
+    margin-top: 72px;
+    transform: none !important;
+  }
+
+  .modal-overlay[aria-hidden="false"] .auth-modal {
+    transform: none !important;
+  }
+
+  .auth-modal-content {
+    padding-top: 56px;
+    padding-bottom: 28px;
+  }
+
+  .auth-form input,
+  .auth-form button,
+  .auth-switch-btn {
+    min-height: 52px;
+  }
+}
