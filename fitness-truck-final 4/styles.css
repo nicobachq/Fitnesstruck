@@ -1230,3 +1230,49 @@ html[lang="it"] .team-role, html[lang="it"] .contact-item, html[lang="it"] .auth
 .admin-checkbox-row{display:flex;align-items:center;gap:10px;font-weight:600}
 .admin-checkbox-row input{width:18px;height:18px}
 .form-group-checkbox small{display:block;margin-top:8px;opacity:.78;line-height:1.45}
+
+
+/* v31 mobile account text overflow fix */
+.auth-card,
+.auth-account-header,
+.auth-summary-item {
+  overflow: hidden;
+}
+
+.auth-account-header {
+  min-width: 0;
+}
+
+.auth-account-header-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.auth-account-header-copy h3,
+.auth-account-header-copy p,
+.auth-account-header-copy span,
+.auth-summary-item span,
+.auth-summary-item strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .auth-account-header {
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .auth-account-header-copy h3 {
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+
+  .auth-account-header-copy p,
+  .auth-account-header-copy span,
+  .auth-summary-item span {
+    font-size: .95rem;
+    line-height: 1.4;
+  }
+}
