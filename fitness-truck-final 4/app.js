@@ -48,6 +48,31 @@ const state = {
 };
 
 
+function isAccountPage() {
+  return document.body?.dataset?.page === 'account' || /\/account\.html(?:$|[?#])/i.test(window.location.pathname + window.location.search + window.location.hash);
+}
+
+function getRequestedAuthView() {
+  try {
+    const value = new URLSearchParams(window.location.search).get('view');
+    return value === 'signup' ? 'signup' : 'login';
+  } catch (error) {
+    return 'login';
+  }
+}
+
+function buildAccountPageUrl(view = 'login') {
+  const target = new URL('account.html', window.location.href);
+  target.searchParams.set('view', view === 'signup' ? 'signup' : 'login');
+  return `${target.pathname}${target.search}`;
+}
+
+function goToAccountPage(view = 'login') {
+  window.location.href = buildAccountPageUrl(view);
+}
+
+
+
 const TRANSLATIONS = {
   it: {
     meta: {
@@ -658,7 +683,7 @@ function rerenderLanguageUI() {
   renderEvents();
   renderCalendar();
   updateEmptyState();
-  if (isAuthModalOpen()) renderAuthModal();
+  if (isAuthModalOpen() || isAccountPage()) renderAuthModal();
   if (state.currentEvent) {
     const content = document.getElementById('modalContent');
     if (content) {
@@ -1207,7 +1232,7 @@ function refreshAuthDependentUI() {
   }
   updateAccountButton();
   scheduleHeroSideCardRender();
-  if (isAuthModalOpen()) {
+  if (isAccountPage() || isAuthModalOpen()) {
     if (!(state.user && state.accountMode === 'edit')) {
       renderAuthModal();
     }
@@ -1221,6 +1246,11 @@ function bindAuthLaunchers(root = document) {
     button.dataset.authBound = '1';
     button.addEventListener('click', (event) => {
       const view = button.dataset.openAuth === 'signup' ? 'signup' : 'login';
+      if (!isAccountPage()) {
+        event.preventDefault();
+        goToAccountPage(view);
+        return;
+      }
       openAuthModal(view, event.currentTarget);
     });
   });
@@ -1316,45 +1346,40 @@ function renderHeroSideCard() {
   document.getElementById('heroMyAccountBtn')?.addEventListener('click', (event) => openAuthModal('login', event.currentTarget));
 }
 
-function isStandaloneAuthPage() {
-  return !!document.getElementById('authPageContent');
-}
-
-function getAuthContentMount() {
-  return document.getElementById('authPageContent') || document.getElementById('authModalContent');
-}
-
-function navigateToAuthPage(view = 'login') {
-  const url = new URL('account.html', window.location.href);
-  url.searchParams.set('view', state.user ? 'summary' : (view === 'signup' ? 'signup' : 'login'));
-  window.location.href = url.toString();
-}
-
 function openAuthModal(view = 'login', triggerEl = document.activeElement) {
-  const requestedView = view === 'signup' ? 'signup' : 'login';
-  if (!isStandaloneAuthPage()) {
-    navigateToAuthPage(requestedView);
+  state.authView = view === 'signup' ? 'signup' : 'login';
+  if (state.user) state.accountMode = 'summary';
+  state.lastAuthTriggerEl = triggerEl || null;
+
+  const launchedFromEventFlow = !!(triggerEl && typeof triggerEl.closest === 'function' && triggerEl.closest('#modalOverlay'));
+
+  if (!isAccountPage() && !launchedFromEventFlow) {
+    goToAccountPage(state.user ? 'login' : state.authView);
     return;
   }
 
-  state.authView = requestedView;
-  if (state.user) state.accountMode = 'summary';
-  state.lastAuthTriggerEl = triggerEl || null;
   renderAuthModal();
-
+  const overlay = document.getElementById('authOverlay');
+  if (!overlay) {
+    if (state.user && state.accountMode === 'summary') {
+      loadMyRegistrations();
+    }
+    return;
+  }
+  overlay.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
   if (state.user && state.accountMode === 'summary') {
     loadMyRegistrations();
   }
-
   setTimeout(() => {
-    const firstInput = document.querySelector('#authPageContent input, #authPageContent button, #authModalContent input, #authModalContent button');
+    const firstInput = overlay.querySelector('input, button');
     if (firstInput) firstInput.focus();
   }, 20);
 }
 
 function closeAuthModal() {
-  if (isStandaloneAuthPage()) {
-    window.location.href = 'index.html';
+  if (isAccountPage()) {
+    renderAuthModal();
     return;
   }
   const overlay = document.getElementById('authOverlay');
@@ -1367,13 +1392,12 @@ function closeAuthModal() {
 }
 
 function isAuthModalOpen() {
-  if (isStandaloneAuthPage()) return true;
   const overlay = document.getElementById('authOverlay');
   return !!overlay && overlay.getAttribute('aria-hidden') === 'false';
 }
 
 function renderAuthModal() {
-  const mount = getAuthContentMount();
+  const mount = document.getElementById('authModalContent');
   if (!mount) return;
 
   if (state.user) {
@@ -1662,12 +1686,8 @@ async function handleLoginSubmit(event) {
     state.accountMode = 'summary';
     setAuthNotice();
     refreshAuthDependentUI();
-    if (isStandaloneAuthPage()) {
-      renderAuthModal();
-      loadMyRegistrations({ force: true });
-    }
     showToast(t('account.loginSuccess'), 'success');
-    if (!isStandaloneAuthPage()) closeAuthModal();
+    closeAuthModal();
   } catch (error) {
     console.error('Login error:', error);
     const errorMessage = error?.message || t('account.loginFailed');
@@ -1730,9 +1750,8 @@ async function handleSignupSubmit(event) {
       setAuthNotice();
       refreshAuthDependentUI();
       loadMyRegistrations({ force: true });
-      if (isStandaloneAuthPage()) renderAuthModal();
       showToast(t('account.accountCreatedAndLoggedIn'), 'success');
-      if (!isStandaloneAuthPage()) closeAuthModal();
+      closeAuthModal();
       return;
     }
 
@@ -2055,13 +2074,10 @@ async function syncAuthUI(options = {}) {
 }
 
 function initAuth() {
-  refreshAuthDependentUI();
-
-  if (isStandaloneAuthPage() && !state.user) {
-    const requestedView = new URLSearchParams(window.location.search).get('view');
-    state.authView = requestedView === 'signup' ? 'signup' : 'login';
-    renderAuthModal();
+  if (!state.user) {
+    state.authView = getRequestedAuthView();
   }
+  refreshAuthDependentUI();
 
   document.getElementById('accountBtn')?.addEventListener('click', (event) => {
     const navLinks = document.getElementById('navLinks');
@@ -2070,7 +2086,12 @@ function initAuth() {
       navLinks.classList.remove('active');
       mobileMenuBtn?.setAttribute('aria-expanded', 'false');
     }
-    openAuthModal('login', event.currentTarget);
+    if (isAccountPage()) {
+      openAuthModal('login', event.currentTarget);
+      return;
+    }
+    event.preventDefault();
+    goToAccountPage(state.user ? 'login' : 'login');
   });
 
   document.getElementById('authModalClose')?.addEventListener('click', closeAuthModal);
@@ -2099,6 +2120,10 @@ function initAuth() {
   });
 
   syncAuthUI({ refreshFromServer: true });
+
+  if (isAccountPage()) {
+    renderAuthModal();
+  }
 
   window.addEventListener('focus', () => {
     if (isAuthModalOpen() && state.user && state.accountMode === 'edit') return;
@@ -2190,12 +2215,9 @@ function getUpcomingEvents() {
 
 function updateEmptyState() {
   const hasUpcoming = getUpcomingEvents().length > 0;
-  const emptyState = document.getElementById('emptyStateEvents');
-  const calendarSection = document.getElementById('calendarSection');
-  const featuredEvents = document.getElementById('featured-events');
-  if (emptyState) emptyState.hidden = hasUpcoming;
-  if (calendarSection) calendarSection.style.display = hasUpcoming ? 'block' : 'none';
-  if (featuredEvents) featuredEvents.style.display = hasUpcoming ? 'grid' : 'none';
+  document.getElementById('emptyStateEvents').hidden = hasUpcoming;
+  document.getElementById('calendarSection').style.display = hasUpcoming ? 'block' : 'none';
+  document.getElementById('featured-events').style.display = hasUpcoming ? 'grid' : 'none';
 }
 
 function renderEvents() {
@@ -2572,7 +2594,6 @@ function initNavigation() {
   const navLinks = document.getElementById('navLinks');
 
   window.addEventListener('scroll', () => {
-    if (!navbar) return;
     if (window.pageYOffset > 100) navbar.classList.add('scrolled');
     else navbar.classList.remove('scrolled');
   });
@@ -2720,7 +2741,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   initModal();
   initForms();
   initAuth();
+
+  if (isAccountPage()) {
+    rerenderLanguageUI();
+    return;
+  }
+
   await loadEvents();
   rerenderLanguageUI();
-  if (isStandaloneAuthPage()) renderAuthModal();
 });

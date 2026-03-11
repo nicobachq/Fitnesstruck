@@ -4,16 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fitness Truck | Account</title>
-  <meta name="description" content="Accedi o crea il tuo account Fitness Truck per prenotare più velocemente e gestire le tue registrations." />
+  <meta name="description" content="Accedi o crea il tuo account Fitness Truck per prenotare più velocemente e gestire le tue registrazioni." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=32" />
+  <link rel="stylesheet" href="styles.css?v=33" />
 </head>
-<body data-page="account">
+<body class="account-page" data-page="account">
   <div class="noise-overlay"></div>
 
-  <div class="nav-container" id="navbar">
+  <div class="nav-container scrolled" id="navbar">
     <nav>
       <a href="index.html#top" class="logo">
         <img src="assets/logo-transparent.png" alt="Fitness Truck - The Gym That Moves" class="logo-img" onerror="this.closest('.team-image').classList.add('team-image--placeholder'); this.remove();">
@@ -22,39 +22,29 @@
           <span>FITNESS TRUCK</span>
         </div>
       </a>
-      <div class="nav-links" id="navLinks">
-        <a href="index.html#events" data-i18n="nav.events">Eventi</a>
-        <a href="index.html#experience" data-i18n="nav.experience">Esperienza</a>
-        <a href="index.html#team" data-i18n="nav.team">Team</a>
-        <a href="index.html#contact" data-i18n="nav.contact">Contatti</a>
+      <div class="nav-links account-page-nav-links" id="navLinks">
         <div class="lang-switch" aria-label="Language switcher">
           <button type="button" class="lang-btn active" data-lang-choice="it" aria-pressed="true">IT</button>
           <button type="button" class="lang-btn" data-lang-choice="en" aria-pressed="false">EN</button>
         </div>
         <a href="index.html" class="nav-auth-btn nav-cta">Home</a>
       </div>
-      <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="navLinks">
-        <span></span>
-        <span></span>
-      </button>
     </nav>
   </div>
 
   <main class="account-page-main">
     <section class="account-page-shell">
       <div class="account-page-intro">
-        <span class="account-page-kicker">Fitness Truck account</span>
-        <h1 class="account-page-title">Accedi in modo rapido e sicuro.</h1>
-        <p class="account-page-copy">Usa una pagina dedicata per accedere, creare il tuo account, salvare i tuoi dati una sola volta e tornare alle prossime activation senza i problemi del popup su iPhone.</p>
-        <div class="account-page-links">
-          <a href="index.html#events" class="btn btn-secondary">Torna agli eventi</a>
-          <a href="index.html" class="btn btn-primary">Homepage</a>
-        </div>
+        <span class="hero-badge account-page-badge">
+          <span class="pulse-dot" aria-hidden="true"></span>
+          <span>Fitness Truck</span>
+        </span>
+        <h1 class="section-title">Account</h1>
+        <p class="section-subtitle">Access your account on a dedicated page to make sign-in and saved-password autofill work more reliably on mobile.</p>
       </div>
 
       <div class="account-page-panel">
-        <a href="index.html" class="account-page-close" id="accountPageClose" aria-label="Back to home">×</a>
-        <div id="authPageContent"></div>
+        <div class="auth-modal-content" id="authModalContent"></div>
       </div>
     </section>
   </main>
@@ -62,6 +52,6 @@
   <div class="toast-container" id="toastContainer" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=32"></script>
+  <script src="app.js?v=33"></script>
 </body>
 </html>

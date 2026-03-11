@@ -1325,20 +1325,111 @@ html[lang="it"] .team-role, html[lang="it"] .contact-item, html[lang="it"] .auth
 }
 
 
+
 /* Dedicated account page */
-.account-page-main{min-height:100vh;padding:48px 20px 80px;background:radial-gradient(circle at top, rgba(255,50,50,.12), transparent 35%),var(--bg)}
-.account-page-shell{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
-.account-page-topbar{display:flex;justify-content:space-between;align-items:center;gap:16px}
-.account-page-back{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border:1px solid var(--border);border-radius:999px;background:rgba(255,255,255,.03);color:var(--text);text-decoration:none}
-.account-page-brand{display:flex;justify-content:center}
-.account-page-surface{position:relative;padding:32px;border:1px solid var(--border);border-radius:28px;background:rgba(5,7,12,.88);box-shadow:0 24px 80px rgba(0,0,0,.4);backdrop-filter:blur(18px)}
-.account-page-surface .auth-card{gap:22px}
-.account-page-surface .auth-title{font-size:clamp(2.3rem,5vw,3.6rem)}
-.account-page-surface .auth-form input{font-size:16px}
-@media (max-width:768px){
-  .account-page-main{padding:20px 14px 48px}
-  .account-page-topbar{align-items:flex-start;flex-direction:column}
-  .account-page-brand{justify-content:flex-start}
-  .account-page-surface{padding:22px;border-radius:24px}
-  .account-page-surface .auth-title{font-size:clamp(2rem,10vw,3rem)}
+.account-page {
+  min-height: 100vh;
+}
+
+.account-page-main {
+  padding-top: 132px;
+  padding-bottom: 88px;
+}
+
+.account-page-shell {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: grid;
+  gap: 28px;
+}
+
+.account-page-intro {
+  display: grid;
+  gap: 14px;
+  max-width: 720px;
+}
+
+.account-page-badge {
+  width: fit-content;
+}
+
+.account-page-panel {
+  border: 1px solid var(--border);
+  border-radius: 32px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.04) 0%, rgba(255,255,255,.01) 100%),
+    radial-gradient(circle at top left, rgba(255,26,26,.12), transparent 45%),
+    rgba(10,10,10,.92);
+  box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  overflow: hidden;
+  backdrop-filter: blur(18px);
+}
+
+.account-page-panel .auth-modal-content {
+  padding: 32px;
+}
+
+.account-page-nav-links {
+  gap: 16px;
+}
+
+.account-page-nav-links .nav-cta {
+  min-width: 120px;
+  text-align: center;
+}
+
+.account-page .auth-card {
+  gap: 22px;
+}
+
+.account-page .auth-form input,
+.account-page .auth-form select,
+.account-page .auth-form textarea {
+  font-size: 16px;
+}
+
+.account-page .auth-switch-btn {
+  min-height: 52px;
+}
+
+@media (max-width: 768px) {
+  .account-page-main {
+    padding-top: 108px;
+    padding-bottom: 48px;
+  }
+
+  .account-page-shell {
+    padding: 0 14px;
+    gap: 18px;
+  }
+
+  .account-page-intro {
+    gap: 10px;
+  }
+
+  .account-page-intro .section-title {
+    font-size: clamp(2.2rem, 10vw, 3.8rem);
+  }
+
+  .account-page-intro .section-subtitle {
+    font-size: 1rem;
+  }
+
+  .account-page-panel {
+    border-radius: 24px;
+  }
+
+  .account-page-panel .auth-modal-content {
+    padding: 22px 18px 24px;
+  }
+
+  .account-page-nav-links {
+    gap: 12px;
+  }
+
+  .account-page-nav-links .nav-cta {
+    padding: 12px 18px !important;
+    min-width: auto;
+  }
 }
