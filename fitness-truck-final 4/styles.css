@@ -1206,3 +1206,10 @@ html[lang="it"] .team-role, html[lang="it"] .contact-item, html[lang="it"] .auth
   opacity: 1;
   transform: translateY(0);
 }
+
+
+/* Random hero background rotation */
+.hero-image{
+  background-image: var(--ft-hero-image, url('assets/hero-banner-1.jpg'));
+  background-position: center center;
+}
