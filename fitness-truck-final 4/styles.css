@@ -1323,3 +1323,22 @@ html[lang="it"] .team-role, html[lang="it"] .contact-item, html[lang="it"] .auth
     min-height: 52px;
   }
 }
+
+
+/* Dedicated account page */
+.account-page-main{min-height:100vh;padding:48px 20px 80px;background:radial-gradient(circle at top, rgba(255,50,50,.12), transparent 35%),var(--bg)}
+.account-page-shell{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.account-page-topbar{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.account-page-back{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border:1px solid var(--border);border-radius:999px;background:rgba(255,255,255,.03);color:var(--text);text-decoration:none}
+.account-page-brand{display:flex;justify-content:center}
+.account-page-surface{position:relative;padding:32px;border:1px solid var(--border);border-radius:28px;background:rgba(5,7,12,.88);box-shadow:0 24px 80px rgba(0,0,0,.4);backdrop-filter:blur(18px)}
+.account-page-surface .auth-card{gap:22px}
+.account-page-surface .auth-title{font-size:clamp(2.3rem,5vw,3.6rem)}
+.account-page-surface .auth-form input{font-size:16px}
+@media (max-width:768px){
+  .account-page-main{padding:20px 14px 48px}
+  .account-page-topbar{align-items:flex-start;flex-direction:column}
+  .account-page-brand{justify-content:flex-start}
+  .account-page-surface{padding:22px;border-radius:24px}
+  .account-page-surface .auth-title{font-size:clamp(2rem,10vw,3rem)}
+}

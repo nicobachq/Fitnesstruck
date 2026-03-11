@@ -1316,25 +1316,47 @@ function renderHeroSideCard() {
   document.getElementById('heroMyAccountBtn')?.addEventListener('click', (event) => openAuthModal('login', event.currentTarget));
 }
 
+function isStandaloneAuthPage() {
+  return !!document.getElementById('authPageContent');
+}
+
+function getAuthContentMount() {
+  return document.getElementById('authPageContent') || document.getElementById('authModalContent');
+}
+
+function navigateToAuthPage(view = 'login') {
+  const url = new URL('account.html', window.location.href);
+  url.searchParams.set('view', state.user ? 'summary' : (view === 'signup' ? 'signup' : 'login'));
+  window.location.href = url.toString();
+}
+
 function openAuthModal(view = 'login', triggerEl = document.activeElement) {
-  state.authView = view === 'signup' ? 'signup' : 'login';
+  const requestedView = view === 'signup' ? 'signup' : 'login';
+  if (!isStandaloneAuthPage()) {
+    navigateToAuthPage(requestedView);
+    return;
+  }
+
+  state.authView = requestedView;
   if (state.user) state.accountMode = 'summary';
   state.lastAuthTriggerEl = triggerEl || null;
   renderAuthModal();
-  const overlay = document.getElementById('authOverlay');
-  if (!overlay) return;
-  overlay.setAttribute('aria-hidden', 'false');
-  document.body.style.overflow = 'hidden';
+
   if (state.user && state.accountMode === 'summary') {
     loadMyRegistrations();
   }
+
   setTimeout(() => {
-    const firstInput = overlay.querySelector('input, button');
+    const firstInput = document.querySelector('#authPageContent input, #authPageContent button, #authModalContent input, #authModalContent button');
     if (firstInput) firstInput.focus();
   }, 20);
 }
 
 function closeAuthModal() {
+  if (isStandaloneAuthPage()) {
+    window.location.href = 'index.html';
+    return;
+  }
   const overlay = document.getElementById('authOverlay');
   if (!overlay) return;
   overlay.setAttribute('aria-hidden', 'true');
@@ -1345,12 +1367,13 @@ function closeAuthModal() {
 }
 
 function isAuthModalOpen() {
+  if (isStandaloneAuthPage()) return true;
   const overlay = document.getElementById('authOverlay');
   return !!overlay && overlay.getAttribute('aria-hidden') === 'false';
 }
 
 function renderAuthModal() {
-  const mount = document.getElementById('authModalContent');
+  const mount = getAuthContentMount();
   if (!mount) return;
 
   if (state.user) {
@@ -1639,8 +1662,12 @@ async function handleLoginSubmit(event) {
     state.accountMode = 'summary';
     setAuthNotice();
     refreshAuthDependentUI();
+    if (isStandaloneAuthPage()) {
+      renderAuthModal();
+      loadMyRegistrations({ force: true });
+    }
     showToast(t('account.loginSuccess'), 'success');
-    closeAuthModal();
+    if (!isStandaloneAuthPage()) closeAuthModal();
   } catch (error) {
     console.error('Login error:', error);
     const errorMessage = error?.message || t('account.loginFailed');
@@ -1703,8 +1730,9 @@ async function handleSignupSubmit(event) {
       setAuthNotice();
       refreshAuthDependentUI();
       loadMyRegistrations({ force: true });
+      if (isStandaloneAuthPage()) renderAuthModal();
       showToast(t('account.accountCreatedAndLoggedIn'), 'success');
-      closeAuthModal();
+      if (!isStandaloneAuthPage()) closeAuthModal();
       return;
     }
 
@@ -2029,6 +2057,12 @@ async function syncAuthUI(options = {}) {
 function initAuth() {
   refreshAuthDependentUI();
 
+  if (isStandaloneAuthPage() && !state.user) {
+    const requestedView = new URLSearchParams(window.location.search).get('view');
+    state.authView = requestedView === 'signup' ? 'signup' : 'login';
+    renderAuthModal();
+  }
+
   document.getElementById('accountBtn')?.addEventListener('click', (event) => {
     const navLinks = document.getElementById('navLinks');
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
@@ -2156,9 +2190,12 @@ function getUpcomingEvents() {
 
 function updateEmptyState() {
   const hasUpcoming = getUpcomingEvents().length > 0;
-  document.getElementById('emptyStateEvents').hidden = hasUpcoming;
-  document.getElementById('calendarSection').style.display = hasUpcoming ? 'block' : 'none';
-  document.getElementById('featured-events').style.display = hasUpcoming ? 'grid' : 'none';
+  const emptyState = document.getElementById('emptyStateEvents');
+  const calendarSection = document.getElementById('calendarSection');
+  const featuredEvents = document.getElementById('featured-events');
+  if (emptyState) emptyState.hidden = hasUpcoming;
+  if (calendarSection) calendarSection.style.display = hasUpcoming ? 'block' : 'none';
+  if (featuredEvents) featuredEvents.style.display = hasUpcoming ? 'grid' : 'none';
 }
 
 function renderEvents() {
@@ -2535,6 +2572,7 @@ function initNavigation() {
   const navLinks = document.getElementById('navLinks');
 
   window.addEventListener('scroll', () => {
+    if (!navbar) return;
     if (window.pageYOffset > 100) navbar.classList.add('scrolled');
     else navbar.classList.remove('scrolled');
   });
@@ -2684,4 +2722,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   initAuth();
   await loadEvents();
   rerenderLanguageUI();
+  if (isStandaloneAuthPage()) renderAuthModal();
 });
