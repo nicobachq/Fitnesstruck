@@ -587,6 +587,8 @@ const TRANSLATIONS = {
       consent: 'Accetto che Fitness Truck possa conservare i miei dati per gestire la mia partecipazione in sicurezza.',
       waiver: 'Capisco che si tratta di un evento di attività fisica e partecipo sotto la mia responsabilità.',
       completeRegistration: 'Completa registrazione',
+      continueToPayment: 'Continua al pagamento',
+      redirectingToPayment: 'Reindirizzamento al pagamento...',
       cancel: 'Annulla',
       completeRequired: 'Compila tutti i campi obbligatori.',
       saving: 'Salvataggio...',
@@ -867,6 +869,8 @@ const TRANSLATIONS = {
       consent: 'I agree that Fitness Truck may store my information to manage my participation safely.',
       waiver: 'I understand this is a physical activity event and I participate at my own responsibility.',
       completeRegistration: 'Complete registration',
+      continueToPayment: 'Continue to payment',
+      redirectingToPayment: 'Redirecting to payment...',
       cancel: 'Cancel',
       completeRequired: 'Please complete all required fields.',
       saving: 'Saving...',
@@ -2841,7 +2845,7 @@ function renderRegistrationForm() {
           <span>${escapeHtml(t('booking.waiver'))}</span>
         </label>
         <div class="registration-actions form-group-full">
-          <button type="submit" class="btn btn-primary">${escapeHtml(t('booking.completeRegistration'))}</button>
+          <button type="submit" class="btn btn-primary">${escapeHtml(getBookingPriceChf(event, session) > 0 ? t('booking.continueToPayment') : t('booking.completeRegistration'))}</button>
           <button type="button" class="btn btn-secondary" id="cancelRegistrationBtn">${escapeHtml(t('booking.cancel'))}</button>
         </div>
       </form>
@@ -2883,10 +2887,18 @@ async function submitRegistrationForm(event) {
     return;
   }
 
+  const session = state.currentEvent?.sessions.find((item) => item.id === state.selectedSessionId);
+  const isPaidSession = getBookingPriceChf(state.currentEvent, session) > 0;
+
   submitButton.disabled = true;
-  submitButton.textContent = t('booking.saving');
+  submitButton.textContent = isPaidSession ? t('booking.redirectingToPayment') : t('booking.saving');
 
   try {
+    if (isPaidSession) {
+      await startPaidRegistration(payload, submitButton);
+      return;
+    }
+
     const { data, error } = await supabaseClient.rpc('register_for_session', payload);
     if (error) throw error;
     if (!data?.success) {
@@ -2946,7 +2958,7 @@ async function submitRegistrationForm(event) {
     console.error('Registration error:', error);
     showToast(error.message || t('booking.failed'), 'error');
     submitButton.disabled = false;
-    submitButton.textContent = t('booking.completeRegistration');
+    submitButton.textContent = isPaidSession ? t('booking.continueToPayment') : t('booking.completeRegistration');
   }
 }
 
@@ -2956,6 +2968,63 @@ function getSessionPriceLabel(event, session) {
   const price = sessionPrice > 0 ? sessionPrice : eventPrice;
 
   return price > 0 ? `CHF ${price.toFixed(2)}` : '';
+}
+
+function getBookingPriceChf(event, session) {
+  const sessionPrice = Number(session?.priceChf || session?.price_chf || 0);
+  const eventPrice = Number(event?.basePriceChf || event?.base_price_chf || 0);
+  return sessionPrice > 0 ? sessionPrice : eventPrice;
+}
+
+async function startPaidRegistration(payload, submitButton) {
+  const response = await fetch('/.netlify/functions/create-payrexx-payment', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      participant: {
+        fullName: payload.p_full_name,
+        email: payload.p_email,
+        phone: payload.p_phone,
+        age: payload.p_age,
+        gender: payload.p_gender,
+        foodAllergies: payload.p_food_allergies,
+        medicalConditions: payload.p_medical_conditions,
+        emergencyContactName: payload.p_emergency_contact_name,
+        emergencyContactPhone: payload.p_emergency_contact_phone,
+        consentGiven: payload.p_consent_given,
+        waiverAccepted: payload.p_waiver_accepted
+      },
+      event: {
+        id: state.currentEvent?.id || '',
+        title: state.currentEvent?.title || '',
+        date: state.currentEvent?.date || '',
+        location: state.currentEvent?.location || ''
+      },
+      session: {
+        id: state.selectedSessionId || '',
+        title: state.currentEvent?.sessions.find((item) => item.id === state.selectedSessionId)?.title || '',
+        startTime: state.currentEvent?.sessions.find((item) => item.id === state.selectedSessionId)?.startTime || '',
+        endTime: state.currentEvent?.sessions.find((item) => item.id === state.selectedSessionId)?.endTime || '',
+        exerciseType: state.currentEvent?.sessions.find((item) => item.id === state.selectedSessionId)?.exerciseType || '',
+        priceChf: getBookingPriceChf(state.currentEvent, state.currentEvent?.sessions.find((item) => item.id === state.selectedSessionId))
+      },
+      language: state.language
+    })
+  });
+
+  let result = null;
+  try {
+    result = await response.json();
+  } catch (error) {
+    result = null;
+  }
+
+  if (!response.ok || !result?.success || !result?.redirectUrl) {
+    throw new Error(result?.message || `Payment could not be started (${response.status}).`);
+  }
+
+  submitButton.textContent = t('booking.redirectingToPayment');
+  window.location.href = result.redirectUrl;
 }
 
 function sessionIdFromState() {
