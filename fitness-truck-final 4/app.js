@@ -683,6 +683,7 @@ function rerenderLanguageUI() {
   renderEvents();
   renderCalendar();
   updateEmptyState();
+  if (!isAccountPage()) observeAnimatable();
   if (isAuthModalOpen() || isAccountPage()) renderAuthModal();
   if (state.currentEvent) {
     const content = document.getElementById('modalContent');
@@ -2827,5 +2828,4 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   await loadEvents();
-  rerenderLanguageUI();
 });
