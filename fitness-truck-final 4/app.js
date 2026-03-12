@@ -71,25 +71,7 @@ function goToAccountPage(view = 'login') {
   window.location.href = buildAccountPageUrl(view);
 }
 
-function buildEventsPageUrl() {
-  const target = new URL('index.html', window.location.href);
-  target.hash = 'events';
-  return `${target.pathname}${target.search}${target.hash}`;
-}
 
-function continueBookingFromAccount() {
-  if (isAccountPage()) {
-    window.location.href = buildEventsPageUrl();
-    return;
-  }
-  closeAuthModal();
-  const eventsSection = document.getElementById('events');
-  if (eventsSection) {
-    eventsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    return;
-  }
-  window.location.href = buildEventsPageUrl();
-}
 
 const TRANSLATIONS = {
   it: {
@@ -1409,6 +1391,77 @@ function closeAuthModal() {
   if (state.lastAuthTriggerEl) state.lastAuthTriggerEl.focus();
 }
 
+function getAccountAuthStaticElements() {
+  return {
+    shell: document.getElementById('accountAuthStatic'),
+    mount: document.getElementById('authModalContent'),
+    notice: document.getElementById('accountAuthNotice'),
+    loginForm: document.getElementById('accountLoginForm'),
+    signupForm: document.getElementById('accountSignupForm'),
+    loginTab: document.getElementById('accountLoginTab'),
+    signupTab: document.getElementById('accountSignupTab')
+  };
+}
+
+function renderAccountPageStaticAuth() {
+  if (!isAccountPage()) return;
+  const { shell, mount, notice, loginForm, signupForm, loginTab, signupTab } = getAccountAuthStaticElements();
+  if (!shell) return;
+
+  const loggedOut = !state.user;
+  shell.hidden = !loggedOut;
+  if (mount) mount.hidden = loggedOut;
+
+  if (!loggedOut) {
+    if (notice) {
+      notice.hidden = true;
+      notice.textContent = '';
+      notice.className = 'auth-notice info';
+    }
+    return;
+  }
+
+  const showSignup = state.authView === 'signup';
+  if (loginForm) loginForm.hidden = showSignup;
+  if (signupForm) signupForm.hidden = !showSignup;
+  if (loginTab) loginTab.classList.toggle('active', !showSignup);
+  if (signupTab) signupTab.classList.toggle('active', showSignup);
+  if (loginTab) loginTab.setAttribute('aria-selected', String(!showSignup));
+  if (signupTab) signupTab.setAttribute('aria-selected', String(showSignup));
+
+  if (notice) {
+    if (state.authNotice?.message) {
+      notice.hidden = false;
+      notice.textContent = state.authNotice.message;
+      notice.className = `auth-notice ${state.authNotice.type || 'info'}`;
+    } else {
+      notice.hidden = true;
+      notice.textContent = '';
+      notice.className = 'auth-notice info';
+    }
+  }
+}
+
+function bindAccountPageStaticAuth() {
+  if (!isAccountPage()) return;
+  const { shell, loginForm, signupForm } = getAccountAuthStaticElements();
+  if (!shell || shell.dataset.bound === '1') return;
+  shell.dataset.bound = '1';
+
+  shell.querySelectorAll('[data-account-view]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.authView = button.dataset.accountView === 'signup' ? 'signup' : 'login';
+      if (state.authView === 'signup' && state.authNotice?.type === 'success') setAuthNotice();
+      renderAccountPageStaticAuth();
+      const target = state.authView === 'signup' ? document.getElementById('signupFullName') : document.getElementById('loginEmail');
+      target?.focus();
+    });
+  });
+
+  loginForm?.addEventListener('submit', handleLoginSubmit);
+  signupForm?.addEventListener('submit', handleSignupSubmit);
+}
+
 function isAuthModalOpen() {
   const overlay = document.getElementById('authOverlay');
   return !!overlay && overlay.getAttribute('aria-hidden') === 'false';
@@ -1416,7 +1469,14 @@ function isAuthModalOpen() {
 
 function renderAuthModal() {
   const mount = document.getElementById('authModalContent');
+  if (isAccountPage()) renderAccountPageStaticAuth();
   if (!mount) return;
+
+  if (isAccountPage() && !state.user) {
+    mount.innerHTML = '';
+    mount.hidden = true;
+    return;
+  }
 
   if (state.user) {
     const profile = getUserProfileData();
@@ -1570,9 +1630,7 @@ function renderAuthModal() {
         ${getMyRegistrationsMarkup()}
         <div class="auth-actions">
           <button type="button" class="btn btn-primary" id="editProfileBtn">${escapeHtml(t('account.editProfile'))}</button>
-          ${isAccountPage()
-            ? `<a href="${escapeHtml(buildEventsPageUrl())}" class="btn btn-secondary" id="closeAuthAndBrowseBtn">${escapeHtml(t('account.continueBooking'))}</a>`
-            : `<button type="button" class="btn btn-secondary" id="closeAuthAndBrowseBtn">${escapeHtml(t('account.continueBooking'))}</button>`}
+          <button type="button" class="btn btn-secondary" id="closeAuthAndBrowseBtn">${escapeHtml(t('account.continueBooking'))}</button>
           <button type="button" class="btn btn-secondary" id="logoutAccountBtn">${escapeHtml(t('account.logOut'))}</button>
         </div>
       </div>`;
@@ -1582,11 +1640,7 @@ function renderAuthModal() {
       state.accountMode = 'edit';
       renderAuthModal();
     });
-    document.getElementById('closeAuthAndBrowseBtn')?.addEventListener('click', (event) => {
-      if (isAccountPage() && event.currentTarget?.tagName === 'A') return;
-      event.preventDefault();
-      continueBookingFromAccount();
-    });
+    document.getElementById('closeAuthAndBrowseBtn')?.addEventListener('click', closeAuthModal);
     document.getElementById('logoutAccountBtn')?.addEventListener('click', logoutCurrentUser);
     document.getElementById('retryMyRegistrationsBtn')?.addEventListener('click', () => loadMyRegistrations({ force: true }));
     document.getElementById('loadMorePastRegistrationsBtn')?.addEventListener('click', () => {
@@ -2101,6 +2155,7 @@ function initAuth() {
   if (!state.user) {
     state.authView = getRequestedAuthView();
   }
+  if (isAccountPage()) bindAccountPageStaticAuth();
   refreshAuthDependentUI();
 
   document.getElementById('accountBtn')?.addEventListener('click', (event) => {

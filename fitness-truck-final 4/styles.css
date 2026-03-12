@@ -1435,44 +1435,47 @@ html[lang="it"] .team-role, html[lang="it"] .contact-item, html[lang="it"] .auth
 }
 
 
-/* Stable events visibility */
-.event-card,
-.calendar-item {
-  opacity: 1 !important;
-  transform: none !important;
+/* v37 account page static auth */
+.account-auth-static[hidden],
+#authModalContent[hidden] {
+  display: none !important;
 }
 
-/* iPhone manual account login */
-.auth-decoy-input {
-  position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
+.account-auth-switch button[aria-selected="true"] {
+  background: rgba(255,255,255,.08);
+  color: var(--text);
 }
 
-.auth-form--manual input[data-manual-auth-field] {
-  -webkit-user-select: text;
-  user-select: text;
-  touch-action: manipulation;
+.account-auth-form[hidden] {
+  display: none !important;
 }
 
-.auth-helper-manual {
-  margin-bottom: 4px;
+.account-auth-footer {
+  display: grid;
+  gap: 14px;
+}
+
+.account-browse-link {
+  width: 100%;
+  text-align: center;
+}
+
+.account-page .auth-notice {
+  margin-bottom: 0;
+}
+
+.account-page .auth-form button[type="submit"],
+.account-page .account-browse-link {
+  min-height: 54px;
 }
 
 @media (max-width: 768px) {
-  .account-page .auth-card {
-    gap: 18px;
+  .account-page-panel .auth-modal-content,
+  .account-auth-static {
+    min-height: 0;
   }
 
-  .account-page .auth-form .form-group {
-    margin-bottom: 14px;
-  }
-
-  .account-page .auth-form input,
-  .account-page .auth-form button,
-  .account-page .auth-switch-btn {
-    min-height: 52px;
+  .account-page .auth-switch {
+    grid-template-columns: 1fr 1fr;
   }
 }
