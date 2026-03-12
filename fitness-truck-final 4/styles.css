@@ -1479,3 +1479,15 @@ html[lang="it"] .team-role, html[lang="it"] .contact-item, html[lang="it"] .auth
     grid-template-columns: 1fr 1fr;
   }
 }
+
+
+/* v40 desktop-safe events visibility fix */
+.event-card,
+.calendar-item {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.event-card:hover {
+  transform: translateY(-8px) !important;
+}
