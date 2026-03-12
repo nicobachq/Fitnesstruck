@@ -344,6 +344,12 @@ const TRANSLATIONS = {
       saving: 'Salvataggio...',
       savedEmailSent: 'Registrazione salvata ed email di conferma inviata.',
       savedEmailPending: 'Registrazione salvata. L\'email di conferma non è ancora stata inviata.',
+      paymentStart: 'Vai al pagamento',
+      paymentStarting: 'Sto preparando il pagamento...',
+      paymentRedirecting: 'Reindirizzamento al checkout sicuro…',
+      paymentSuccessPending: 'Pagamento ricevuto. La prenotazione verrà confermata tra pochi istanti.',
+      paymentCancelled: 'Pagamento annullato. Nessuna prenotazione è stata completata.',
+      paymentFailed: 'Pagamento non riuscito. Riprova oppure scegli un altro metodo.',
       failed: 'Registrazione non riuscita.',
       register: 'Registrati',
       full: 'Completo',
@@ -620,6 +626,12 @@ const TRANSLATIONS = {
       saving: 'Saving...',
       savedEmailSent: 'Registration saved and confirmation email sent.',
       savedEmailPending: 'Registration saved. Confirmation email could not be sent yet.',
+      paymentStart: 'Proceed to payment',
+      paymentStarting: 'Preparing payment…',
+      paymentRedirecting: 'Redirecting to secure checkout…',
+      paymentSuccessPending: 'Payment received. Your booking will be confirmed in a moment.',
+      paymentCancelled: 'Payment cancelled. No booking was completed.',
+      paymentFailed: 'Payment failed. Please try again or choose another method.',
       failed: 'Registration failed.',
       register: 'Register',
       full: 'Full',
@@ -2526,7 +2538,7 @@ function renderRegistrationForm() {
           <span>${escapeHtml(t('booking.waiver'))}</span>
         </label>
         <div class="registration-actions form-group-full">
-          <button type="submit" class="btn btn-primary">${escapeHtml(t('booking.completeRegistration'))}</button>
+          <button type="submit" class="btn btn-primary">${escapeHtml(getRegistrationSubmitLabel(event, session))}</button>
           <button type="button" class="btn btn-secondary" id="cancelRegistrationBtn">${escapeHtml(t('booking.cancel'))}</button>
         </div>
       </form>
@@ -2568,16 +2580,65 @@ async function submitRegistrationForm(event) {
     return;
   }
 
+    const selectedSession = state.currentEvent?.sessions.find((item) => item.id === state.selectedSessionId) || null;
+  const sessionPriceChf = getSessionPriceValue(state.currentEvent, selectedSession);
+
   submitButton.disabled = true;
-  submitButton.textContent = t('booking.saving');
+  submitButton.textContent = sessionPriceChf > 0 ? t('booking.paymentStarting') : t('booking.saving');
 
   try {
+    if (sessionPriceChf > 0) {
+      const paymentResponse = await fetch('/.netlify/functions/create-payrexx-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          language: state.language,
+          participant: {
+            fullName: payload.p_full_name,
+            email: payload.p_email,
+            phone: payload.p_phone,
+            age: payload.p_age,
+            gender: payload.p_gender,
+            foodAllergies: payload.p_food_allergies,
+            medicalConditions: payload.p_medical_conditions,
+            emergencyContactName: payload.p_emergency_contact_name,
+            emergencyContactPhone: payload.p_emergency_contact_phone,
+            consentGiven: payload.p_consent_given,
+            waiverAccepted: payload.p_waiver_accepted
+          },
+          event: {
+            id: state.currentEvent.id,
+            title: state.currentEvent.title,
+            date: state.currentEvent.date,
+            location: state.currentEvent.location
+          },
+          session: {
+            id: sessionIdFromState(),
+            title: selectedSession?.title || '',
+            startTime: selectedSession?.startTime || '',
+            endTime: selectedSession?.endTime || '',
+            exerciseType: selectedSession?.exerciseType || '',
+            priceChf: sessionPriceChf
+          }
+        })
+      });
+
+      const paymentJson = await paymentResponse.json().catch(() => ({}));
+      if (!paymentResponse.ok || !paymentJson?.success || !paymentJson?.redirectUrl) {
+        throw new Error(paymentJson?.message || t('booking.paymentFailed'));
+      }
+
+      showToast(t('booking.paymentRedirecting'), 'success');
+      window.location.href = paymentJson.redirectUrl;
+      return;
+    }
+
     const { data, error } = await supabaseClient.rpc('register_for_session', payload);
     if (error) throw error;
     if (!data?.success) {
       showToast(data?.message || t('booking.failed'), 'error');
       submitButton.disabled = false;
-      submitButton.textContent = t('booking.completeRegistration');
+      submitButton.textContent = getRegistrationSubmitLabel(state.currentEvent, selectedSession);
       return;
     }
 
@@ -2606,11 +2667,11 @@ async function submitRegistrationForm(event) {
           },
           session: {
             id: sessionIdFromState(),
-            title: state.currentEvent.sessions.find((item) => item.id === state.selectedSessionId)?.title || '',
-            startTime: state.currentEvent.sessions.find((item) => item.id === state.selectedSessionId)?.startTime || '',
-            endTime: state.currentEvent.sessions.find((item) => item.id === state.selectedSessionId)?.endTime || '',
-            exerciseType: state.currentEvent.sessions.find((item) => item.id === state.selectedSessionId)?.exerciseType || '',
-            priceChf: state.currentEvent.sessions.find((item) => item.id === state.selectedSessionId)?.priceChf ?? state.currentEvent.basePriceChf ?? 0
+            title: selectedSession?.title || '',
+            startTime: selectedSession?.startTime || '',
+            endTime: selectedSession?.endTime || '',
+            exerciseType: selectedSession?.exerciseType || '',
+            priceChf: sessionPriceChf
           }
         })
       });
@@ -2631,16 +2692,59 @@ async function submitRegistrationForm(event) {
     console.error('Registration error:', error);
     showToast(error.message || t('booking.failed'), 'error');
     submitButton.disabled = false;
-    submitButton.textContent = t('booking.completeRegistration');
+    submitButton.textContent = getRegistrationSubmitLabel(state.currentEvent, selectedSession);
   }
 }
 
-function getSessionPriceLabel(event, session) {
+function getSessionPriceValue(event, session) {
   const sessionPrice = Number(session?.priceChf || 0);
   const eventPrice = Number(event?.basePriceChf || 0);
-  const price = sessionPrice > 0 ? sessionPrice : eventPrice;
+  return sessionPrice > 0 ? sessionPrice : eventPrice;
+}
 
+function getSessionPriceLabel(event, session) {
+  const price = getSessionPriceValue(event, session);
   return price > 0 ? `CHF ${price.toFixed(2)}` : '';
+}
+
+function getRegistrationSubmitLabel(event, session) {
+  return getSessionPriceValue(event, session) > 0 ? t('booking.paymentStart') : t('booking.completeRegistration');
+}
+
+function buildPaymentRedirectUrl(status, referenceId = '') {
+  const target = new URL(window.location.origin + '/index.html');
+  target.searchParams.set('payrexx', status);
+  if (referenceId) target.searchParams.set('ref', referenceId);
+  target.hash = 'events';
+  return target.toString();
+}
+
+function handlePayrexxReturnNotice() {
+  let url;
+  try {
+    url = new URL(window.location.href);
+  } catch (error) {
+    return;
+  }
+
+  const status = url.searchParams.get('payrexx');
+  if (!status) return;
+
+  const messages = {
+    success: t('booking.paymentSuccessPending'),
+    cancelled: t('booking.paymentCancelled'),
+    failed: t('booking.paymentFailed')
+  };
+
+  const message = messages[status];
+  if (message) {
+    showToast(message, status === 'success' ? 'success' : 'error');
+  }
+
+  url.searchParams.delete('payrexx');
+  url.searchParams.delete('ref');
+  const clean = `${url.pathname}${url.search}${url.hash}`;
+  window.history.replaceState({}, '', clean);
 }
 
 function sessionIdFromState() {
@@ -2823,6 +2927,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initModal();
   initForms();
   initAuth();
+  handlePayrexxReturnNotice();
 
   if (isAccountPage()) {
     rerenderLanguageUI();
