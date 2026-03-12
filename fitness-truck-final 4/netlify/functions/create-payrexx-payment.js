@@ -115,12 +115,13 @@ exports.handler = async (event) => {
       validity: '3600',
       'basket[0][name]': `${eventRow.title} – ${session.title}`,
       'basket[0][quantity]': '1',
-      'basket[0][price]': String(amountInCents),
+      'basket[0][amount]': String(amountInCents),
       'basket[0][vatRate]': '0',
       'fields[email][value]': email,
       'fields[phone][value]': String(participant.phone).trim(),
       'fields[forename][value]': forename,
-      'fields[surname][value]': surname
+      'fields[surname][value]': surname,
+      'fields[lastname][value]': surname
     };
 
     const gatewayJson = await payrexxFormRequest('Gateway/', gatewayPayload);
