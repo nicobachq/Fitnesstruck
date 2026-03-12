@@ -5,7 +5,6 @@ const {
   normalizeEmail,
   payrexxFormRequest,
   readJsonBody,
-  splitFullName,
   supabaseRequest
 } = require('./_payment-helpers');
 
@@ -65,6 +64,7 @@ exports.handler = async (event) => {
 
     const referenceId = makeReferenceId();
     const amountInCents = Math.round(priceChf * 100);
+    const siteUrl = String(process.env.SITE_URL || 'https://fitnesstruck.ch').replace(/\/$/, '');
 
     await supabaseRequest('/payment_intents', {
       method: 'POST',
@@ -98,12 +98,18 @@ exports.handler = async (event) => {
       }
     });
 
-    // Bare-minimum Gateway request to isolate the 422.
-    // Purpose includes the generated reference so we can still identify the intent during testing.
+    const successUrl = `${siteUrl}/account.html?payment=success&ref=${encodeURIComponent(referenceId)}`;
+    const failedUrl = `${siteUrl}/account.html?payment=failed&ref=${encodeURIComponent(referenceId)}`;
+    const cancelUrl = `${siteUrl}/account.html?payment=cancel&ref=${encodeURIComponent(referenceId)}`;
+
     const gatewayPayload = {
       amount: String(amountInCents),
       currency: 'CHF',
-      purpose: `${String(eventRow.title || 'Fitness Truck booking').trim()} [${referenceId}]`
+      purpose: `${String(eventRow.title || 'Fitness Truck booking').trim()} [${referenceId}]`,
+      successRedirectUrl: successUrl,
+      failedRedirectUrl: failedUrl,
+      cancelRedirectUrl: cancelUrl,
+      skipResultPage: 'true'
     };
 
     console.log('Create Payrexx gateway payload', gatewayPayload);
