@@ -120,8 +120,8 @@ exports.handler = async (event) => {
       'fields[email][value]': email,
       'fields[phone][value]': String(participant.phone).trim(),
       'fields[forename][value]': forename,
-      'fields[surname][value]': surname,
-      'fields[lastname][value]': surname
+      'fields[lastname][value]': surname,
+      'fields[surname][value]': surname
     };
 
     const gatewayJson = await payrexxFormRequest('Gateway/', gatewayPayload);

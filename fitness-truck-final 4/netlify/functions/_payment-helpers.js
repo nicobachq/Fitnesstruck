@@ -111,7 +111,8 @@ async function payrexxFormRequest(path, params) {
   }
 
   if (!response.ok) {
-    const message = json?.message || json?.error || text || `Payrexx request failed (${response.status})`;
+    const message = json?.message || json?.error || json?.errors?.[0]?.message || text || `Payrexx request failed (${response.status})`;
+    console.error('Payrexx API error', { status: response.status, body: text });
     throw new Error(message);
   }
 
@@ -137,7 +138,8 @@ async function payrexxGet(path) {
   }
 
   if (!response.ok) {
-    const message = json?.message || json?.error || text || `Payrexx request failed (${response.status})`;
+    const message = json?.message || json?.error || json?.errors?.[0]?.message || text || `Payrexx request failed (${response.status})`;
+    console.error('Payrexx API error', { status: response.status, body: text });
     throw new Error(message);
   }
 
