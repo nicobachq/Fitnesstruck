@@ -91,9 +91,15 @@ async function supabaseRpc(functionName, payload) {
   });
 }
 
+function getPayrexxApiUrl(path) {
+  const instance = encodeURIComponent(getEnv('PAYREXX_INSTANCE'));
+  const cleanPath = path.replace(/^\//, '');
+  return `https://api.payrexx.com/v1.14/${cleanPath}${cleanPath.includes('?') ? '&' : '?'}instance=${instance}`;
+}
+
 async function payrexxFormRequest(path, params) {
   const apiKey = getEnv('PAYREXX_API_KEY');
-  const response = await fetch(`https://api.payrexx.com/v1.14/${path.replace(/^\//, '')}`, {
+  const response = await fetch(getPayrexxApiUrl(path), {
     method: 'POST',
     headers: {
       'X-API-KEY': apiKey,
@@ -111,8 +117,7 @@ async function payrexxFormRequest(path, params) {
   }
 
   if (!response.ok) {
-    const message = json?.message || json?.error || json?.errors?.[0]?.message || text || `Payrexx request failed (${response.status})`;
-    console.error('Payrexx API error', { status: response.status, body: text });
+    const message = json?.message || json?.error || text || `Payrexx request failed (${response.status})`;
     throw new Error(message);
   }
 
@@ -121,7 +126,7 @@ async function payrexxFormRequest(path, params) {
 
 async function payrexxGet(path) {
   const apiKey = getEnv('PAYREXX_API_KEY');
-  const response = await fetch(`https://api.payrexx.com/v1.14/${path.replace(/^\//, '')}`, {
+  const response = await fetch(getPayrexxApiUrl(path), {
     method: 'GET',
     headers: {
       'X-API-KEY': apiKey,
@@ -138,8 +143,7 @@ async function payrexxGet(path) {
   }
 
   if (!response.ok) {
-    const message = json?.message || json?.error || json?.errors?.[0]?.message || text || `Payrexx request failed (${response.status})`;
-    console.error('Payrexx API error', { status: response.status, body: text });
+    const message = json?.message || json?.error || text || `Payrexx request failed (${response.status})`;
     throw new Error(message);
   }
 
