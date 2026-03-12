@@ -1570,7 +1570,9 @@ function renderAuthModal() {
         ${getMyRegistrationsMarkup()}
         <div class="auth-actions">
           <button type="button" class="btn btn-primary" id="editProfileBtn">${escapeHtml(t('account.editProfile'))}</button>
-          <button type="button" class="btn btn-secondary" id="closeAuthAndBrowseBtn">${escapeHtml(t('account.continueBooking'))}</button>
+          ${isAccountPage()
+            ? `<a href="${escapeHtml(buildEventsPageUrl())}" class="btn btn-secondary" id="closeAuthAndBrowseBtn">${escapeHtml(t('account.continueBooking'))}</a>`
+            : `<button type="button" class="btn btn-secondary" id="closeAuthAndBrowseBtn">${escapeHtml(t('account.continueBooking'))}</button>`}
           <button type="button" class="btn btn-secondary" id="logoutAccountBtn">${escapeHtml(t('account.logOut'))}</button>
         </div>
       </div>`;
@@ -1580,7 +1582,11 @@ function renderAuthModal() {
       state.accountMode = 'edit';
       renderAuthModal();
     });
-    document.getElementById('closeAuthAndBrowseBtn')?.addEventListener('click', continueBookingFromAccount);
+    document.getElementById('closeAuthAndBrowseBtn')?.addEventListener('click', (event) => {
+      if (isAccountPage() && event.currentTarget?.tagName === 'A') return;
+      event.preventDefault();
+      continueBookingFromAccount();
+    });
     document.getElementById('logoutAccountBtn')?.addEventListener('click', logoutCurrentUser);
     document.getElementById('retryMyRegistrationsBtn')?.addEventListener('click', () => loadMyRegistrations({ force: true }));
     document.getElementById('loadMorePastRegistrationsBtn')?.addEventListener('click', () => {
