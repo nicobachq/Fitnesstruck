@@ -65,7 +65,6 @@ exports.handler = async (event) => {
 
     const referenceId = makeReferenceId();
     const amountInCents = Math.round(priceChf * 100);
-    const { forename, surname } = splitFullName(participant.fullName);
 
     await supabaseRequest('/payment_intents', {
       method: 'POST',
@@ -99,39 +98,15 @@ exports.handler = async (event) => {
       }
     });
 
-    const siteUrl = process.env.SITE_URL.replace(/\/$/, '');
-    const successRedirectUrl = `${siteUrl}/index.html?payrexx=success&ref=${encodeURIComponent(referenceId)}#events`;
-    const failedRedirectUrl = `${siteUrl}/index.html?payrexx=failed&ref=${encodeURIComponent(referenceId)}#events`;
-    const cancelRedirectUrl = `${siteUrl}/index.html?payrexx=cancelled&ref=${encodeURIComponent(referenceId)}#events`;
-
-    // Keep the first live request minimal. Basket and extra optional fields can be added back later.
+    // Bare-minimum Gateway request to isolate the 422.
+    // Purpose includes the generated reference so we can still identify the intent during testing.
     const gatewayPayload = {
       amount: String(amountInCents),
       currency: 'CHF',
-      purpose: String(eventRow.title || 'Fitness Truck booking').trim(),
-      referenceId,
-      successRedirectUrl,
-      failedRedirectUrl,
-      cancelRedirectUrl,
-      validity: 3600,
-      skipResultPage: true,
-      'fields[email][value]': email,
-      'fields[forename][value]': forename || String(participant.fullName).trim(),
-      'fields[lastname][value]': surname || String(participant.fullName).trim(),
-      'fields[phone][value]': String(participant.phone).trim(),
-      'fields[country][value]': 'CH'
+      purpose: `${String(eventRow.title || 'Fitness Truck booking').trim()} [${referenceId}]`
     };
 
-    console.log('Create Payrexx gateway payload', {
-      amount: gatewayPayload.amount,
-      currency: gatewayPayload.currency,
-      purpose: gatewayPayload.purpose,
-      referenceId: gatewayPayload.referenceId,
-      hasEmail: !!gatewayPayload['fields[email][value]'],
-      hasForename: !!gatewayPayload['fields[forename][value]'],
-      hasLastname: !!gatewayPayload['fields[lastname][value]'],
-      hasPhone: !!gatewayPayload['fields[phone][value]']
-    });
+    console.log('Create Payrexx gateway payload', gatewayPayload);
 
     const gatewayJson = await payrexxFormRequest('Gateway/', gatewayPayload);
     const gatewayInfo = extractGatewayInfo(gatewayJson);
@@ -144,7 +119,8 @@ exports.handler = async (event) => {
       method: 'PATCH',
       body: {
         status: 'gateway_created',
-        payrexx_gateway_id: gatewayInfo.id || null
+        payrexx_gateway_id: gatewayInfo.id || null,
+        gateway_link: gatewayInfo.link || null
       }
     });
 
