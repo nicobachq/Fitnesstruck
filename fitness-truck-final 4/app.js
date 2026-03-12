@@ -73,6 +73,65 @@ function goToAccountPage(view = 'login') {
   window.location.href = buildAccountPageUrl(view);
 }
 
+const OPEN_EVENT_STORAGE_KEY = 'ft_open_event_id';
+
+function buildEventOpenUrl(eventId = '') {
+  const normalizedId = String(eventId || '').trim();
+  const target = new URL('/', window.location.origin);
+  if (normalizedId) target.searchParams.set('openEvent', normalizedId);
+  target.hash = 'events';
+  return `${target.pathname}${target.search}${target.hash}`;
+}
+
+function queueRequestedEventId(eventId = '') {
+  const normalizedId = String(eventId || '').trim();
+  if (!normalizedId) return;
+  try {
+    window.localStorage.setItem(OPEN_EVENT_STORAGE_KEY, normalizedId);
+  } catch (error) {
+    // noop
+  }
+}
+
+function getRequestedEventIdFromUrl() {
+  if (isAccountPage()) return '';
+  try {
+    return String(new URLSearchParams(window.location.search).get('openEvent') || '').trim();
+  } catch (error) {
+    return '';
+  }
+}
+
+function getQueuedRequestedEventId() {
+  if (isAccountPage()) return '';
+  try {
+    return String(window.localStorage.getItem(OPEN_EVENT_STORAGE_KEY) || '').trim();
+  } catch (error) {
+    return '';
+  }
+}
+
+function clearRequestedEventIdFromUrl() {
+  if (isAccountPage()) return;
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('openEvent');
+    const nextSearch = url.searchParams.toString();
+    const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash || ''}`;
+    window.history.replaceState({}, '', nextUrl);
+  } catch (error) {
+    // noop
+  }
+}
+
+function clearQueuedRequestedEventId() {
+  try {
+    window.localStorage.removeItem(OPEN_EVENT_STORAGE_KEY);
+  } catch (error) {
+    // noop
+  }
+}
+
 function getAccountPaymentReturnFromUrl() {
   if (!isAccountPage()) return null;
   try {
@@ -113,6 +172,58 @@ function hasRecentRegistration(minutes = 10) {
     const createdAt = Date.parse(item.created_at || '');
     return Number.isFinite(createdAt) && (now - createdAt) >= 0 && (now - createdAt) <= thresholdMs;
   });
+}
+
+
+function mergeRegistrationIntoAccount(registration) {
+  if (!registration || !registration.registration_id) return false;
+
+  const normalized = normalizeMyRegistrationItem(registration);
+  const currentItems = Array.isArray(state.myRegistrations) ? [...state.myRegistrations] : [];
+  const existingIndex = currentItems.findIndex((item) => String(item.registration_id || '') === normalized.registration_id);
+
+  if (existingIndex >= 0) {
+    currentItems[existingIndex] = { ...currentItems[existingIndex], ...normalized };
+  } else {
+    currentItems.unshift(normalized);
+  }
+
+  currentItems.sort((left, right) => {
+    const leftTime = Date.parse(left.created_at || '') || 0;
+    const rightTime = Date.parse(right.created_at || '') || 0;
+    return rightTime - leftTime;
+  });
+
+  state.myRegistrations = currentItems;
+  state.visiblePastRegistrations = 5;
+  state.myRegistrationsStatus = 'success';
+  state.myRegistrationsError = '';
+  state.myRegistrationsForEmail = String(state.user?.email || '').trim().toLowerCase();
+  return true;
+}
+
+async function fetchPaymentRegistrationByReference(referenceId = '') {
+  const ref = String(referenceId || '').trim();
+  if (!ref) return null;
+
+  const response = await fetch(`/.netlify/functions/get-payment-registration?ref=${encodeURIComponent(ref)}`, {
+    headers: { Accept: 'application/json' }
+  });
+
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch (error) {
+    payload = null;
+  }
+
+  if (response.status === 202) return null;
+  if (!response.ok) {
+    const message = payload?.message || `Could not load payment booking (${response.status})`;
+    throw new Error(message);
+  }
+
+  return payload?.booking ? normalizeMyRegistrationItem(payload.booking) : null;
 }
 
 function getPaymentReturnMessage(status, synced = false) {
@@ -159,7 +270,19 @@ async function handleAccountPaymentReturn() {
 
     renderAuthModal();
 
-    const hasSyncedRegistration = state.myRegistrations.length > baselineCount || hasRecentRegistration(10);
+    let hasSyncedRegistration = state.myRegistrations.length > baselineCount || hasRecentRegistration(10);
+    if (!hasSyncedRegistration && paymentState.ref) {
+      try {
+        const paymentBooking = await fetchPaymentRegistrationByReference(paymentState.ref);
+        if (paymentBooking) {
+          mergeRegistrationIntoAccount(paymentBooking);
+          hasSyncedRegistration = true;
+        }
+      } catch (error) {
+        console.error('Payment booking fetch error:', error);
+      }
+    }
+
     if (hasSyncedRegistration) {
       const successMessage = getPaymentReturnMessage('success', true);
       state.paymentReturnNotice = { type: 'success', message: successMessage };
@@ -172,6 +295,19 @@ async function handleAccountPaymentReturn() {
     }
 
     await new Promise((resolve) => setTimeout(resolve, 1200));
+  }
+
+  if (paymentState.ref) {
+    try {
+      const paymentBooking = await fetchPaymentRegistrationByReference(paymentState.ref);
+      if (paymentBooking) {
+        mergeRegistrationIntoAccount(paymentBooking);
+        const successMessage = getPaymentReturnMessage('success', true);
+        state.paymentReturnNotice = { type: 'success', message: successMessage };
+      }
+    } catch (error) {
+      console.error('Final payment booking fetch error:', error);
+    }
   }
 
   paymentState.inProgress = false;
@@ -817,6 +953,16 @@ function setLanguage(language) {
   if (state.language === nextLanguage) return;
   state.language = nextLanguage;
   try { localStorage.setItem('ft_lang', nextLanguage); } catch (error) { /* noop */ }
+
+  if (isAccountPage()) {
+    applyStaticTranslations();
+    renderAccountPageStaticAuth();
+    renderAuthModal();
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    setTimeout(() => window.location.replace(currentUrl), 10);
+    return;
+  }
+
   rerenderLanguageUI();
 }
 
@@ -1090,7 +1236,9 @@ function renderUpcomingRegistrationCards(items = [], emptyMessage = t('account.n
       </div>
       <div class="auth-registration-footer">
         <span>${escapeHtml(t('account.booked', { value: item.created_at_label || '' }))}</span>
-        ${item.event_id ? `<button type="button" class="btn btn-secondary btn-inline" data-open-booking-event-id="${escapeAttr(item.event_id)}">${escapeHtml(t('account.openEvent'))}</button>` : ''}
+        ${item.event_id ? (isAccountPage()
+          ? `<a href="${escapeAttr(buildEventOpenUrl(item.event_id))}" class="btn btn-secondary btn-inline" data-account-open-event-id="${escapeAttr(item.event_id)}">${escapeHtml(t('account.openEvent'))}</a>`
+          : `<button type="button" class="btn btn-secondary btn-inline" data-open-booking-event-id="${escapeAttr(item.event_id)}">${escapeHtml(t('account.openEvent'))}</button>`) : ''}
       </div>
     </article>
   `).join('');
@@ -1771,6 +1919,15 @@ function renderAuthModal() {
       button.addEventListener('click', () => {
         closeAuthModal();
         openEventModal(button.dataset.openBookingEventId);
+      });
+    });
+    mount.querySelectorAll('[data-account-open-event-id]').forEach((link) => {
+      link.addEventListener('click', (event) => {
+        const eventId = String(link.dataset.accountOpenEventId || '').trim();
+        if (!eventId) return;
+        event.preventDefault();
+        queueRequestedEventId(eventId);
+        window.location.assign(buildEventOpenUrl(eventId));
       });
     });
     return;
@@ -2543,12 +2700,38 @@ function openEventModal(eventId) {
 
   const overlay = document.getElementById('modalOverlay');
   const content = document.getElementById('modalContent');
+  if (!overlay || !content) return;
   content.innerHTML = renderEventModal(event);
 
   overlay.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
   bindModalActions();
-  setTimeout(() => document.getElementById('modalClose').focus(), 20);
+  setTimeout(() => document.getElementById('modalClose')?.focus(), 20);
+}
+
+function handleRequestedEventOpen() {
+  if (isAccountPage()) return;
+  const requestedEventId = getRequestedEventIdFromUrl() || getQueuedRequestedEventId();
+  if (!requestedEventId) return;
+
+  const requestedEvent = state.events.find((item) => item.id === requestedEventId);
+  if (!requestedEvent) {
+    clearRequestedEventIdFromUrl();
+    clearQueuedRequestedEventId();
+    return;
+  }
+
+  const eventsSection = document.getElementById('events');
+  if (eventsSection) {
+    const offsetTop = eventsSection.offsetTop - 80;
+    window.scrollTo({ top: offsetTop, behavior: 'smooth' });
+  }
+
+  setTimeout(() => {
+    openEventModal(requestedEventId);
+    clearRequestedEventIdFromUrl();
+    clearQueuedRequestedEventId();
+  }, 220);
 }
 
 function renderEventModal(event) {
@@ -2962,4 +3145,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   await loadEvents();
+  handleRequestedEventOpen();
 });
