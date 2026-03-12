@@ -99,30 +99,39 @@ exports.handler = async (event) => {
       }
     });
 
-    const successRedirectUrl = `${process.env.SITE_URL.replace(/\/$/, '')}/index.html?payrexx=success&ref=${encodeURIComponent(referenceId)}#events`;
-    const failedRedirectUrl = `${process.env.SITE_URL.replace(/\/$/, '')}/index.html?payrexx=failed&ref=${encodeURIComponent(referenceId)}#events`;
-    const cancelRedirectUrl = `${process.env.SITE_URL.replace(/\/$/, '')}/index.html?payrexx=cancelled&ref=${encodeURIComponent(referenceId)}#events`;
+    const siteUrl = process.env.SITE_URL.replace(/\/$/, '');
+    const successRedirectUrl = `${siteUrl}/index.html?payrexx=success&ref=${encodeURIComponent(referenceId)}#events`;
+    const failedRedirectUrl = `${siteUrl}/index.html?payrexx=failed&ref=${encodeURIComponent(referenceId)}#events`;
+    const cancelRedirectUrl = `${siteUrl}/index.html?payrexx=cancelled&ref=${encodeURIComponent(referenceId)}#events`;
 
+    // Keep the first live request minimal. Basket and extra optional fields can be added back later.
     const gatewayPayload = {
       amount: String(amountInCents),
       currency: 'CHF',
-      purpose: `Fitness Truck · ${eventRow.title} · ${session.title}`,
+      purpose: String(eventRow.title || 'Fitness Truck booking').trim(),
       referenceId,
       successRedirectUrl,
       failedRedirectUrl,
       cancelRedirectUrl,
-      skipResultPage: '1',
-      validity: '3600',
-      'basket[0][name]': `${eventRow.title} – ${session.title}`,
-      'basket[0][quantity]': '1',
-      'basket[0][amount]': String(amountInCents),
-      'basket[0][vatRate]': '0',
+      validity: 3600,
+      skipResultPage: true,
       'fields[email][value]': email,
+      'fields[forename][value]': forename || String(participant.fullName).trim(),
+      'fields[lastname][value]': surname || String(participant.fullName).trim(),
       'fields[phone][value]': String(participant.phone).trim(),
-      'fields[forename][value]': forename,
-      'fields[lastname][value]': surname,
-      'fields[surname][value]': surname
+      'fields[country][value]': 'CH'
     };
+
+    console.log('Create Payrexx gateway payload', {
+      amount: gatewayPayload.amount,
+      currency: gatewayPayload.currency,
+      purpose: gatewayPayload.purpose,
+      referenceId: gatewayPayload.referenceId,
+      hasEmail: !!gatewayPayload['fields[email][value]'],
+      hasForename: !!gatewayPayload['fields[forename][value]'],
+      hasLastname: !!gatewayPayload['fields[lastname][value]'],
+      hasPhone: !!gatewayPayload['fields[phone][value]']
+    });
 
     const gatewayJson = await payrexxFormRequest('Gateway/', gatewayPayload);
     const gatewayInfo = extractGatewayInfo(gatewayJson);
