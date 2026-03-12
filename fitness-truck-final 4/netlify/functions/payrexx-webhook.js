@@ -8,6 +8,12 @@ const {
   supabaseRpc
 } = require('./_payment-helpers');
 
+function extractReferenceFromPurpose(value) {
+  const text = String(value || '');
+  const match = text.match(/\[(ftpay_[^\]]+)\]/i);
+  return match ? String(match[1]).trim() : '';
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return jsonResponse(405, { success: false, message: 'Method not allowed' });
@@ -20,14 +26,16 @@ exports.handler = async (event) => {
       return jsonResponse(400, { success: false, message: 'Invalid webhook payload.' });
     }
 
-    const referenceId = String(incomingTransaction.referenceId || '').trim();
+    const referenceId = String(incomingTransaction.referenceId || '').trim() || extractReferenceFromPurpose(incomingTransaction.purpose || incomingTransaction.description || '');
     if (!referenceId) {
+      console.log('Payrexx webhook ignored: missing referenceId and no fallback in purpose.');
       return jsonResponse(200, { success: true, ignored: true, message: 'Missing referenceId.' });
     }
 
     const intents = await supabaseRequest(`/payment_intents?reference_id=eq.${encodeURIComponent(referenceId)}&select=*`);
     const intent = Array.isArray(intents) ? intents[0] : null;
     if (!intent) {
+      console.log('Payrexx webhook ignored: unknown referenceId', referenceId);
       return jsonResponse(200, { success: true, ignored: true, message: 'Unknown referenceId.' });
     }
 
@@ -41,6 +49,7 @@ exports.handler = async (event) => {
           payment_method: incomingTransaction.psp || intent.payment_method || null
         }
       });
+      console.log('Payrexx webhook updated non-confirmed status', { referenceId, incomingStatus });
       return jsonResponse(200, { success: true, processed: true, status: incomingStatus });
     }
 
@@ -65,10 +74,12 @@ exports.handler = async (event) => {
           payment_method: verifiedTransaction.psp || intent.payment_method || null
         }
       });
+      console.log('Payrexx webhook verified non-confirmed status', { referenceId, verifiedStatus });
       return jsonResponse(200, { success: true, processed: true, status: verifiedStatus || 'unknown' });
     }
 
-    if (String(verifiedTransaction.referenceId || '').trim() !== referenceId) {
+    const verifiedReferenceId = String(verifiedTransaction.referenceId || '').trim() || extractReferenceFromPurpose(verifiedTransaction.purpose || verifiedTransaction.description || '');
+    if (verifiedReferenceId !== referenceId) {
       throw new Error('Reference mismatch while verifying payment.');
     }
 
@@ -87,6 +98,7 @@ exports.handler = async (event) => {
     }
 
     if (intent.registration_id) {
+      console.log('Payrexx webhook already finalized', { referenceId, registrationId: intent.registration_id });
       return jsonResponse(200, { success: true, processed: true, registrationId: intent.registration_id });
     }
 
@@ -168,6 +180,8 @@ exports.handler = async (event) => {
         email_sent: emailSent
       }
     });
+
+    console.log('Payrexx webhook finalized booking', { referenceId, registrationId, emailSent });
 
     return jsonResponse(200, {
       success: true,

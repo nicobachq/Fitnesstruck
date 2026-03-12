@@ -106,6 +106,7 @@ exports.handler = async (event) => {
       amount: String(amountInCents),
       currency: 'CHF',
       purpose: `${String(eventRow.title || 'Fitness Truck booking').trim()} [${referenceId}]`,
+      referenceId,
       successRedirectUrl: successUrl,
       failedRedirectUrl: failedUrl,
       cancelRedirectUrl: cancelUrl,
