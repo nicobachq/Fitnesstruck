@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=39" />
+  <link rel="stylesheet" href="styles.css?v=41" />
 </head>
 <body class="account-page" data-page="account">
   <div class="noise-overlay"></div>
@@ -39,12 +39,77 @@
           <span class="pulse-dot" aria-hidden="true"></span>
           <span>Fitness Truck</span>
         </span>
-        <h1 class="section-title">Account</h1>
-        <p class="section-subtitle">Access your account on a dedicated page to make sign-in and saved-password autofill work more reliably on mobile.</p>
+        <h1 class="section-title" data-i18n="account.accountTitle">Account</h1>
+        <p class="section-subtitle" data-i18n="account.accountIntro">Access your account on a dedicated page to make sign-in and saved-password autofill work more reliably on mobile.</p>
       </div>
 
       <div class="account-page-panel">
-        <div class="auth-modal-content" id="authModalContent"></div>
+        <div class="account-auth-static" id="accountAuthStatic">
+          <div class="auth-card">
+            <div>
+              <h2 class="auth-title" data-i18n="account.accountTitle">Account</h2>
+              <p class="auth-muted" data-i18n="account.accountIntro">Create your account or sign in to continue your booking faster.</p>
+            </div>
+
+            <div class="auth-switch account-auth-switch" role="tablist" aria-label="Choose account action">
+              <button type="button" class="auth-switch-btn" id="accountLoginTab" data-account-view="login" data-i18n="account.switchLogin">Sign in</button>
+              <button type="button" class="auth-switch-btn" id="accountSignupTab" data-account-view="signup" data-i18n="account.switchSignup">Create account</button>
+            </div>
+
+            <div class="auth-notice info" id="accountAuthNotice" hidden></div>
+
+            <form id="accountLoginForm" class="auth-form account-auth-form" autocomplete="on" novalidate>
+              <div class="form-group">
+                <label for="loginEmail" data-i18n="account.email">Email</label>
+                <input id="loginEmail" name="email" type="email" required autocomplete="username" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" />
+              </div>
+              <div class="form-group">
+                <label for="loginPassword" data-i18n="account.password">Password</label>
+                <input id="loginPassword" name="password" type="password" required autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" />
+              </div>
+              <button type="submit" class="btn btn-primary" data-i18n="account.login">Sign in</button>
+            </form>
+
+            <form id="accountSignupForm" class="auth-form account-auth-form" autocomplete="on" novalidate hidden>
+              <div class="form-group">
+                <label for="signupFullName" data-i18n="account.fullName">Full name</label>
+                <input id="signupFullName" name="full_name" type="text" required autocomplete="name" />
+              </div>
+              <div class="form-group">
+                <label for="signupPhone" data-i18n="account.phoneNumber">Phone number</label>
+                <input id="signupPhone" name="phone" type="tel" required autocomplete="tel" />
+              </div>
+              <div class="form-group">
+                <label for="signupEmail"><span data-i18n="account.email">Email</span> *</label>
+                <input id="signupEmail" name="email" type="email" required autocomplete="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" />
+              </div>
+              <div class="form-group">
+                <label for="signupPassword" data-i18n="account.password">Password</label>
+                <input id="signupPassword" name="password" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" />
+              </div>
+              <div class="form-group">
+                <label for="signupConfirmPassword" data-i18n="account.confirmPassword">Confirm password</label>
+                <input id="signupConfirmPassword" name="confirm_password" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" />
+              </div>
+              <div class="form-group form-checkbox-group">
+                <label class="checkbox-row auth-checkbox-row" for="signupMarketingOptIn">
+                  <input id="signupMarketingOptIn" name="marketing_opt_in" type="checkbox" />
+                  <span data-i18n="account.newsOptIn">Receive updates</span>
+                </label>
+                <p class="auth-optin-note" data-i18n="account.optInNote">You can unsubscribe at any time.</p>
+              </div>
+              <button type="submit" class="btn btn-primary" data-i18n="account.createAccount">Create account</button>
+              <p class="auth-confirm-hint" data-i18n="account.confirmEmailHint">Check your inbox after signing up if email confirmation is enabled.</p>
+            </form>
+
+            <div class="account-auth-footer">
+              <p class="auth-helper" data-i18n="account.helperGuest">You can still browse events without an account.</p>
+              <a href="index.html#events" class="btn btn-secondary account-browse-link" data-i18n="account.continueBooking">Continue booking</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="auth-modal-content" id="authModalContent" hidden></div>
       </div>
     </section>
   </main>
@@ -52,6 +117,6 @@
   <div class="toast-container" id="toastContainer" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=39"></script>
+  <script src="app.js?v=41"></script>
 </body>
 </html>

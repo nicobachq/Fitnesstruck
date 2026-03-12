@@ -1481,13 +1481,14 @@ html[lang="it"] .team-role, html[lang="it"] .contact-item, html[lang="it"] .auth
 }
 
 
-/* v40 desktop-safe events visibility fix */
+/* v41 merged stability fix */
 .event-card,
 .calendar-item {
   opacity: 1 !important;
   transform: none !important;
 }
 
-.event-card:hover {
-  transform: translateY(-8px) !important;
+.event-card:hover,
+.calendar-item:hover {
+  transform: translateY(-3px) !important;
 }
