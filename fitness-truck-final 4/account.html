@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=41" />
+  <link rel="stylesheet" href="styles.css?v=43" />
 </head>
 <body class="account-page" data-page="account">
   <div class="noise-overlay"></div>
@@ -16,7 +16,7 @@
   <div class="nav-container scrolled" id="navbar">
     <nav>
       <a href="index.html#top" class="logo">
-        <img src="assets/logo-transparent.png" alt="Fitness Truck - The Gym That Moves" class="logo-img" onerror="this.closest('.team-image').classList.add('team-image--placeholder'); this.remove();">
+        <img src="assets/logo-transparent.png" alt="Fitness Truck - The Gym That Moves" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
         <div class="logo-fallback" style="display:none;">
           <div class="logo-icon">FT</div>
           <span>FITNESS TRUCK</span>
@@ -27,7 +27,7 @@
           <button type="button" class="lang-btn active" data-lang-choice="it" aria-pressed="true">IT</button>
           <button type="button" class="lang-btn" data-lang-choice="en" aria-pressed="false">EN</button>
         </div>
-        <a href="index.html" class="nav-auth-btn nav-cta" data-i18n="hero.viewUpcoming">Home</a>
+        <a href="index.html" class="nav-auth-btn nav-cta" data-i18n="nav.home">Home</a>
       </div>
     </nav>
   </div>
@@ -99,7 +99,7 @@
                 <p class="auth-optin-note" data-i18n="account.optInNote">You can unsubscribe at any time.</p>
               </div>
               <button type="submit" class="btn btn-primary" data-i18n="account.createAccount">Create account</button>
-              <p class="auth-confirm-hint" data-i18n="account.confirmEmailHint">Check your inbox after signing up if email confirmation is enabled.</p>
+              <p class="auth-confirm-hint" data-i18n="account.confirmEmailHint">After signup, you can log in right away with your email and password.</p>
             </form>
 
             <div class="account-auth-footer">
@@ -114,9 +114,11 @@
     </section>
   </main>
 
+  <a href="index.html#top" class="floating-home-btn is-visible" id="floatingHomeBtn" aria-label="Go back home" data-i18n="nav.home">Home</a>
+
   <div class="toast-container" id="toastContainer" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=54"></script>
+  <script src="app.js?v=55"></script>
 </body>
 </html>

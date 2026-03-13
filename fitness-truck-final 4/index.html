@@ -29,7 +29,7 @@
       document.documentElement.style.setProperty('--ft-hero-image', 'url("' + heroes[selectedIndex] + '")');
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=42" />
+  <link rel="stylesheet" href="styles.css?v=43" />
 </head>
 <body>
   <div class="noise-overlay"></div>
@@ -37,7 +37,7 @@
   <div class="nav-container" id="navbar">
     <nav>
       <a href="#top" class="logo">
-        <img src="assets/logo-transparent.png" alt="Fitness Truck - The Gym That Moves" class="logo-img" onerror="this.closest('.team-image').classList.add('team-image--placeholder'); this.remove();">
+        <img src="assets/logo-transparent.png" alt="Fitness Truck - The Gym That Moves" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
         <div class="logo-fallback" style="display:none;">
           <div class="logo-icon">FT</div>
           <span>FITNESS TRUCK</span>
@@ -178,15 +178,15 @@
         </div>
         <div class="expect-photo-strip">
           <figure class="expect-photo-card">
-            <img src="assets/expect-photo-1.jpg" alt="Placeholder image for a Fitness Truck training moment by the lake" class="expect-photo">
+            <img src="assets/expect-photo-1.jpg" alt="Fitness Truck training moment by the lake" class="expect-photo">
             <figcaption data-i18n="expect.photo1">Workout dinamici</figcaption>
           </figure>
           <figure class="expect-photo-card">
-            <img src="assets/expect-photo-2.jpg" alt="Placeholder image for a Fitness Truck functional training session outdoors" class="expect-photo">
+            <img src="assets/expect-photo-2.jpg" alt="Fitness Truck functional training session outdoors" class="expect-photo">
             <figcaption data-i18n="expect.photo2">Coaching esperto</figcaption>
           </figure>
           <figure class="expect-photo-card">
-            <img src="assets/expect-photo-3.jpg" alt="Placeholder image for a Fitness Truck recovery and community moment" class="expect-photo">
+            <img src="assets/expect-photo-3.jpg" alt="Fitness Truck recovery and community moment" class="expect-photo">
             <figcaption data-i18n="expect.photo3">Luoghi straordinari</figcaption>
           </figure>
         </div>
@@ -213,7 +213,7 @@
         <div class="team-grid">
           <div class="team-card">
             <div class="team-image">
-              <img src="assets/team-nicolas.jpg" alt="Nicolas Bachmann" class="team-photo" onerror="this.closest('.team-image').classList.add('team-image--placeholder'); this.remove();">
+              <img src="assets/team-nicolas.jpg" alt="Nicolas Bachmann" class="team-photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             </div>
             <h3>Nicolas Bachmann</h3>
             <p class="team-role">Founder · Brand & Product Vision</p>
@@ -221,7 +221,7 @@
           </div>
           <div class="team-card">
             <div class="team-image">
-              <img src="assets/team-nazareno.jpg" alt="Nazareno Piella" class="team-photo" onerror="this.closest('.team-image').classList.add('team-image--placeholder'); this.remove();">
+              <img src="assets/team-nazareno.jpg" alt="Nazareno Piella" class="team-photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             </div>
             <h3>Nazareno Piella</h3>
             <p class="team-role">Head of Performance & Coaching</p>
@@ -229,7 +229,7 @@
           </div>
           <div class="team-card">
             <div class="team-image">
-              <img src="assets/team-lorenzo.jpg" alt="Lorenzo Fornasari" class="team-photo" onerror="this.closest('.team-image').classList.add('team-image--placeholder'); this.remove();">
+              <img src="assets/team-lorenzo.jpg" alt="Lorenzo Fornasari" class="team-photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             </div>
             <h3>Lorenzo Fornasari</h3>
             <p class="team-role">Head of Recovery & Performance Care</p>
@@ -313,9 +313,11 @@
     </div>
   </div>
 
+  <button type="button" class="floating-home-btn" id="floatingHomeBtn" aria-label="Go back home" data-i18n="nav.home">Home</button>
+
   <div class="toast-container" id="toastContainer" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=54"></script>
+  <script src="app.js?v=55"></script>
 </body>
 </html>

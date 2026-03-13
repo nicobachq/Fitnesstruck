@@ -331,7 +331,8 @@ const TRANSLATIONS = {
       account: 'Account',
       myAccount: 'Il mio account',
       openAccount: 'Apri account',
-      openAccountFor: 'Apri l\'account di {name}'
+      openAccountFor: 'Apri l\'account di {name}',
+      home: 'Home'
     },
     common: {
       selectOne: 'Seleziona',
@@ -384,23 +385,24 @@ const TRANSLATIONS = {
       myAccount: 'Il mio account',
       accountCardLabel: 'Account',
       accountCardTitle: 'Crea il tuo account',
-      accountCardDesc: 'Prenota più velocemente, salva i tuoi dati una volta sola e resta vicino alla prossima activation in Ticino.',
+      accountCardDesc: 'Crea il tuo account per prenotare e pagare gli eventi. I tuoi dati restano salvati per le registrazioni future.',
       fasterBookings: 'Prenotazioni future più veloci',
       newsOptIn: 'Aggiornamenti eventi facoltativi',
-      guestBooking: 'La prenotazione ospite resta disponibile'
+      guestBooking: 'Account richiesto per prenotare e pagare'
     },
     events: {
       sectionEyebrow: 'Prossimi eventi',
       sectionTitleHtml: 'Assicura il tuo <span class="text-accent">posto</span>',
       sectionDesc: 'Sessioni outdoor in Ticino a capacità limitata. Prenota presto per allenarti in luoghi eccezionali con coaching esperto e un\'atmosfera di gruppo che si sente subito speciale.',
       emptyTitle: 'Nessun evento in arrivo',
-      emptyDesc: 'La prossima activation sta prendendo forma. Crea il tuo account per essere pronto nel momento in cui apriamo nuove date.',
+      emptyDesc: 'La prossima activation sta prendendo forma. Crea il tuo account per essere pronto nel momento in cui apriamo nuove date e registrazioni.',
       emptyCta: 'Crea account',
       calendarTitle: 'Calendario in arrivo',
       soldOut: 'Completo',
       almostFull: 'Quasi completo',
       open: 'Aperto',
-      limited: 'Limitato'
+      limited: 'Limitato',
+      closed: 'Chiuso'
     },
     experience: {
       eyebrow: 'L\'esperienza',
@@ -535,17 +537,17 @@ const TRANSLATIONS = {
       saveProfile: 'Salva profilo',
       cancel: 'Annulla',
       accountTitle: 'Account',
-      accountIntro: 'Crea un accesso sicuro oppure accedi per prenotare più velocemente e restare vicino alla prossima activation.',
+      accountIntro: 'Crea il tuo account oppure accedi per registrarti agli eventi e completare il pagamento.',
       switchLogin: 'Accedi',
       switchSignup: 'Crea account',
       login: 'Accedi',
       createAccount: 'Crea account',
-      helperGuest: 'La prenotazione ospite continua a funzionare. Creare un account rende semplicemente le future prenotazioni più veloci e fluide.',
+      helperGuest: 'Puoi visitare il sito senza account. Per registrarti a un evento e pagare serve invece un account.',
       password: 'Password *',
       confirmPassword: 'Conferma password *',
-      confirmEmailHint: 'Dopo la registrazione, conferma la tua email dal messaggio che ti inviamo prima del primo accesso.',
+      confirmEmailHint: 'Dopo la registrazione puoi accedere subito con email e password.',
       optInNote: 'Facoltativo e sempre separato dal tuo login account.',
-      loginErrorUnconfirmed: 'Per prima cosa conferma la tua email. Apri l\'email di conferma che ti abbiamo inviato dopo la registrazione, poi torna qui ed effettua l\'accesso.',
+      loginErrorUnconfirmed: 'Questo account non è ancora attivo. Controlla le impostazioni di accesso oppure riprova tra poco.',
       loginSuccess: 'Ora sei connesso.',
       logoutSuccess: 'Ora hai effettuato il logout.',
       loginFailed: 'Accesso non riuscito.',
@@ -553,8 +555,8 @@ const TRANSLATIONS = {
       creatingAccount: 'Creazione account...',
       loggingIn: 'Accesso in corso...',
       accountCreatedAndLoggedIn: 'Account creato e accesso effettuato.',
-      accountCreatedConfirm: 'Account creato. Conferma prima la tua email, poi accedi.',
-      accountCreatedFor: 'Il tuo account è stato creato per {email}. Conferma la tua email dalla casella di posta prima di provare ad accedere.',
+      accountCreatedConfirm: 'Account creato. Ora puoi accedere con le tue credenziali.',
+      accountCreatedFor: 'Il tuo account è stato creato per {email}. Ora puoi accedere con la stessa email e password.',
       accountCreationFailed: 'Creazione account non riuscita.',
       saveNamePhoneError: 'Salva almeno il tuo nome completo e il numero di telefono.',
       savingProfile: 'Salvataggio profilo...',
@@ -569,9 +571,9 @@ const TRANSLATIONS = {
     booking: {
       signedInBanner: 'Connesso come {name}',
       signedInBannerDesc: 'Abbiamo precompilato qui sotto i dati salvati nel tuo account. Puoi comunque modificare tutto per questa registrazione.',
-      guestBanner: 'Vuoi prenotare più velocemente la prossima volta?',
-      guestBannerCta: 'Crea un account oppure accedi',
-      guestBannerSuffix: '.',
+      guestBanner: 'Per registrarti a questo evento devi avere un account.',
+      guestBannerCta: 'Accedi o crea account',
+      guestBannerSuffix: ' per continuare.',
       registerFor: 'Registrati a {session}',
       fullName: 'Nome completo *',
       email: 'Email *',
@@ -595,6 +597,9 @@ const TRANSLATIONS = {
       savedEmailSent: 'Registrazione salvata ed email di conferma inviata.',
       savedEmailPending: 'Registrazione salvata. L\'email di conferma non è ancora stata inviata.',
       failed: 'Registrazione non riuscita.',
+      loginRequired: 'Devi accedere o creare un account prima di registrarti.',
+      loginRequiredCta: 'Accedi o crea account per registrarti',
+      loginRequiredToast: 'Accedi al tuo account prima di registrarti a un evento.',
       register: 'Registrati',
       full: 'Completo',
       spotsLeft: 'posti disponibili'
@@ -613,7 +618,8 @@ const TRANSLATIONS = {
       account: 'Account',
       myAccount: 'My Account',
       openAccount: 'Open account',
-      openAccountFor: 'Open account for {name}'
+      openAccountFor: 'Open account for {name}',
+      home: 'Home'
     },
     common: {
       selectOne: 'Select one',
@@ -666,23 +672,24 @@ const TRANSLATIONS = {
       myAccount: 'My account',
       accountCardLabel: 'Account',
       accountCardTitle: 'Create your account',
-      accountCardDesc: 'Book faster, save your details once, and stay close to the next activation in Ticino.',
+      accountCardDesc: 'Create your account to register and pay for events. Your details stay saved for future bookings.',
       fasterBookings: 'Faster future bookings',
       newsOptIn: 'Optional event news opt-in',
-      guestBooking: 'Guest booking still available'
+      guestBooking: 'Account required to register and pay'
     },
     events: {
       sectionEyebrow: 'Upcoming events',
       sectionTitleHtml: 'Secure your <span class="text-accent">spot</span>',
       sectionDesc: 'Limited-capacity outdoor sessions in Ticino. Book early to train in exceptional places with expert coaching and a group atmosphere that feels rare from the first minute.',
       emptyTitle: 'No upcoming events',
-      emptyDesc: 'The next activation is taking shape now. Create your account to be ready the moment new dates open.',
+      emptyDesc: 'The next activation is taking shape now. Create your account so you are ready when new dates and registrations open.',
       emptyCta: 'Create account',
       calendarTitle: 'Upcoming calendar',
       soldOut: 'Sold out',
       almostFull: 'Almost full',
       open: 'Open',
-      limited: 'Limited'
+      limited: 'Limited',
+      closed: 'Closed'
     },
     experience: {
       eyebrow: 'The experience',
@@ -817,17 +824,17 @@ const TRANSLATIONS = {
       saveProfile: 'Save profile',
       cancel: 'Cancel',
       accountTitle: 'Account',
-      accountIntro: 'Create a secure login or sign in to book faster and stay close to the next activation.',
+      accountIntro: 'Create your account or sign in to register for events and complete payment.',
       switchLogin: 'Log in',
       switchSignup: 'Create account',
       login: 'Log in',
       createAccount: 'Create account',
-      helperGuest: 'Guest booking still works. Creating an account simply makes future booking faster and smoother.',
+      helperGuest: 'You can browse the site without an account. To register for an event and pay, an account is required.',
       password: 'Password *',
       confirmPassword: 'Confirm password *',
-      confirmEmailHint: 'After signup, confirm your email from the message we send you before your first login.',
+      confirmEmailHint: 'After signup, you can log in right away with your email and password.',
       optInNote: 'Optional and always separate from your account login.',
-      loginErrorUnconfirmed: 'Please confirm your email first. Open the confirmation email we sent after signup, then come back and log in.',
+      loginErrorUnconfirmed: 'This account is not active yet. Please review the access settings or try again shortly.',
       loginSuccess: 'You are now logged in.',
       logoutSuccess: 'You are now logged out.',
       loginFailed: 'Login failed.',
@@ -835,8 +842,8 @@ const TRANSLATIONS = {
       creatingAccount: 'Creating account...',
       loggingIn: 'Logging in...',
       accountCreatedAndLoggedIn: 'Account created and you are now logged in.',
-      accountCreatedConfirm: 'Account created. Confirm your email first, then log in.',
-      accountCreatedFor: 'Your account was created for {email}. Please confirm your email from your inbox before you try to log in.',
+      accountCreatedConfirm: 'Account created. You can now log in with your credentials.',
+      accountCreatedFor: 'Your account was created for {email}. You can now log in with the same email and password.',
       accountCreationFailed: 'Account creation failed.',
       saveNamePhoneError: 'Please save at least your full name and phone number.',
       savingProfile: 'Saving profile...',
@@ -851,9 +858,9 @@ const TRANSLATIONS = {
     booking: {
       signedInBanner: 'Signed in as {name}',
       signedInBannerDesc: 'We prefilled your saved account details below. You can still adjust anything for this registration.',
-      guestBanner: 'Want faster booking next time?',
-      guestBannerCta: 'Create an account or log in',
-      guestBannerSuffix: '.',
+      guestBanner: 'You need an account to register for this event.',
+      guestBannerCta: 'Log in or create account',
+      guestBannerSuffix: ' to continue.',
       registerFor: 'Register for {session}',
       fullName: 'Full name *',
       email: 'Email *',
@@ -877,6 +884,9 @@ const TRANSLATIONS = {
       savedEmailSent: 'Registration saved and confirmation email sent.',
       savedEmailPending: 'Registration saved. Confirmation email could not be sent yet.',
       failed: 'Registration failed.',
+      loginRequired: 'You need to sign in or create an account before you can register.',
+      loginRequiredCta: 'Log in or create account to register',
+      loginRequiredToast: 'Please sign in to your account before registering for an event.',
       register: 'Register',
       full: 'Full',
       spotsLeft: 'spots left'
@@ -1570,18 +1580,19 @@ function renderHeroSideCard() {
   }
 
   const nextEvent = getUpcomingEvents()[0] || null;
-  if (!nextEvent || !Array.isArray(nextEvent.sessions)) {
+  const nextEventSessions = getPublicSessions(nextEvent);
+  if (!nextEvent || !nextEventSessions.length) {
     renderSignedInHeroFallback(mount);
     return;
   }
 
-  const totalSpots = nextEvent.sessions.reduce((sum, session) => sum + Number(session.maxParticipants || 0), 0);
-  const totalRegistered = nextEvent.sessions.reduce((sum, session) => sum + Number(session.registered || 0), 0);
+  const totalSpots = nextEventSessions.reduce((sum, session) => sum + Number(session.maxParticipants || 0), 0);
+  const totalRegistered = nextEventSessions.reduce((sum, session) => sum + Number(session.registered || 0), 0);
   const remainingSpots = Math.max(totalSpots - totalRegistered, 0);
   const nextEventPhotoUrl = getEventPhotoUrl(nextEvent);
-  const sessionsCopy = nextEvent.sessions.length === 1
-    ? t('hero.availableSession', { count: nextEvent.sessions.length })
-    : t('hero.availableSessions', { count: nextEvent.sessions.length });
+  const sessionsCopy = nextEventSessions.length === 1
+    ? t('hero.availableSession', { count: nextEventSessions.length })
+    : t('hero.availableSessions', { count: nextEventSessions.length });
 
   mount.hidden = false;
   mount.innerHTML = `
@@ -2114,6 +2125,21 @@ async function handleSignupSubmit(event) {
       return;
     }
 
+    try {
+      const { data: loginData, error: loginError } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (loginError) throw loginError;
+      state.user = loginData?.user || data.user || null;
+      state.accountMode = 'summary';
+      setAuthNotice();
+      refreshAuthDependentUI();
+      loadMyRegistrations({ force: true });
+      showToast(t('account.accountCreatedAndLoggedIn'), 'success');
+      closeAuthModal();
+      return;
+    } catch (loginAfterSignupError) {
+      console.warn('Immediate login after signup was not available:', loginAfterSignupError);
+    }
+
     state.authView = 'login';
     setAuthNotice(t('account.accountCreatedFor', { email }), 'success');
     renderAuthModal();
@@ -2549,9 +2575,10 @@ async function loadEvents() {
       location: event.location,
       description: event.description || '',
       heroPhrase: event.hero_phrase || '',
-      basePriceChf: event.base_price_chf || 0,
+      basePriceChf: Number(event.base_price_chf || 0),
       photoUrl: event.photo_url || '',
       photoPath: event.photo_path || '',
+      registrationOpen: event.registration_open !== false,
       sessions: (sessions || [])
         .filter((session) => session.event_id === event.id)
         .map((session) => ({
@@ -2560,9 +2587,10 @@ async function loadEvents() {
           startTime: session.start_time,
           endTime: session.end_time,
           exerciseType: session.exercise_type,
-          maxParticipants: session.max_participants,
-          registered: session.registered_count,
-          priceChf: session.price_chf
+          maxParticipants: Number(session.max_participants || 0),
+          registered: Number(session.registered_count || 0),
+          priceChf: Number(session.price_chf || 0),
+          registrationOpen: session.registration_open !== false
         }))
     }));
   } catch (error) {
@@ -2580,11 +2608,27 @@ async function loadEvents() {
   observeAnimatable();
 }
 
+function isEventRegistrationOpen(event) {
+  return event?.registrationOpen !== false;
+}
+
+function isSessionRegistrationOpen(session) {
+  return session?.registrationOpen !== false;
+}
+
+function getPublicSessions(event) {
+  return Array.isArray(event?.sessions)
+    ? event.sessions.filter((session) => isSessionRegistrationOpen(session))
+    : [];
+}
+
 function getUpcomingEvents() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return state.events
     .filter((event) => new Date(event.date) >= today)
+    .filter((event) => isEventRegistrationOpen(event))
+    .filter((event) => getPublicSessions(event).length > 0)
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
@@ -2601,9 +2645,10 @@ function renderEvents() {
 
   const upcomingEvents = getUpcomingEvents().slice(0, 2);
   container.innerHTML = upcomingEvents.map((event) => {
-    const isSoldOut = event.sessions.every((session) => session.registered >= session.maxParticipants);
-    const totalSpots = event.sessions.reduce((sum, session) => sum + session.maxParticipants, 0);
-    const totalRegistered = event.sessions.reduce((sum, session) => sum + session.registered, 0);
+    const publicSessions = getPublicSessions(event);
+    const isSoldOut = publicSessions.every((session) => session.registered >= session.maxParticipants);
+    const totalSpots = publicSessions.reduce((sum, session) => sum + session.maxParticipants, 0);
+    const totalRegistered = publicSessions.reduce((sum, session) => sum + session.registered, 0);
     const fillPercentage = totalSpots ? (totalRegistered / totalSpots) * 100 : 0;
 
     return `
@@ -2618,7 +2663,7 @@ function renderEvents() {
           <h3 class="event-title">${escapeHtml(event.title)}</h3>
           <p class="event-location">${escapeHtml(event.location)}</p>
           <div class="event-sessions">
-            ${event.sessions.map((session) => {
+            ${publicSessions.map((session) => {
               const isFull = session.registered >= session.maxParticipants;
               const percentage = session.maxParticipants ? (session.registered / session.maxParticipants) * 100 : 0;
               return `
@@ -2649,8 +2694,9 @@ function renderCalendar() {
   const upcomingEvents = getUpcomingEvents();
   container.innerHTML = upcomingEvents.map((event) => {
     const date = new Date(event.date);
-    const totalSpots = event.sessions.reduce((sum, session) => sum + session.maxParticipants, 0);
-    const totalRegistered = event.sessions.reduce((sum, session) => sum + session.registered, 0);
+    const publicSessions = getPublicSessions(event);
+    const totalSpots = publicSessions.reduce((sum, session) => sum + session.maxParticipants, 0);
+    const totalRegistered = publicSessions.reduce((sum, session) => sum + session.registered, 0);
     const availableSpots = totalSpots - totalRegistered;
 
     let statusClass = 'available';
@@ -2698,7 +2744,10 @@ function bindEventLaunchers(nodes) {
 
 function openEventModal(eventId) {
   const event = state.events.find((item) => item.id === eventId);
-  if (!event) return;
+  if (!event || !isEventRegistrationOpen(event) || !getPublicSessions(event).length) {
+    showToast(t('events.closed'), 'error');
+    return;
+  }
   state.currentEvent = event;
   state.selectedSessionId = null;
 
@@ -2719,7 +2768,7 @@ function handleRequestedEventOpen() {
   if (!requestedEventId) return;
 
   const requestedEvent = state.events.find((item) => item.id === requestedEventId);
-  if (!requestedEvent) {
+  if (!requestedEvent || !isEventRegistrationOpen(requestedEvent) || !getPublicSessions(requestedEvent).length) {
     clearRequestedEventIdFromUrl();
     clearQueuedRequestedEventId();
     return;
@@ -2740,6 +2789,7 @@ function handleRequestedEventOpen() {
 
 function renderEventModal(event) {
   const eventPhotoUrl = getEventPhotoUrl(event);
+  const publicSessions = getPublicSessions(event);
   return `
     <div class="modal-header">
       ${eventPhotoUrl ? `<div class="modal-event-photo"><img src="${escapeAttr(eventPhotoUrl)}" alt="${escapeAttr(event.title)}"></div>` : ''}
@@ -2748,10 +2798,13 @@ function renderEventModal(event) {
       ${event.description ? `<p style="margin-top:8px;">${escapeHtml(event.description)}</p>` : ''}
     </div>
     <div class="modal-sessions" role="list">
-      ${event.sessions.map((session) => {
+      ${publicSessions.map((session) => {
         const isFull = session.registered >= session.maxParticipants;
         const available = Math.max(0, session.maxParticipants - session.registered);
         const priceLabel = getSessionPriceLabel(event, session);
+        const buttonLabel = isFull
+          ? t('booking.full')
+          : (state.user ? t('booking.register') : t('booking.loginRequiredCta'));
         return `
           <div class="modal-session ${isFull ? 'full' : ''}" role="listitem">
             <div class="modal-session-info">
@@ -2763,7 +2816,7 @@ function renderEventModal(event) {
               <div class="spots ${isFull ? 'full' : ''}">${available}</div>
               <div class="label">${escapeHtml(isFull ? t('booking.full') : t('booking.spotsLeft'))}</div>
             </div>
-            <button class="btn-register" data-session-id="${escapeAttr(session.id)}" ${isFull ? 'disabled' : ''}>${escapeHtml(isFull ? t('booking.full') : t('booking.register'))}</button>
+            <button class="btn-register" data-session-id="${escapeAttr(session.id)}" ${isFull ? 'disabled' : ''}>${escapeHtml(buttonLabel)}</button>
           </div>`;
       }).join('')}
     </div>
@@ -2773,6 +2826,11 @@ function renderEventModal(event) {
 function bindModalActions() {
   document.querySelectorAll('.btn-register[data-session-id]').forEach((button) => {
     button.addEventListener('click', () => {
+      if (!state.user) {
+        showToast(t('booking.loginRequiredToast'), 'error');
+        openAuthModal('login', button);
+        return;
+      }
       state.selectedSessionId = button.dataset.sessionId;
       renderRegistrationForm();
     });
@@ -2785,9 +2843,13 @@ function renderRegistrationForm() {
   const session = event?.sessions.find((item) => item.id === state.selectedSessionId);
   if (!mount || !event || !session) return;
 
-  const authBanner = state.user
-    ? `<div class="auth-registration-banner logged-in"><strong>${escapeHtml(t('booking.signedInBanner', { name: getUserDisplayName() }))}</strong><br>${escapeHtml(t('booking.signedInBannerDesc'))}</div>`
-    : `<div class="auth-registration-banner">${escapeHtml(t('booking.guestBanner'))} <button type="button" class="auth-inline-btn" id="openAuthFromRegistration">${escapeHtml(t('booking.guestBannerCta'))}</button>${escapeHtml(t('booking.guestBannerSuffix'))}</div>`;
+  if (!state.user) {
+    mount.innerHTML = `<div class="registration-panel"><div class="auth-registration-banner">${escapeHtml(t('booking.guestBanner'))} <button type="button" class="auth-inline-btn" id="openAuthFromRegistration">${escapeHtml(t('booking.guestBannerCta'))}</button>${escapeHtml(t('booking.guestBannerSuffix'))}</div></div>`;
+    document.getElementById('openAuthFromRegistration')?.addEventListener('click', () => openAuthModal('login', document.getElementById('openAuthFromRegistration')));
+    return;
+  }
+
+  const authBanner = `<div class="auth-registration-banner logged-in"><strong>${escapeHtml(t('booking.signedInBanner', { name: getUserDisplayName() }))}</strong><br>${escapeHtml(t('booking.signedInBannerDesc'))}</div>`;
 
   mount.innerHTML = `
     <div class="registration-panel">
@@ -2854,7 +2916,6 @@ function renderRegistrationForm() {
   document.getElementById('sessionRegistrationForm').addEventListener('submit', submitRegistrationForm);
   populateRegistrationFormFromUser(document.getElementById('sessionRegistrationForm'));
 
-  document.getElementById('openAuthFromRegistration')?.addEventListener('click', () => openAuthModal('signup', document.getElementById('openAuthFromRegistration')));
   document.getElementById('cancelRegistrationBtn').addEventListener('click', () => {
     state.selectedSessionId = null;
     mount.innerHTML = '';
@@ -2864,6 +2925,11 @@ function renderRegistrationForm() {
 
 async function submitRegistrationForm(event) {
   event.preventDefault();
+  if (!state.user) {
+    showToast(t('booking.loginRequiredToast'), 'error');
+    openAuthModal('login', event.currentTarget);
+    return;
+  }
   const form = event.currentTarget;
   const submitButton = form.querySelector('button[type="submit"]');
   const formData = new FormData(form);
@@ -3108,6 +3174,34 @@ function initNavigation() {
   });
 }
 
+function initFloatingHomeButton() {
+  const button = document.getElementById('floatingHomeBtn');
+  if (!button) return;
+
+  const updateVisibility = () => {
+    button.classList.add('is-visible');
+  };
+
+  if (!isAccountPage()) {
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      try { closeAuthModal(); } catch (error) {}
+      try { closeModal(); } catch (error) {}
+      const navLinks = document.getElementById('navLinks');
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      if (navLinks?.classList.contains('active')) {
+        navLinks.classList.remove('active');
+        mobileMenuBtn?.setAttribute('aria-expanded', 'false');
+      }
+      document.body.style.overflow = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  window.addEventListener('scroll', updateVisibility, { passive: true });
+  updateVisibility();
+}
+
 function initModal() {
   const overlay = document.getElementById('modalOverlay');
   const closeBtn = document.getElementById('modalClose');
@@ -3204,6 +3298,7 @@ function showToast(message, type = 'success') {
 document.addEventListener('DOMContentLoaded', async () => {
   initLanguage();
   initNavigation();
+  initFloatingHomeButton();
   initModal();
   initForms();
   initAuth();
