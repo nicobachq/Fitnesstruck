@@ -3356,7 +3356,10 @@ function initFloatingHomeButton() {
   if (!button) return;
 
   const updateVisibility = () => {
-    button.classList.add('is-visible');
+    const authVisible = document.getElementById('authOverlay')?.classList.contains('active');
+    const eventVisible = document.getElementById('modalOverlay')?.classList.contains('active');
+    const shouldShow = isAccountPage() || authVisible || eventVisible || window.scrollY > 900;
+    button.classList.toggle('is-visible', Boolean(shouldShow));
   };
 
   if (!isAccountPage()) {
@@ -3372,10 +3375,12 @@ function initFloatingHomeButton() {
       }
       document.body.style.overflow = '';
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.setTimeout(updateVisibility, 250);
     });
   }
 
   window.addEventListener('scroll', updateVisibility, { passive: true });
+  document.addEventListener('click', () => window.setTimeout(updateVisibility, 0));
   updateVisibility();
 }
 

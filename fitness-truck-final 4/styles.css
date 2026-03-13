@@ -2505,3 +2505,230 @@ body.info-page{
     align-items:flex-start !important;
   }
 }
+
+
+/* --- Responsive cleanup pass (2026-03-13 late) --- */
+:root{
+  --hero-breakpoint: 1320px;
+}
+
+.hero{
+  overflow:hidden;
+}
+
+.hero-content{
+  align-items:center;
+}
+
+.hero-left{
+  max-width:660px;
+}
+
+#heroSideCard .floating-card,
+.next-event-hero-card,
+.account-hero-card{
+  max-width:440px;
+}
+
+.hero-subtitle{
+  max-width:52ch;
+}
+
+.section-header.centered,
+.section-header{
+  max-width:760px;
+}
+
+.footer-links{
+  row-gap:12px;
+}
+
+@media (max-width: 1320px){
+  .mobile-menu-btn{
+    display:flex !important;
+  }
+
+  .nav-links{
+    position:fixed !important;
+    top:0 !important;
+    right:-100% !important;
+    width:min(86vw, 360px) !important;
+    height:100vh !important;
+    flex-direction:column !important;
+    align-items:flex-start !important;
+    justify-content:flex-start !important;
+    gap:12px !important;
+    padding:96px 28px 28px !important;
+    background:rgba(8,8,8,.985) !important;
+    border-left:1px solid rgba(255,255,255,.12) !important;
+    box-shadow:-24px 0 60px rgba(0,0,0,.42) !important;
+    overflow-y:auto !important;
+  }
+
+  .nav-links.active{
+    right:0 !important;
+  }
+
+  .nav-links > a,
+  .nav-auth-btn{
+    width:100% !important;
+    padding:12px 0 !important;
+    justify-content:flex-start !important;
+    font-size:1rem !important;
+  }
+
+  .nav-links .lang-switch{
+    margin:10px 0 4px !important;
+    justify-content:flex-start !important;
+  }
+
+  .nav-auth-btn.nav-cta,
+  .nav-auth-btn.account-pill{
+    min-height:52px !important;
+    width:100% !important;
+    justify-content:center !important;
+  }
+
+  .hero{
+    min-height:auto !important;
+    padding:126px 0 74px !important;
+  }
+
+  .hero-content{
+    grid-template-columns:minmax(0,1fr) !important;
+    gap:32px !important;
+    align-items:start !important;
+  }
+
+  .hero-left,
+  .hero-right{
+    width:100% !important;
+    max-width:760px !important;
+    margin:0 auto !important;
+  }
+
+  .hero-left{
+    align-items:flex-start !important;
+    text-align:left !important;
+  }
+
+  .hero-right{
+    display:block !important;
+  }
+
+  #heroSideCard .floating-card,
+  .next-event-hero-card,
+  .account-hero-card{
+    max-width:none !important;
+    width:100% !important;
+    margin:0 !important;
+  }
+}
+
+@media (max-width: 980px){
+  .hero-title{
+    font-size:clamp(2.75rem, 10vw, 4rem) !important;
+  }
+
+  .hero-stats{
+    grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+    gap:12px !important;
+  }
+
+  .section,
+  .section-dark,
+  .section-private-teaser,
+  .section-concept{
+    padding:88px 0 !important;
+  }
+
+  .events-showcase,
+  .process-grid,
+  .team-grid,
+  .expect-photo-strip,
+  .expect-cards,
+  .contact-grid{
+    gap:18px !important;
+  }
+}
+
+@media (max-width: 760px){
+  .hero{
+    padding:112px 0 56px !important;
+  }
+
+  .hero-badge{
+    width:100% !important;
+    justify-content:center !important;
+    text-align:center !important;
+  }
+
+  .hero-stats,
+  .next-event-summary,
+  .account-benefits,
+  .contact-grid,
+  .expect-photo-strip,
+  .expect-cards{
+    grid-template-columns:1fr !important;
+  }
+
+  .hero-actions,
+  .account-card-actions,
+  .private-teaser-actions,
+  .footer-bottom,
+  .footer-content,
+  .event-card-footer{
+    flex-direction:column !important;
+    align-items:stretch !important;
+  }
+
+  .hero-actions .btn,
+  .account-card-actions .btn,
+  .private-teaser-actions .btn{
+    width:100% !important;
+    justify-content:center !important;
+  }
+
+  .location-badges{
+    gap:8px !important;
+  }
+
+  .site-footer{
+    padding-bottom:92px;
+  }
+}
+
+@media (max-width: 540px){
+  .hero-title,
+  .section .section-title,
+  .section-header.centered .section-title{
+    line-height:1.04 !important;
+  }
+
+  .hero-stats{
+    grid-template-columns:1fr !important;
+  }
+
+  .section,
+  .section-dark,
+  .section-private-teaser,
+  .section-concept{
+    padding:76px 0 !important;
+  }
+
+  .event-card-content,
+  .process-card,
+  .expect-card,
+  .team-card,
+  .contact-form-wrapper,
+  .private-teaser-card,
+  .mini-value-card,
+  .faq-item,
+  #heroSideCard .floating-card{
+    padding:18px !important;
+  }
+
+  .footer-links{
+    gap:14px !important;
+  }
+}
