@@ -2732,3 +2732,228 @@ body.info-page{
     gap:14px !important;
   }
 }
+
+/* --- iPhone/mobile tuning pass from user recordings (2026-03-13) --- */
+@media (max-width: 760px){
+  .hero-content{
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:stretch !important;
+    gap:22px !important;
+  }
+
+  .hero-left,
+  .hero-right,
+  #heroSideCard,
+  #heroSideCard .floating-card,
+  .next-event-hero-card,
+  .account-hero-card{
+    width:100% !important;
+    max-width:none !important;
+  }
+
+  .hero-right{
+    order:2 !important;
+  }
+
+  .hero-left{
+    order:1 !important;
+  }
+
+  .hero{
+    padding:104px 0 48px !important;
+  }
+
+  .hero-badge{
+    width:auto !important;
+    justify-content:flex-start !important;
+    text-align:left !important;
+  }
+
+  .hero-title{
+    margin-bottom:14px !important;
+  }
+
+  .hero-stats{
+    grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+    gap:10px !important;
+  }
+
+  .stat{
+    padding:12px 10px !important;
+    border-radius:16px !important;
+  }
+
+  .stat-number{
+    font-size:1.75rem !important;
+  }
+
+  .stat-label{
+    font-size:.78rem !important;
+  }
+
+  .btn,
+  .auth-form .btn,
+  .auth-form button[type="submit"],
+  .auth-switch-btn{
+    padding:13px 18px !important;
+    min-height:48px !important;
+    font-size:.92rem !important;
+  }
+
+  .hero-actions,
+  .account-card-actions,
+  .private-teaser-actions,
+  .event-card-footer{
+    flex-direction:row !important;
+    flex-wrap:wrap !important;
+    align-items:center !important;
+    gap:10px !important;
+  }
+
+  .hero-actions .btn,
+  .account-card-actions .btn,
+  .private-teaser-actions .btn{
+    width:auto !important;
+    flex:0 1 auto !important;
+    min-width:0 !important;
+    justify-content:center !important;
+  }
+
+  #heroSideCard .floating-card,
+  .event-card-content,
+  .process-card,
+  .expect-card,
+  .team-card,
+  .contact-form-wrapper,
+  .private-teaser-card,
+  .mini-value-card,
+  .faq-item{
+    padding:16px !important;
+    border-radius:20px !important;
+  }
+
+  .next-event-hero-media{
+    aspect-ratio:16 / 9 !important;
+    min-height:0 !important;
+    max-height:188px !important;
+    border-radius:18px !important;
+    overflow:hidden !important;
+  }
+
+  .next-event-meta{
+    gap:8px !important;
+  }
+
+  .next-event-meta span,
+  .event-meta-chip,
+  .location-badges .badge,
+  .next-event-kicker,
+  .account-hero-label{
+    font-size:.76rem !important;
+    padding:6px 10px !important;
+  }
+
+  .next-event-summary-item,
+  .account-benefit{
+    padding:10px 12px !important;
+    font-size:.9rem !important;
+  }
+
+  .footer-links{
+    display:grid !important;
+    grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
+    gap:12px 18px !important;
+    width:100% !important;
+  }
+
+  .footer-links a,
+  .footer-links .admin-link,
+  .footer-brand p,
+  .footer-bottom p{
+    font-size:.9rem !important;
+  }
+
+  .site-footer{
+    padding-bottom:74px !important;
+  }
+
+  .floating-home-btn{
+    min-height:44px !important;
+    padding:0 14px !important;
+    font-size:.86rem !important;
+  }
+}
+
+@media (max-width: 480px){
+  .hero{
+    padding:98px 0 44px !important;
+  }
+
+  .hero-title{
+    font-size:2.15rem !important;
+  }
+
+  .hero-subtitle{
+    font-size:.96rem !important;
+    line-height:1.62 !important;
+  }
+
+  .hero-actions .btn,
+  .private-teaser-actions .btn{
+    flex:1 1 calc(50% - 5px) !important;
+  }
+
+  .account-card-actions{
+    align-items:stretch !important;
+  }
+
+  .account-card-actions .btn{
+    flex:1 1 100% !important;
+  }
+
+  .nav-links{
+    width:min(88vw, 340px) !important;
+    padding:88px 22px 24px !important;
+  }
+
+  .nav-links > a,
+  .nav-auth-btn{
+    font-size:.95rem !important;
+    padding:10px 0 !important;
+  }
+
+  .nav-auth-btn.nav-cta,
+  .nav-auth-btn.account-pill{
+    min-height:46px !important;
+    padding:11px 18px !important;
+    width:100% !important;
+  }
+
+  .event-card-content,
+  .process-card,
+  .expect-card,
+  .team-card,
+  .contact-form-wrapper,
+  .private-teaser-card,
+  .mini-value-card,
+  .faq-item,
+  #heroSideCard .floating-card{
+    padding:14px !important;
+  }
+}
+
+@media (max-width: 390px){
+  .hero-stats{
+    grid-template-columns:1fr !important;
+  }
+
+  .hero-actions .btn,
+  .private-teaser-actions .btn{
+    flex:1 1 100% !important;
+  }
+
+  .footer-links{
+    grid-template-columns:1fr !important;
+  }
+}
