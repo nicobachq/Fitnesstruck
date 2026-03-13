@@ -4,7 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fitness Truck | La palestra che si muove</title>
-  <meta name="description" content="Allenamento outdoor premium in Ticino. Piccoli gruppi, coaching esperto, luoghi straordinari e sessioni pensate per farti prenotare subito." />
+  <meta name="description" content="Esperienze fitness outdoor premium in Ticino. Coaching professionale, attrezzatura top, location straordinarie e una community che si muove." />
+  <meta name="theme-color" content="#0b0b0b" />
+  <meta property="og:title" content="Fitness Truck | The Gym That Moves" />
+  <meta property="og:description" content="Esperienze fitness outdoor premium in Ticino con coaching professionale, attrezzatura inclusa e location straordinarie." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="assets/logo.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" type="image/png" href="assets/logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -29,7 +36,7 @@
       document.documentElement.style.setProperty('--ft-hero-image', 'url("' + heroes[selectedIndex] + '")');
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=43" />
+  <link rel="stylesheet" href="styles.css?v=56" />
 </head>
 <body>
   <div class="noise-overlay"></div>
@@ -77,9 +84,9 @@
           <h1 class="hero-title">THE GYM<br>THAT <span class="text-accent">MOVES</span></h1>
           <p class="hero-subtitle" data-i18n="hero.subtitle">Allenamento outdoor premium nei luoghi più suggestivi del Ticino. Piccoli gruppi, coaching esperto e sessioni pensate per metterti alla prova, darti energia e lasciarti qualcosa addosso.</p>
           <div class="hero-stats">
-            <div class="stat"><span class="stat-number">4</span><span class="stat-label" data-i18n="hero.statStops">Tappe in Ticino</span></div>
-            <div class="stat"><span class="stat-number">50</span><span class="stat-label" data-i18n="hero.statSpots">Posti/sessione</span></div>
-            <div class="stat"><span class="stat-number">35</span><span class="stat-label" data-i18n="hero.statEvents">Eventi/anno</span></div>
+            <div class="stat"><span class="stat-number" data-i18n="hero.statValue1">Mixed</span><span class="stat-label" data-i18n="hero.statStops">Livelli benvenuti</span></div>
+            <div class="stat"><span class="stat-number" data-i18n="hero.statValue2">Gear</span><span class="stat-label" data-i18n="hero.statSpots">Attrezzatura inclusa</span></div>
+            <div class="stat"><span class="stat-number" data-i18n="hero.statValue3">Ticino</span><span class="stat-label" data-i18n="hero.statEvents">Punto di partenza</span></div>
           </div>
           <div class="hero-actions">
             <a href="#events" class="btn btn-primary"><span data-i18n="hero.viewUpcoming">Vedi i prossimi eventi</span></a>
@@ -102,6 +109,32 @@
       <div class="scroll-indicator">
         <div class="mouse" aria-hidden="true"><div class="wheel"></div></div>
         <span data-i18n="hero.scroll">Scorri per scoprire</span>
+      </div>
+    
+    <section id="concept" class="section section-concept">
+      <div class="container">
+        <div class="section-header centered">
+          <span class="section-eyebrow" data-i18n="concept.eyebrow">Perché Fitness Truck</span>
+          <h2 class="section-title" data-i18n-html="concept.titleHtml">Allenarsi bene, <span class="text-accent">fuori dal solito</span></h2>
+          <p class="section-desc" data-i18n="concept.desc">Fitness Truck porta l'energia del training di qualità in luoghi che cambiano prospettiva. Non sostituisce la palestra: ti dà un motivo nuovo per muoverti.</p>
+        </div>
+        <div class="mini-value-grid">
+          <article class="mini-value-card">
+            <span class="mini-value-index">01</span>
+            <h3 data-i18n="concept.card1Title">Setup premium</h3>
+            <p data-i18n="concept.card1Desc">Coaching professionale, attrezzatura top e sessioni progettate con cura. L'esperienza deve sentirsi seria, pulita e ben organizzata.</p>
+          </article>
+          <article class="mini-value-card">
+            <span class="mini-value-index">02</span>
+            <h3 data-i18n="concept.card2Title">Location che cambiano</h3>
+            <p data-i18n="concept.card2Desc">Montagna, lago, natura e contesti speciali. Ogni evento vuole farti uscire dalla monotonia e vivere l'allenamento in modo diverso.</p>
+          </article>
+          <article class="mini-value-card">
+            <span class="mini-value-index">03</span>
+            <h3 data-i18n="concept.card3Title">Community che si muove</h3>
+            <p data-i18n="concept.card3Desc">Piccoli gruppi, persone motivate, atmosfera positiva. Vieni per allenarti bene, resta per l'energia condivisa.</p>
+          </article>
+        </div>
       </div>
     </section>
 
@@ -239,6 +272,55 @@
       </div>
     </section>
 
+
+    <section id="private" class="section section-private-teaser">
+      <div class="container">
+        <div class="private-teaser-card">
+          <div class="private-teaser-copy">
+            <span class="section-eyebrow" data-i18n="teaser.eyebrow">Su richiesta</span>
+            <h2 class="section-title" data-i18n-html="teaser.titleHtml">Anche per <span class="text-accent">team e gruppi privati</span></h2>
+            <p class="section-desc" data-i18n="teaser.desc">Stiamo aprendo anche a corporate wellness, team building, hotel partner e gruppi privati. Per ora lo gestiamo su richiesta, con format costruiti bene e location che fanno la differenza.</p>
+          </div>
+          <div class="private-teaser-actions">
+            <a href="#contact" class="btn btn-primary" data-i18n="teaser.primaryCta">Scrivici</a>
+            <a href="faq.html" class="btn btn-secondary" data-i18n="teaser.secondaryCta">Leggi le FAQ</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="section">
+      <div class="container">
+        <div class="section-header centered">
+          <span class="section-eyebrow" data-i18n="faq.eyebrow">FAQ</span>
+          <h2 class="section-title" data-i18n-html="faq.titleHtml">Le domande più <span class="text-accent">importanti</span></h2>
+          <p class="section-desc" data-i18n="faq.desc">Le basi per capire come funziona Fitness Truck prima di prenotare il tuo posto.</p>
+        </div>
+        <div class="faq-grid">
+          <details class="faq-item" open>
+            <summary data-i18n="faq.q1">Serve un account per prenotare?</summary>
+            <p data-i18n="faq.a1">Sì. Puoi esplorare il sito liberamente, ma per registrarti a un evento e pagare serve un account Fitness Truck.</p>
+          </details>
+          <details class="faq-item">
+            <summary data-i18n="faq.q2">L'attrezzatura è inclusa?</summary>
+            <p data-i18n="faq.a2">Sì. Noi portiamo l'attrezzatura. Tu devi solo arrivare con outfit adeguato e con strati caldi se la temperatura lo richiede.</p>
+          </details>
+          <details class="faq-item">
+            <summary data-i18n="faq.q3">Cosa succede se il meteo peggiora?</summary>
+            <p data-i18n="faq.a3">Gli eventi si svolgono normalmente in condizioni outdoor gestibili. Se il meteo è davvero insicuro, possiamo posticipare, spostare o annullare l'evento e avvisarti in anticipo.</p>
+          </details>
+          <details class="faq-item">
+            <summary data-i18n="faq.q4">Posso cancellare la mia partecipazione?</summary>
+            <p data-i18n="faq.a4">Sì. La cancellazione è gratuita fino a 48 ore prima dell'evento. Dopo quel termine non è previsto rimborso, salvo cancellazione da parte di Fitness Truck.</p>
+          </details>
+        </div>
+        <div class="faq-actions">
+          <a href="faq.html" class="btn btn-secondary" data-i18n="faq.fullCta">Apri FAQ complete</a>
+          <a href="terms.html" class="btn btn-secondary" data-i18n="faq.policyCta">Leggi condizioni e policy</a>
+        </div>
+      </div>
+    </section>
+
     <section id="contact" class="section">
       <div class="container">
         <div class="section-header centered">
@@ -288,7 +370,10 @@
           <a href="#events" data-i18n="nav.events">Eventi</a>
           <a href="#experience" data-i18n="nav.experience">Esperienza</a>
           <a href="#team" data-i18n="nav.team">Team</a>
+          <a href="#faq" data-i18n="footer.faq">FAQ</a>
           <a href="#contact" data-i18n="nav.contact">Contatti</a>
+          <a href="privacy.html" data-i18n="footer.privacy">Privacy</a>
+          <a href="terms.html" data-i18n="footer.terms">Condizioni</a>
           <a href="admin.html" class="admin-link" rel="nofollow" data-i18n="footer.admin">Admin</a>
         </div>
       </div>
@@ -318,6 +403,6 @@
   <div class="toast-container" id="toastContainer" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=55"></script>
+  <script src="app.js?v=56"></script>
 </body>
 </html>

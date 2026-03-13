@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy | Fitness Truck</title>
+  <meta name="description" content="Privacy information for Fitness Truck." />
+  <meta name="theme-color" content="#0b0b0b" />
+  <link rel="icon" type="image/png" href="assets/logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=56" />
+</head>
+<body class="info-page">
+  <div class="noise-overlay"></div>
+  <div class="nav-container">
+    <nav>
+      <a href="index.html#top" class="logo">
+        <img src="assets/logo-transparent.png" alt="Fitness Truck - The Gym That Moves" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="logo-fallback" style="display:none;">
+          <div class="logo-icon">FT</div>
+          <span>FITNESS TRUCK</span>
+        </div>
+      </a>
+      <div class="nav-links">
+        <a href="index.html#events">Events</a>
+        <a href="faq.html">FAQ</a>
+        <a href="index.html#contact">Contact</a>
+        <div class="lang-switch" aria-label="Language switcher">
+          <button type="button" class="lang-btn active" data-lang-choice="it" aria-pressed="true">IT</button>
+          <button type="button" class="lang-btn" data-lang-choice="en" aria-pressed="false">EN</button>
+        </div>
+      </div>
+    </nav>
+  </div>
+  <main class="info-main">
+    <section class="info-hero">
+      <div class="container">
+        <div class="lang-content" data-lang="it">
+          <span class="section-eyebrow">Privacy</span>
+          <h1 class="section-title" style="margin-top:12px;">Privacy</h1>
+          <p class="section-desc" style="margin-left:0;max-width:760px;">Una base chiara per spiegare come vengono trattati i dati su Fitness Truck.</p>
+        </div>
+        <div class="lang-content" data-lang="en" hidden>
+          <span class="section-eyebrow">Privacy</span>
+          <h1 class="section-title" style="margin-top:12px;">Privacy</h1>
+          <p class="section-desc" style="margin-left:0;max-width:760px;">A clear starter explanation of how data is handled on Fitness Truck.</p>
+        </div>
+      </div>
+    </section>
+    <section class="section" style="padding-top:18px;">
+      <div class="container">
+        <div class="lang-content" data-lang="it">
+          <div class="info-page-grid"><article class="info-page-card"><h2>1. Titolare e contatti</h2><p>Per richieste privacy puoi contattarci a <a class="inline-link" href="mailto:info@fitnesstruck.ch">info@fitnesstruck.ch</a>. Questo testo è una base operativa iniziale e andrà aggiornato con i dati legali completi appena definiti.</p></article><article class="info-page-card"><h2>2. Dati che raccogliamo</h2><ul><li>dati account come nome, email e password gestita da Supabase Auth</li><li>dati di profilo e registrazione come telefono, età, contatto di emergenza, allergie e note mediche</li><li>dati necessari alla gestione dei pagamenti e delle prenotazioni</li><li>messaggi inviati tramite il form contatti</li></ul></article><article class="info-page-card"><h2>3. Perché li usiamo</h2><ul><li>creare e gestire il tuo account</li><li>gestire registrazioni, pagamenti e partecipazione agli eventi</li><li>contattarti per aggiornamenti logistici, meteo o sicurezza</li><li>rispondere alle tue richieste</li><li>inviare novità solo se hai scelto di riceverle</li></ul></article><article class="info-page-card"><h2>4. Conservazione e condivisione</h2><p>I dati vengono conservati per il tempo necessario alla gestione operativa e amministrativa del servizio. Possiamo affidarci a fornitori tecnici come Supabase, Netlify, servizi email e pagamento per erogare il servizio.</p></article><article class="info-page-card"><h2>5. I tuoi diritti</h2><p>Puoi chiedere accesso, correzione o cancellazione dei tuoi dati scrivendo a <a class="inline-link" href="mailto:info@fitnesstruck.ch">info@fitnesstruck.ch</a>. Per richieste sensibili potremmo verificare la tua identità prima di intervenire.</p></article></div>
+        </div>
+        <div class="lang-content" data-lang="en" hidden>
+          <div class="info-page-grid"><article class="info-page-card"><h2>1. Controller and contact</h2><p>For privacy requests you can contact <a class="inline-link" href="mailto:info@fitnesstruck.ch">info@fitnesstruck.ch</a>. This is an initial working draft and should be updated with the final legal business details once confirmed.</p></article><article class="info-page-card"><h2>2. Data we collect</h2><ul><li>account data such as name, email, and password handled by Supabase Auth</li><li>profile and registration data such as phone, age, emergency contact, allergies, and medical notes</li><li>data required to manage payments and bookings</li><li>messages submitted through the contact form</li></ul></article><article class="info-page-card"><h2>3. Why we use it</h2><ul><li>to create and manage your account</li><li>to manage event registrations, payments, and participation</li><li>to contact you about logistics, weather, or safety updates</li><li>to answer your requests</li><li>to send news only if you opted in</li></ul></article><article class="info-page-card"><h2>4. Retention and sharing</h2><p>Data is kept for as long as needed to operate and administer the service. We may rely on technical providers such as Supabase, Netlify, email services, and payment providers to deliver the service.</p></article><article class="info-page-card"><h2>5. Your rights</h2><p>You can request access, correction, or deletion of your data by emailing <a class="inline-link" href="mailto:info@fitnesstruck.ch">info@fitnesstruck.ch</a>. For sensitive requests we may verify your identity before acting.</p></article></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <img src="assets/logo-transparent.png" alt="Fitness Truck" class="footer-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+          <span class="logo-text" style="display:none;">FITNESS TRUCK</span>
+          <p>Premium outdoor experiences, born in Ticino.</p>
+        </div>
+        <div class="footer-links">
+          <a href="index.html#events">Events</a>
+          <a href="faq.html">FAQ</a>
+          <a href="privacy.html">Privacy</a>
+          <a href="terms.html">Terms</a>
+          <a href="index.html#contact">Contact</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 Fitness Truck. All rights reserved.</p>
+        <a href="index.html#top" class="back-to-top">Back to home</a>
+      </div>
+    </div>
+  </footer>
+  <script>
+    (function () {
+      const buttons = document.querySelectorAll('[data-lang-choice]');
+      const sections = document.querySelectorAll('.lang-content');
+      const titles = { it: "Privacy", en: "Privacy" };
+      const saved = localStorage.getItem('ft_lang');
+      function apply(lang) {
+        const current = lang === 'en' ? 'en' : 'it';
+        try { localStorage.setItem('ft_lang', current); } catch (error) {}
+        sections.forEach((section) => {
+          section.hidden = section.dataset.lang !== current;
+        });
+        buttons.forEach((button) => {
+          const active = button.dataset.langChoice === current;
+          button.classList.toggle('active', active);
+          button.setAttribute('aria-pressed', String(active));
+        });
+        document.documentElement.lang = current;
+        document.title = titles[current] + ' | Fitness Truck';
+      }
+      buttons.forEach((button) => button.addEventListener('click', () => apply(button.dataset.langChoice)));
+      apply(saved === 'en' ? 'en' : 'it');
+    })();
+  </script>
+</body>
+</html>

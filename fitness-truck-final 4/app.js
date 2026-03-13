@@ -321,7 +321,7 @@ const TRANSLATIONS = {
   it: {
     meta: {
       title: 'Fitness Truck | La palestra che si muove',
-      description: 'Allenamento outdoor premium in Ticino. Piccoli gruppi, coaching esperto, luoghi straordinari e sessioni pensate per farti prenotare subito.'
+      description: 'Esperienze fitness outdoor premium in Ticino. Coaching professionale, attrezzatura top, location straordinarie e una community che si muove.'
     },
     nav: {
       events: 'Eventi',
@@ -358,11 +358,14 @@ const TRANSLATIONS = {
       notSavedYet: 'Genere non ancora salvato'
     },
     hero: {
-      badge: 'Allenamento outdoor in Ticino',
-      subtitle: 'Allenamento outdoor premium nei luoghi più suggestivi del Ticino. Piccoli gruppi, coaching esperto e sessioni pensate per metterti alla prova, darti energia e lasciarti qualcosa addosso.',
-      statStops: 'Tappe in Ticino',
-      statSpots: 'Posti/sessione',
-      statEvents: 'Eventi/anno',
+      badge: 'Esperienze fitness outdoor in Ticino',
+      subtitle: 'Esperienze fitness outdoor premium in location straordinarie del Ticino. Coaching professionale, attrezzatura top e un\'atmosfera che ti fa uscire dalla routine.',
+      statValue1: 'Mixed',
+      statStops: 'Livelli benvenuti',
+      statValue2: 'Gear',
+      statSpots: 'Attrezzatura inclusa',
+      statValue3: 'Ticino',
+      statEvents: 'Punto di partenza',
       viewUpcoming: 'Vedi eventi',
       createAccount: 'Crea account',
       lugano: 'Lugano',
@@ -385,71 +388,119 @@ const TRANSLATIONS = {
       myAccount: 'Il mio account',
       accountCardLabel: 'Account',
       accountCardTitle: 'Crea il tuo account',
-      accountCardDesc: 'Crea il tuo account per prenotare e pagare gli eventi. I tuoi dati restano salvati per le registrazioni future.',
+      accountCardDesc: 'Crea il tuo account per registrarti e pagare gli eventi. I tuoi dati restano salvati per le prenotazioni future.',
       fasterBookings: 'Prenotazioni future più veloci',
       newsOptIn: 'Aggiornamenti eventi facoltativi',
-      guestBooking: 'Account richiesto per prenotare e pagare'
+      guestBooking: 'Account richiesto per registrarti e pagare'
     },
     events: {
       sectionEyebrow: 'Prossimi eventi',
-      sectionTitleHtml: 'Assicura il tuo <span class="text-accent">posto</span>',
-      sectionDesc: 'Sessioni outdoor in Ticino a capacità limitata. Prenota presto per allenarti in luoghi eccezionali con coaching esperto e un\'atmosfera di gruppo che si sente subito speciale.',
+      sectionTitleHtml: 'Trova il tuo prossimo <span class="text-accent">evento</span>',
+      sectionDesc: 'Eventi outdoor premium in Ticino con posti limitati, coaching esperto e location che valgono il viaggio. Gli eventi chiusi restano visibili, ma si aprono solo quando sono confermati.',
       emptyTitle: 'Nessun evento in arrivo',
-      emptyDesc: 'La prossima activation sta prendendo forma. Crea il tuo account per essere pronto nel momento in cui apriamo nuove date e registrazioni.',
+      emptyDesc: 'La prossima experience sta prendendo forma. Crea il tuo account per essere pronto quando apriamo nuove date e registrazioni.',
       emptyCta: 'Crea account',
       calendarTitle: 'Calendario in arrivo',
       soldOut: 'Completo',
       almostFull: 'Quasi completo',
       open: 'Aperto',
       limited: 'Limitato',
-      closed: 'Chiuso'
+      closed: 'Chiuso',
+      joining_one: '{count} partecipante',
+      joining_other: '{count} partecipanti',
+      sessionsLabel_one: '{count} sessione',
+      sessionsLabel_other: '{count} sessioni',
+      equipmentIncluded: 'Attrezzatura inclusa',
+      defaultSummary: 'Coaching professionale, attrezzatura premium e una community che si muove.',
+      openCardDesc: 'Registrazioni aperte ora',
+      soldOutCardDesc: 'Evento visibile ma al completo',
+      closedCardDesc: 'Evento visibile ma non ancora prenotabile',
+      viewDetails: 'Vedi dettagli',
+      modalLogisticsTitle: 'Prima di arrivare',
+      modalLogisticsDesc: 'Porta outfit adeguato e strati caldi se serve. Noi portiamo l\'attrezzatura e ti aggiorniamo se meteo o logistica richiedono cambiamenti.',
+      modalMixedLevels: 'Livelli misti',
+      modalWeather: 'Aggiornamenti meteo inclusi',
+      modalAccountRequired: 'Account richiesto per prenotare'
     },
     experience: {
-      eyebrow: 'L\'esperienza',
-      titleHtml: 'Come <span class="text-accent">funziona</span>',
-      desc: 'Dall\'account all\'activation, il processo è semplice, veloce e pensato per mantenere l\'esperienza premium.',
-      step1Title: 'Scegli la tua sessione',
-      step1Desc: 'Sfoglia il calendario in arrivo e scegli l\'evento che si adatta alla tua energia, al tuo tempo e al tipo di luogo in cui vuoi allenarti.',
-      step2Title: 'Riserva il tuo posto',
-      step2Desc: 'I posti restano volutamente limitati. Prenota in pochi clic e ricevi tutto quello che ti serve prima dell\'evento.',
-      step3Title: 'Allenati all\'aperto',
-      step3Desc: 'Presentati pronto. Noi portiamo truck, coaching, attrezzatura e l\'atmosfera che trasforma l\'allenamento in qualcosa che ricordi.'
+      eyebrow: 'Come partecipare',
+      titleHtml: 'Semplice, chiaro, <span class="text-accent">premium</span>',
+      desc: 'Dal primo click all\'arrivo sul posto, tutto deve essere lineare e facile da capire.',
+      step1Title: 'Scegli l\'evento giusto',
+      step1Desc: 'Guarda date, location, stato e disponibilità. Ogni evento è pensato come un\'esperienza, non come una semplice lezione.',
+      step2Title: 'Crea account e prenota',
+      step2Desc: 'L\'account serve per registrarti e pagare in modo ordinato. I tuoi dati restano salvati per velocizzare le prossime prenotazioni.',
+      step3Title: 'Presentati pronto',
+      step3Desc: 'Arrivi con outfit adatto, noi portiamo truck, attrezzatura, coaching e l\'energia del gruppo. Se il meteo richiede cambiamenti, ti aggiorniamo in anticipo.'
     },
     expect: {
       eyebrow: 'Cosa aspettarti',
-      titleHtml: 'Più di un <span class="text-accent">workout</span>',
-      desc: 'Ogni activation unisce performance, atmosfera e luoghi indimenticabili in tutto il Ticino.',
-      feature1: 'Performance funzionale',
+      titleHtml: 'Più di un <span class="text-accent">allenamento</span>',
+      desc: 'Ogni experience unisce qualità del training, atmosfera, natura e nuove motivazioni.',
+      feature1: 'Forza funzionale',
       feature2: 'Mobilità e recupero',
-      feature3: 'Allenamento della forza',
-      feature4: 'Endurance',
+      feature3: 'Community motivante',
+      feature4: 'Outdoor experience',
       feature5: 'Coaching esperto',
       feature6: 'Attrezzatura premium',
-      photo1: 'Workout dinamici',
-      photo2: 'Coaching esperto',
-      photo3: 'Luoghi straordinari',
-      card1Title: 'Pensato per energia vera',
-      card1Desc: 'Aspettati sessioni che combinano forza, conditioning, qualità del movimento e coaching preciso. Abbastanza intense da spingerti, abbastanza accessibili da farti tornare.',
-      card2Title: 'Pensato per restarti dentro',
-      card2Desc: 'Non stai semplicemente entrando in un workout. Stai entrando in un\'esperienza di allenamento outdoor premium modellata da luogo, persone ed energia.'
+      photo1: 'Energia reale',
+      photo2: 'Coaching preciso',
+      photo3: 'Location memorabili',
+      card1Title: 'Allenamento che ti riaccende',
+      card1Desc: 'Sessioni abbastanza intense da darti stimolo, ma progettate per restare accessibili a livelli misti e farti venire voglia di tornare.',
+      card2Title: 'Qualità che si percepisce',
+      card2Desc: 'Non stai entrando in un contesto improvvisato. Stai entrando in un\'esperienza curata, con attenzione al luogo, alle persone e al modo in cui ti fa sentire.'
+    },
+    concept: {
+      eyebrow: 'Perché Fitness Truck',
+      titleHtml: 'Allenarsi bene, <span class="text-accent">fuori dal solito</span>',
+      desc: 'Fitness Truck porta l\'energia del training di qualità in luoghi che cambiano prospettiva. Non sostituisce la palestra: ti dà un motivo nuovo per muoverti.',
+      card1Title: 'Setup premium',
+      card1Desc: 'Coaching professionale, attrezzatura top e sessioni progettate con cura. L\'esperienza deve sentirsi seria, pulita e ben organizzata.',
+      card2Title: 'Location che cambiano',
+      card2Desc: 'Montagna, lago, natura e contesti speciali. Ogni evento vuole farti uscire dalla monotonia e vivere l\'allenamento in modo diverso.',
+      card3Title: 'Community che si muove',
+      card3Desc: 'Piccoli gruppi, persone motivate, atmosfera positiva. Vieni per allenarti bene, resta per l\'energia condivisa.'
     },
     team: {
       eyebrow: 'Il team',
       titleHtml: 'Coaching con <span class="text-accent">visione</span>',
-      desc: 'Un progetto costruito su performance, cura e sull\'idea che allenarsi debba sentirsi potente, umano e memorabile.',
+      desc: 'Fitness Truck nasce per unire qualità del coaching, benessere e senso dell\'esperienza in un format credibile e curato.',
       nicolasBio: 'Dà forma al concetto e all\'esperienza Fitness Truck, trasformando l\'allenamento in qualcosa che le persone si portano dietro anche dopo la sessione.',
       nazarenoBio: 'Porta struttura, intensità e profondità di coaching a ogni activation, aiutando le persone a muoversi meglio e ad allenarsi con uno scopo.',
       lorenzoBio: 'Sostiene recupero, resilienza e benessere fisico nel lungo periodo, aggiungendo un livello di cura ancora più profondo all\'esperienza.'
     },
+    teaser: {
+      eyebrow: 'Su richiesta',
+      titleHtml: 'Anche per <span class="text-accent">team e gruppi privati</span>',
+      desc: 'Stiamo aprendo anche a corporate wellness, team building, hotel partner e gruppi privati. Per ora lo gestiamo su richiesta, con format costruiti bene e location che fanno la differenza.',
+      primaryCta: 'Scrivici',
+      secondaryCta: 'Leggi le FAQ'
+    },
+    faq: {
+      eyebrow: 'FAQ',
+      titleHtml: 'Le domande più <span class="text-accent">importanti</span>',
+      desc: 'Le basi per capire come funziona Fitness Truck prima di prenotare il tuo posto.',
+      q1: 'Serve un account per prenotare?',
+      a1: 'Sì. Puoi esplorare il sito liberamente, ma per registrarti a un evento e pagare serve un account Fitness Truck.',
+      q2: 'L\'attrezzatura è inclusa?',
+      a2: 'Sì. Noi portiamo l\'attrezzatura. Tu devi solo arrivare con outfit adeguato e con strati caldi se la temperatura lo richiede.',
+      q3: 'Cosa succede se il meteo peggiora?',
+      a3: 'Gli eventi si svolgono normalmente in condizioni outdoor gestibili. Se il meteo è davvero insicuro, possiamo posticipare, spostare o annullare l\'evento e avvisarti in anticipo.',
+      q4: 'Posso cancellare la mia partecipazione?',
+      a4: 'Sì. La cancellazione è gratuita fino a 48 ore prima dell\'evento. Dopo quel termine non è previsto rimborso, salvo cancellazione da parte di Fitness Truck.',
+      fullCta: 'Apri FAQ complete',
+      policyCta: 'Leggi condizioni e policy'
+    },
     contact: {
       eyebrow: 'Contatti',
       titleHtml: 'Restiamo in <span class="text-accent">contatto</span>',
-      desc: 'Domande, collaborazioni o idee per eventi privati? Saremo felici di sentirti.',
+      desc: 'Domande, collaborazioni future o richieste per gruppi privati? Saremo felici di sentirti.',
       email: 'Email',
       phone: 'Telefono',
       instagram: 'Instagram',
       locations: 'Luoghi',
-      locationsValue: 'Prima il Ticino · pronti a muoverci oltre',
+      locationsValue: 'Partiamo dal Ticino · visione Swiss-wide',
       formName: 'Il tuo nome',
       formEmail: 'La tua email',
       formMessage: 'Il tuo messaggio',
@@ -460,7 +511,10 @@ const TRANSLATIONS = {
       sending: 'Invio in corso...'
     },
     footer: {
-      tagline: 'Allenamento outdoor premium, nato in Ticino.',
+      tagline: 'Esperienze outdoor premium, nate in Ticino.',
+      faq: 'FAQ',
+      privacy: 'Privacy',
+      terms: 'Condizioni',
       admin: 'Admin',
       rights: '© 2026 Fitness Truck. Tutti i diritti riservati.',
       backToTop: 'Torna in alto'
@@ -608,7 +662,7 @@ const TRANSLATIONS = {
   en: {
     meta: {
       title: 'Fitness Truck | The Gym That Moves',
-      description: 'Premium outdoor training in Ticino. Small groups, expert coaching, exceptional locations, and sessions designed to move the right people to book fast.'
+      description: 'Premium outdoor fitness experiences in Ticino with professional coaching, included equipment, striking locations, and a motivating community.'
     },
     nav: {
       events: 'Events',
@@ -645,11 +699,14 @@ const TRANSLATIONS = {
       notSavedYet: 'Gender not saved yet'
     },
     hero: {
-      badge: 'Outdoor training in Ticino',
-      subtitle: 'Premium outdoor training in Ticino’s most striking locations. Small groups, expert coaching, and sessions designed to challenge, energise, and inspire.',
-      statStops: 'Ticino stops',
-      statSpots: 'Spots/session',
-      statEvents: 'Events/year',
+      badge: 'Outdoor fitness experiences in Ticino',
+      subtitle: 'Premium outdoor fitness experiences in striking Ticino locations. Professional coaching, top equipment, and an atmosphere that breaks routine in the best way.',
+      statValue1: 'Mixed',
+      statStops: 'Levels welcome',
+      statValue2: 'Gear',
+      statSpots: 'Equipment included',
+      statValue3: 'Ticino',
+      statEvents: 'Starting point',
       viewUpcoming: 'View events',
       createAccount: 'Create account',
       lugano: 'Lugano',
@@ -679,75 +736,126 @@ const TRANSLATIONS = {
     },
     events: {
       sectionEyebrow: 'Upcoming events',
-      sectionTitleHtml: 'Secure your <span class="text-accent">spot</span>',
-      sectionDesc: 'Limited-capacity outdoor sessions in Ticino. Book early to train in exceptional places with expert coaching and a group atmosphere that feels rare from the first minute.',
+      sectionTitleHtml: 'Find your next <span class="text-accent">event</span>',
+      sectionDesc: 'Premium outdoor events in Ticino with limited spots, expert coaching, and locations worth the trip. Closed events stay visible, but registration only opens once they are confirmed.',
       emptyTitle: 'No upcoming events',
-      emptyDesc: 'The next activation is taking shape now. Create your account so you are ready when new dates and registrations open.',
+      emptyDesc: 'The next experience is taking shape now. Create your account so you are ready when new dates and registrations open.',
       emptyCta: 'Create account',
       calendarTitle: 'Upcoming calendar',
       soldOut: 'Sold out',
       almostFull: 'Almost full',
       open: 'Open',
       limited: 'Limited',
-      closed: 'Closed'
+      closed: 'Closed',
+      joining_one: '{count} participant',
+      joining_other: '{count} participants',
+      sessionsLabel_one: '{count} session',
+      sessionsLabel_other: '{count} sessions',
+      equipmentIncluded: 'Equipment included',
+      defaultSummary: 'Professional coaching, premium equipment, and a community that moves.',
+      openCardDesc: 'Registration is open now',
+      soldOutCardDesc: 'Visible now, but fully booked',
+      closedCardDesc: 'Visible now, but not bookable yet',
+      viewDetails: 'View details',
+      modalLogisticsTitle: 'Before you come',
+      modalLogisticsDesc: 'Bring suitable training clothes and warm layers if needed. We bring the equipment and keep you updated if weather or logistics require changes.',
+      modalMixedLevels: 'Mixed levels',
+      modalWeather: 'Weather updates included',
+      modalAccountRequired: 'Account required to book'
     },
     experience: {
-      eyebrow: 'The experience',
-      titleHtml: 'How it <span class="text-accent">works</span>',
-      desc: 'From account to activation, the process is simple, fast, and designed to keep the experience feeling premium.',
-      step1Title: 'Choose your session',
-      step1Desc: 'Browse the upcoming calendar and pick the event that fits your energy, your schedule, and the kind of location you want to train in.',
-      step2Title: 'Reserve your spot',
-      step2Desc: 'Places stay intentionally limited. Book in a few clicks and receive everything you need before the event begins.',
-      step3Title: 'Train outdoors',
-      step3Desc: 'Show up ready. We bring the truck, the coaching, the equipment, and the atmosphere that turns training into something you remember.'
+      eyebrow: 'How to join',
+      titleHtml: 'Simple, clear, <span class="text-accent">premium</span>',
+      desc: 'From the first click to arrival on site, everything should feel straightforward and easy to understand.',
+      step1Title: 'Choose the right event',
+      step1Desc: 'Review the date, location, status, and availability. Each event is designed as an experience, not just another class.',
+      step2Title: 'Create your account and book',
+      step2Desc: 'An account keeps registration and payment organised. Your saved details make future bookings faster.',
+      step3Title: 'Show up ready',
+      step3Desc: 'Arrive in suitable clothing, and we bring the truck, the equipment, the coaching, and the group energy. If weather requires changes, we update you in advance.'
     },
     expect: {
       eyebrow: 'What to expect',
       titleHtml: 'More than a <span class="text-accent">workout</span>',
-      desc: 'Every activation blends performance, atmosphere, and unforgettable places across Ticino.',
-      feature1: 'Functional performance',
+      desc: 'Each experience blends training quality, atmosphere, nature, and fresh motivation.',
+      feature1: 'Functional strength',
       feature2: 'Mobility & recovery',
-      feature3: 'Strength training',
-      feature4: 'Endurance',
+      feature3: 'Motivating community',
+      feature4: 'Outdoor experience',
       feature5: 'Expert coaching',
       feature6: 'Premium equipment',
-      photo1: 'Dynamic workouts',
-      photo2: 'Expert coaching',
-      photo3: 'Stunning locations',
-      card1Title: 'Built for real energy',
-      card1Desc: 'Expect sessions that blend strength, conditioning, movement quality, and focused coaching. Challenging enough to push you, accessible enough to keep you coming back.',
-      card2Title: 'Designed to stay with you',
-      card2Desc: 'You are not just joining a workout. You are stepping into a premium outdoor training experience shaped by place, people, and energy.'
+      photo1: 'Real energy',
+      photo2: 'Precise coaching',
+      photo3: 'Memorable locations',
+      card1Title: 'Training that resets you',
+      card1Desc: 'Sessions intense enough to challenge you, yet designed to stay accessible for mixed levels and make you want to come back.',
+      card2Title: 'Quality you can feel',
+      card2Desc: 'You are not stepping into something improvised. You are stepping into a curated experience shaped by place, people, and how it makes you feel.'
+    },
+    concept: {
+      eyebrow: 'Why Fitness Truck',
+      titleHtml: 'Train well, <span class="text-accent">outside the usual</span>',
+      desc: 'Fitness Truck brings high-quality training energy into places that change your perspective. It is not here to replace the gym. It gives you a new reason to move.',
+      card1Title: 'Premium setup',
+      card1Desc: 'Professional coaching, top equipment, and sessions designed with care. The experience should feel serious, clean, and well organised.',
+      card2Title: 'Changing locations',
+      card2Desc: 'Mountains, lakes, nature, and special settings. Every event is built to pull you out of monotony and make training feel fresh again.',
+      card3Title: 'A moving community',
+      card3Desc: 'Small groups, motivated people, positive atmosphere. Come for the training, stay for the shared energy.'
     },
     team: {
       eyebrow: 'The team',
       titleHtml: 'Coaching with <span class="text-accent">vision</span>',
-      desc: 'A project shaped by performance, care, and the belief that training should feel powerful, human, and unforgettable.',
-      nicolasBio: 'Shapes the Fitness Truck concept and experience, turning training into something people feel long after the session ends.',
+      desc: 'Fitness Truck is built to combine coaching quality, wellbeing, and experience design in a format that feels credible and carefully made.',
+      nicolasBio: 'Shapes the Fitness Truck concept and experience, turning training into something people carry with them after the session ends.',
       nazarenoBio: 'Brings structure, intensity, and coaching depth to every activation, helping people move better and train with purpose.',
-      lorenzoBio: 'Supports recovery, resilience, and long-term physical wellbeing, adding a deeper level of care to the experience.'
+      lorenzoBio: 'Supports recovery, resilience, and long-term physical wellbeing, adding an even deeper level of care to the experience.'
+    },
+    teaser: {
+      eyebrow: 'On request',
+      titleHtml: 'Also for <span class="text-accent">teams and private groups</span>',
+      desc: 'We are also opening the door to corporate wellness, team-building, hotel partners, and private groups. For now, we handle it on request with thoughtful formats and locations that make a difference.',
+      primaryCta: 'Contact us',
+      secondaryCta: 'Read the FAQ'
+    },
+    faq: {
+      eyebrow: 'FAQ',
+      titleHtml: 'The most important <span class="text-accent">questions</span>',
+      desc: 'The basics you should know before booking your place with Fitness Truck.',
+      q1: 'Do I need an account to book?',
+      a1: 'Yes. You can explore the site freely, but to register for an event and pay, a Fitness Truck account is required.',
+      q2: 'Is equipment included?',
+      a2: 'Yes. We bring the equipment. You only need to arrive with suitable training clothes and warm layers when temperatures require it.',
+      q3: 'What happens if the weather gets worse?',
+      a3: 'Events normally go ahead in manageable outdoor conditions. If the weather becomes unsafe, we may postpone, relocate, or cancel the event and notify you in advance.',
+      q4: 'Can I cancel my participation?',
+      a4: 'Yes. Cancellation is free up to 48 hours before the event. After that, no refund is provided unless Fitness Truck cancels the event.',
+      fullCta: 'Open full FAQ',
+      policyCta: 'Read terms and policies'
     },
     contact: {
       eyebrow: 'Contact',
-      titleHtml: 'Let’s <span class="text-accent">connect</span>',
-      desc: 'Questions, collaborations, or private event ideas? We would love to hear from you.',
+      titleHtml: 'Let\'s stay in <span class="text-accent">touch</span>',
+      desc: 'Questions, future collaborations, or requests for private groups? We would love to hear from you.',
       email: 'Email',
       phone: 'Phone',
       instagram: 'Instagram',
       locations: 'Locations',
-      locationsValue: 'Ticino first · ready to move beyond it',
+      locationsValue: 'Starting from Ticino · Swiss-wide vision',
       formName: 'Your name',
       formEmail: 'Your email',
       formMessage: 'Your message',
-      formNamePlaceholder: 'John Doe',
-      formEmailPlaceholder: 'john@example.com',
-      formMessagePlaceholder: 'Tell us what you are looking for, and we will come back to you.',
+      formNamePlaceholder: 'Jane Smith',
+      formEmailPlaceholder: 'jane@example.com',
+      formMessagePlaceholder: 'Tell us what you are looking for and we will get back to you.',
       send: 'Send message',
       sending: 'Sending...'
     },
     footer: {
-      tagline: 'Premium outdoor training, born in Ticino.',
+      tagline: 'Premium outdoor experiences, born in Ticino.',
+      faq: 'FAQ',
+      privacy: 'Privacy',
+      terms: 'Terms',
       admin: 'Admin',
       rights: '© 2026 Fitness Truck. All rights reserved.',
       backToTop: 'Back to top'
@@ -911,6 +1019,15 @@ function t(key, vars = {}) {
 
 function getPluralKey(baseKey, count) {
   return `${baseKey}_${count === 1 ? 'one' : 'other'}`;
+}
+
+function getCountLabel(baseKey, count) {
+  return t(getPluralKey(baseKey, count), { count });
+}
+
+function getEventSummaryCopy(event) {
+  const summary = String(event?.heroPhrase || event?.description || '').trim();
+  return summary || t('events.defaultSummary');
 }
 
 function applyStaticTranslations(root = document) {
@@ -2658,11 +2775,19 @@ function renderEvents() {
     const publicSessions = getPublicSessions(event);
     const isClosed = !isEventRegistrationOpen(event);
     const isSoldOut = !isClosed && publicSessions.length > 0 && publicSessions.every((session) => session.registered >= session.maxParticipants);
-    const totalSpots = publicSessions.reduce((sum, session) => sum + session.maxParticipants, 0);
-    const totalRegistered = publicSessions.reduce((sum, session) => sum + session.registered, 0);
+    const totalSpots = visibleSessions.reduce((sum, session) => sum + Number(session.maxParticipants || 0), 0);
+    const totalRegistered = visibleSessions.reduce((sum, session) => sum + Number(session.registered || 0), 0);
     const fillPercentage = totalSpots ? (totalRegistered / totalSpots) * 100 : 0;
     const cardClasses = ['event-card'];
     if (isClosed) cardClasses.push('event-card-closed');
+
+    const participantLabel = getCountLabel('events.joining', totalRegistered);
+    const sessionsLabel = getCountLabel('events.sessionsLabel', visibleSessions.length);
+    const statusCopy = isClosed
+      ? t('events.closedCardDesc')
+      : isSoldOut
+        ? t('events.soldOutCardDesc')
+        : t('events.openCardDesc');
 
     return `
       <article class="${cardClasses.join(' ')}" tabindex="${isClosed ? '-1' : '0'}" data-event-id="${escapeAttr(event.id)}" aria-disabled="${isClosed ? 'true' : 'false'}">
@@ -2681,6 +2806,12 @@ function renderEvents() {
           <div class="event-date">${formatDate(event.date)}</div>
           <h3 class="event-title">${escapeHtml(event.title)}</h3>
           <p class="event-location">${escapeHtml(event.location)}</p>
+          <div class="event-meta-chips">
+            <span class="event-meta-chip">${escapeHtml(participantLabel)}</span>
+            <span class="event-meta-chip">${escapeHtml(sessionsLabel)}</span>
+            <span class="event-meta-chip">${escapeHtml(t('events.equipmentIncluded'))}</span>
+          </div>
+          <p class="event-summary">${escapeHtml(getEventSummaryCopy(event))}</p>
           <div class="event-sessions">
             ${visibleSessions.map((session) => {
               const isSessionClosed = isClosed || !isSessionRegistrationOpen(session);
@@ -2700,6 +2831,10 @@ function renderEvents() {
                   </div>
                 </div>`;
             }).join('')}
+          </div>
+          <div class="event-card-footer">
+            <span class="event-status-copy">${escapeHtml(statusCopy)}</span>
+            <span class="event-detail-link">${escapeHtml(t('events.viewDetails'))}</span>
           </div>
         </div>
       </article>`;
@@ -2816,13 +2951,20 @@ function handleRequestedEventOpen() {
 
 function renderEventModal(event) {
   const eventPhotoUrl = getEventPhotoUrl(event);
+  const visibleSessions = getVisibleSessions(event);
   const publicSessions = getPublicSessions(event);
+  const participantCount = visibleSessions.reduce((sum, session) => sum + Number(session.registered || 0), 0);
   return `
     <div class="modal-header">
       ${eventPhotoUrl ? `<div class="modal-event-photo"><img src="${escapeAttr(eventPhotoUrl)}" alt="${escapeAttr(event.title)}"></div>` : ''}
       <h2 id="modalTitle">${escapeHtml(event.title)}</h2>
       <p>${formatDate(event.date)} · ${escapeHtml(event.location)}</p>
       ${event.description ? `<p style="margin-top:8px;">${escapeHtml(event.description)}</p>` : ''}
+      <div class="event-meta-chips modal-meta-chips">
+        <span class="event-meta-chip">${escapeHtml(getCountLabel('events.joining', participantCount))}</span>
+        <span class="event-meta-chip">${escapeHtml(t('events.equipmentIncluded'))}</span>
+        <span class="event-meta-chip">${escapeHtml(t('events.modalMixedLevels'))}</span>
+      </div>
     </div>
     <div class="modal-sessions" role="list">
       ${publicSessions.map((session) => {
@@ -2846,6 +2988,14 @@ function renderEventModal(event) {
             <button class="btn-register" data-session-id="${escapeAttr(session.id)}" ${isFull ? 'disabled' : ''}>${escapeHtml(buttonLabel)}</button>
           </div>`;
       }).join('')}
+    </div>
+    <div class="modal-logistics-box">
+      <strong>${escapeHtml(t('events.modalLogisticsTitle'))}</strong>
+      <p>${escapeHtml(t('events.modalLogisticsDesc'))}</p>
+      <div class="event-meta-chips modal-meta-chips">
+        <span class="event-meta-chip">${escapeHtml(t('events.modalWeather'))}</span>
+        <span class="event-meta-chip">${escapeHtml(t('events.modalAccountRequired'))}</span>
+      </div>
     </div>
     <div id="registrationFormMount"></div>`;
 }
