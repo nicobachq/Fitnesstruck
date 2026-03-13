@@ -3319,7 +3319,7 @@ function initForms() {
           throw new Error(`Contact form failed (${response.status}).`);
         }
 
-        const successUrl = form.getAttribute('action') || '/thank-you?form=contact';
+        const successUrl = form.getAttribute('action') || '/thank-you.html?form=contact';
         window.location.href = successUrl;
       } catch (error) {
         console.error('Contact form submission failed:', error);
