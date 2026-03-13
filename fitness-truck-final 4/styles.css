@@ -2180,3 +2180,328 @@ body.info-page{
     gap:16px;
   }
 }
+
+/* --- Layout stability pass (2026-03-13 final) --- */
+:root{
+  --hero-copy-max: 620px;
+}
+
+.hero-content,
+.events-showcase,
+.process-grid,
+.team-grid,
+.expect-photo-strip,
+.expect-cards,
+.contact-grid,
+.footer-content,
+.footer-bottom,
+.private-teaser-card,
+.event-card-footer,
+.calendar-item,
+.hero-actions,
+.account-card-actions,
+.next-event-summary,
+.hero-stats,
+.location-badges{
+  min-width:0;
+}
+
+.hero-left,
+.hero-right,
+.event-card,
+.event-card-content,
+.next-event-hero-card,
+.account-hero-card,
+.process-card,
+.mini-value-card,
+.team-card,
+.expect-card,
+.contact-form-wrapper,
+.private-teaser-card,
+.faq-item{
+  box-sizing:border-box;
+}
+
+.hero-left{
+  max-width:var(--hero-copy-max);
+}
+
+.hero-subtitle,
+.section-desc,
+.event-summary,
+.expect-card p,
+.team-bio,
+.mini-value-card p,
+.faq-item p,
+.contact-item span,
+.contact-item a{
+  text-wrap:pretty;
+}
+
+#heroSideCard{
+  width:100%;
+}
+
+#heroSideCard .floating-card{
+  width:100%;
+  max-width:520px;
+  margin-left:auto;
+}
+
+.next-event-hero-media{
+  aspect-ratio:16 / 10;
+  min-height:0;
+}
+
+.next-event-hero-card h3,
+.account-hero-card h3{
+  font-size:clamp(1.5rem, 2.2vw, 2rem);
+  line-height:1.1;
+}
+
+.next-event-summary{
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+}
+
+.next-event-summary-item,
+.account-benefit,
+.event-meta-chip,
+.location-badges .badge,
+.calendar-item,
+.footer-links a,
+.footer-brand p,
+.footer-bottom p{
+  overflow-wrap:anywhere;
+}
+
+.event-card,
+.expect-photo-card,
+.team-card,
+.process-card,
+.expect-card,
+.contact-form-wrapper,
+.private-teaser-card,
+.mini-value-card,
+.faq-item,
+.calendar-item{
+  overflow:hidden;
+}
+
+@media (max-width: 1100px){
+  .hero{
+    min-height:auto !important;
+    padding:126px 0 72px !important;
+  }
+
+  .hero-content{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    gap:28px !important;
+    align-items:start !important;
+  }
+
+  .hero-left,
+  .hero-right{
+    width:100% !important;
+    max-width:720px !important;
+    margin:0 auto !important;
+  }
+
+  .hero-left{
+    align-items:flex-start !important;
+    text-align:left !important;
+  }
+
+  .hero-subtitle{
+    max-width:58ch !important;
+    min-height:auto !important;
+    margin-bottom:26px !important;
+  }
+
+  .hero-stats,
+  .location-badges{
+    justify-content:flex-start !important;
+  }
+
+  #heroSideCard .floating-card{
+    max-width:none;
+    margin-left:0;
+  }
+
+  .next-event-summary{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px){
+  .events-showcase{
+    grid-template-columns:1fr !important;
+    gap:20px !important;
+  }
+
+  .event-card-content,
+  .process-card,
+  .expect-card,
+  .team-card,
+  .contact-form-wrapper,
+  .private-teaser-card,
+  .mini-value-card,
+  .faq-item,
+  #heroSideCard .floating-card{
+    padding:22px !important;
+  }
+
+  .hero-stats{
+    display:grid !important;
+    grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+    gap:12px !important;
+  }
+
+  .stat{
+    min-width:0;
+  }
+
+  .calendar-item{
+    gap:14px;
+  }
+}
+
+@media (max-width: 680px){
+  .nav-container{
+    background:rgba(8,8,8,.88) !important;
+  }
+
+  .hero{
+    padding:108px 0 54px !important;
+  }
+
+  .hero-badge{
+    width:100%;
+    justify-content:center;
+    text-align:center;
+  }
+
+  .hero-title{
+    font-size:clamp(2.45rem, 12vw, 3.5rem) !important;
+  }
+
+  .hero-subtitle{
+    font-size:1rem !important;
+    line-height:1.68 !important;
+    max-width:none !important;
+  }
+
+  .hero-stats,
+  .next-event-summary,
+  .account-benefits,
+  .expect-cards,
+  .expect-photo-strip,
+  .contact-grid{
+    grid-template-columns:1fr !important;
+  }
+
+  .hero-stats{
+    gap:10px !important;
+  }
+
+  .hero-actions,
+  .account-card-actions,
+  .private-teaser-actions,
+  .footer-content,
+  .footer-bottom,
+  .event-card-footer{
+    flex-direction:column !important;
+    align-items:stretch !important;
+  }
+
+  .hero-actions .btn,
+  .account-card-actions .btn,
+  .private-teaser-actions .btn{
+    width:100% !important;
+    justify-content:center !important;
+  }
+
+  .location-badges{
+    gap:8px !important;
+    margin-top:14px !important;
+  }
+
+  .section,
+  .section-dark,
+  .section-private-teaser,
+  .section-concept{
+    padding:76px 0 !important;
+  }
+
+  .section-concept,
+  .section-private-teaser{
+    padding-top:0 !important;
+  }
+
+  .section-title{
+    font-size:clamp(2rem, 10vw, 2.7rem) !important;
+  }
+
+  .event-card-content,
+  .process-card,
+  .expect-card,
+  .team-card,
+  .contact-form-wrapper,
+  .private-teaser-card,
+  .mini-value-card,
+  .faq-item,
+  #heroSideCard .floating-card{
+    padding:18px !important;
+  }
+
+  .expect-photo-card{
+    min-height:220px;
+  }
+
+  .contact-item a,
+  .contact-item span,
+  .footer-links a,
+  .footer-brand p,
+  .footer-bottom p{
+    font-size:.95rem !important;
+  }
+
+  .floating-home-btn{
+    right:14px;
+    bottom:14px;
+    min-height:48px;
+    padding:0 16px;
+  }
+}
+
+@media (max-width: 420px){
+  .container,
+  nav{
+    padding-left:16px !important;
+    padding-right:16px !important;
+  }
+
+  .hero-title{
+    font-size:2.3rem !important;
+  }
+
+  .hero-stats{
+    grid-template-columns:1fr !important;
+  }
+
+  .hero-badge,
+  .next-event-kicker,
+  .account-hero-label{
+    font-size:.76rem !important;
+  }
+
+  .nav-links{
+    width:100% !important;
+    max-width:none !important;
+  }
+
+  .calendar-item{
+    flex-direction:column;
+    align-items:flex-start !important;
+  }
+}
