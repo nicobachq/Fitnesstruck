@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fitness Truck | Admin</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=29" />
+</head>
+<body class="admin-page">
+  <div class="login-screen" id="loginScreen">
+    <div class="login-box">
+      <h1>Admin Access</h1>
+      <p>Fitness Truck Management</p>
+      <input type="email" id="adminEmail" placeholder="Admin email" autocomplete="email">
+      <input type="password" id="adminPassword" placeholder="Password" autocomplete="current-password">
+      <button onclick="attemptLogin()">Sign In</button>
+      <div class="login-error" id="loginError">Login failed</div>
+      <div class="login-hint">
+        <small>Use the admin email and password you created in Supabase.</small>
+      </div>
+    </div>
+  </div>
+
+  <div id="adminInterface" style="display:none;">
+    <header class="admin-header">
+      <div class="admin-header-content">
+        <div class="admin-logo"><span>FT</span> Admin Dashboard</div>
+        <nav class="admin-nav">
+          <a href="index.html">← Back to Site</a>
+          <button class="logout-btn" onclick="logout()">Logout</button>
+        </nav>
+      </div>
+    </header>
+
+    <div class="container">
+      <div class="demo-banner"><strong>LIVE MODE:</strong> Admin login and event saving now use Supabase.</div>
+      <div class="stats-bar">
+        <div class="stat-card"><div class="stat-value" id="totalEvents">0</div><div class="stat-label">Total Events</div></div>
+        <div class="stat-card"><div class="stat-value" id="upcomingEvents">0</div><div class="stat-label">Upcoming</div></div>
+        <div class="stat-card"><div class="stat-value" id="totalSessions">0</div><div class="stat-label">Sessions</div></div>
+        <div class="stat-card"><div class="stat-value" id="totalRegistrations">0</div><div class="stat-label">Registrations</div></div>
+        <div class="stat-card"><div class="stat-value" id="attendedRegistrations">0</div><div class="stat-label">Attended</div></div>
+      </div>
+
+      <div class="admin-grid">
+        <div class="events-section">
+          <h2 class="admin-section-title">Events <button class="btn btn-secondary btn-sm" onclick="exportData()">Export JSON</button></h2>
+          <div class="events-list" id="eventsList"></div>
+
+          <div style="margin-top:32px;">
+            <h2 class="admin-section-title">Registrations</h2>
+            <div class="form-row" style="margin-bottom:16px; align-items:end;">
+              <div class="form-group" style="flex:1; margin-bottom:0;">
+                <label for="registrationSearch">Search registrations</label>
+                <input type="text" id="registrationSearch" placeholder="Name, email, phone, event or session">
+              </div>
+              <div>
+                <button type="button" class="btn btn-secondary" onclick="clearRegistrationSearch()">Clear</button>
+              </div>
+            </div>
+            <div id="registrationsSearchSummary" style="margin-bottom:12px; font-size:0.95rem; opacity:0.8;"></div>
+            <div class="events-list" id="registrationsList">
+              <div class="empty-state"><p>No registrations loaded yet.</p></div>
+            </div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-panel">
+            <h2 id="formTitle">Create Event</h2>
+            <form id="eventForm">
+              <input type="hidden" id="eventId" value="">
+              <div class="form-group">
+                <label for="eventTitle">Event Title *</label>
+                <input type="text" id="eventTitle" placeholder="e.g., Lugano Premium Activation" required>
+                <span class="error-message">Title is required</span>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="eventDate">Date *</label>
+                  <input type="date" id="eventDate" required>
+                  <span class="error-message">Valid date required</span>
+                </div>
+                <div class="form-group">
+                  <label for="eventLocation">Location *</label>
+                  <input type="text" id="eventLocation" placeholder="e.g., Lugano Lakefront" required>
+                  <span class="error-message">Location is required</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Event photo</label>
+                <div class="event-photo-preview" id="eventPhotoPreview"><span>No event photo yet</span></div>
+                <div class="event-photo-actions">
+                  <input type="file" id="eventPhotoFile" accept="image/png,image/jpeg,image/webp,image/avif,image/heic,image/heif">
+                  <button type="button" class="btn btn-secondary btn-sm" id="removeEventPhotoBtn">Use fallback</button>
+                </div>
+                <div class="event-photo-meta" id="eventPhotoMeta">Upload a dedicated photo for this event card. If empty, the site will show a clean location fallback.</div>
+              </div>
+              <div class="form-group">
+                <label for="eventDescription">Description</label>
+                <textarea id="eventDescription" rows="3" placeholder="Brief description of the event..."></textarea>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="heroPhrase">Hero Phrase</label>
+                  <input type="text" id="heroPhrase" placeholder="e.g., The movement begins here.">
+                </div>
+                <div class="form-group">
+                  <label for="basePriceChf">Base Price (CHF)</label>
+                  <input type="number" id="basePriceChf" min="0" step="0.01" placeholder="e.g., 39.00">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group form-group-checkbox">
+                  <label class="checkbox-row admin-checkbox-row">
+                    <input type="checkbox" id="eventRegistrationOpen">
+                    <span>Open event registration immediately</span>
+                  </label>
+                  <small>Leave this off to keep the event visible but closed until you decide to open it.</small>
+                </div>
+              </div>
+              <div class="sessions-builder">
+                <h4>Sessions <button type="button" class="btn btn-secondary btn-sm" onclick="addSessionForm()">+ Add Session</button></h4>
+                <div id="sessionsContainer"></div>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="submitBtn">Create Event</button>
+                <button type="button" class="btn btn-secondary" onclick="resetForm()">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="admin.js?v=16"></script>
+</body>
+</html>

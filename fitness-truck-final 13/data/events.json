@@ -1,0 +1,105 @@
+[
+  {
+    "id": "lugano-launch-2026",
+    "title": "Lugano Premium Activation",
+    "date": "2026-08-15",
+    "location": "Lugano Lakefront",
+    "heroPhrase": "The movement begins here.",
+    "description": "Exclusive launch sessions with limited capacity in the heart of Ticino. Experience premium outdoor training with lake views and expert coaching.",
+    "sessions": [
+      {
+        "id": "lugano-am",
+        "title": "Morning Strength",
+        "startTime": "08:00",
+        "endTime": "09:30",
+        "exerciseType": "Functional Performance",
+        "maxParticipants": 50,
+        "registered": 38
+      },
+      {
+        "id": "lugano-pm",
+        "title": "Afternoon Mobility",
+        "startTime": "16:00",
+        "endTime": "17:15",
+        "exerciseType": "Mobility & Recovery",
+        "maxParticipants": 25,
+        "registered": 25
+      }
+    ]
+  },
+  {
+    "id": "zurich-summer-2026",
+    "title": "Zurich Summer Sessions",
+    "date": "2026-09-05",
+    "location": "Zurich Seefeld",
+    "heroPhrase": "Train where the city meets the lake.",
+    "description": "High-intensity outdoor training with panoramic lake views. Join Switzerland's most driven fitness community.",
+    "sessions": [
+      {
+        "id": "zurich-morning",
+        "title": "HIIT & Strength",
+        "startTime": "09:00",
+        "endTime": "10:30",
+        "exerciseType": "High Intensity Interval Training",
+        "maxParticipants": 50,
+        "registered": 42
+      },
+      {
+        "id": "zurich-evening",
+        "title": "Sunset Mobility",
+        "startTime": "18:00",
+        "endTime": "19:15",
+        "exerciseType": "Mobility & Flexibility",
+        "maxParticipants": 30,
+        "registered": 18
+      }
+    ]
+  },
+  {
+    "id": "geneva-autumn-2026",
+    "title": "Geneva Autumn Activation",
+    "date": "2026-10-12",
+    "location": "Parc des Bastions",
+    "heroPhrase": "Strength in the heart of the city.",
+    "description": "Urban outdoor training in Geneva's most iconic park. Morning and afternoon sessions available.",
+    "sessions": [
+      {
+        "id": "geneva-morning",
+        "title": "Power Hour",
+        "startTime": "07:30",
+        "endTime": "08:45",
+        "exerciseType": "Strength & Conditioning",
+        "maxParticipants": 50,
+        "registered": 12
+      }
+    ]
+  },
+  {
+    "id": "stmoritz-winter-2026",
+    "title": "St. Moritz Winter Session",
+    "date": "2026-12-12",
+    "location": "St. Moritz Olympic Park",
+    "heroPhrase": "Train in exceptional surroundings.",
+    "description": "Premium outdoor winter performance sessions. Cold-weather training at its finest with alpine backdrop.",
+    "sessions": [
+      {
+        "id": "stmoritz-am",
+        "title": "Morning Endurance",
+        "startTime": "09:00",
+        "endTime": "10:15",
+        "exerciseType": "Endurance & Conditioning",
+        "maxParticipants": 30,
+        "registered": 8
+      },
+      {
+        "id": "stmoritz-pm",
+        "title": "Alpine Strength",
+        "startTime": "14:00",
+        "endTime": "15:30",
+        "exerciseType": "Functional Strength",
+        "maxParticipants": 25,
+        "registered": 3
+      }
+    ]
+  }
+]
