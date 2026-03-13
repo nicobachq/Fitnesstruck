@@ -508,7 +508,9 @@ const TRANSLATIONS = {
       formEmailPlaceholder: 'mario@example.com',
       formMessagePlaceholder: 'Raccontaci cosa stai cercando e ti ricontatteremo.',
       send: 'Invia messaggio',
-      sending: 'Invio in corso...'
+      submit: 'Invia messaggio',
+      sending: 'Invio in corso...',
+      error: 'Qualcosa è andato storto. Riprova oppure scrivici direttamente via email.'
     },
     footer: {
       tagline: 'Esperienze outdoor premium, nate in Ticino.',
@@ -849,7 +851,9 @@ const TRANSLATIONS = {
       formEmailPlaceholder: 'jane@example.com',
       formMessagePlaceholder: 'Tell us what you are looking for and we will get back to you.',
       send: 'Send message',
-      sending: 'Sending...'
+      submit: 'Send message',
+      sending: 'Sending...',
+      error: 'Something went wrong. Please try again or email us directly.'
     },
     footer: {
       tagline: 'Premium outdoor experiences, born in Ticino.',
@@ -1565,11 +1569,6 @@ function setAuthNotice(message = '', type = 'info') {
   state.authNotice = message ? { message, type } : null;
 }
 
-function shouldUseCompactHeroCard() {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-  return window.matchMedia('(max-width: 560px)').matches;
-}
-
 function renderSignedInHeroFallback(mount) {
   mount.hidden = false;
   mount.innerHTML = `
@@ -1680,21 +1679,8 @@ function renderHeroSideCard() {
   }
 
   if (!state.user) {
-    const compactHeroCard = shouldUseCompactHeroCard();
     mount.hidden = false;
-    mount.innerHTML = compactHeroCard
-      ? `
-      <div class="floating-card account-hero-card account-hero-card-compact">
-        <div class="card-glow"></div>
-        <span class="account-hero-label">${escapeHtml(t('hero.accountCardLabel'))}</span>
-        <h3>${escapeHtml(t('hero.accountCardTitle'))}</h3>
-        <p>${escapeHtml(t('hero.accountCardDesc'))}</p>
-        <div class="account-card-actions compact-actions">
-          <button type="button" class="btn btn-primary" data-open-auth="signup">${escapeHtml(t('account.createAccount'))}</button>
-          <button type="button" class="btn btn-secondary" data-open-auth="login">${escapeHtml(t('account.login'))}</button>
-        </div>
-      </div>`
-      : `
+    mount.innerHTML = `
       <div class="floating-card account-hero-card">
         <div class="card-glow"></div>
         <span class="account-hero-label">${escapeHtml(t('hero.accountCardLabel'))}</span>
@@ -1729,34 +1715,8 @@ function renderHeroSideCard() {
     ? t('hero.availableSession', { count: nextEventSessions.length })
     : t('hero.availableSessions', { count: nextEventSessions.length });
 
-  const compactHeroCard = shouldUseCompactHeroCard();
   mount.hidden = false;
-  mount.innerHTML = compactHeroCard
-    ? `
-    <div class="floating-card next-event-hero-card next-event-hero-card-compact">
-      <div class="card-glow"></div>
-      <span class="next-event-kicker">${escapeHtml(t('hero.nextEvent'))}</span>
-      <h3>${escapeHtml(nextEvent.title)}</h3>
-      <div class="next-event-meta compact-meta">
-        <span>${escapeHtml(formatDate(nextEvent.date))}</span>
-        <span>${escapeHtml(nextEvent.location)}</span>
-      </div>
-      <div class="next-event-summary compact-summary">
-        <div class="next-event-summary-item">
-          <strong>${escapeHtml(t('hero.sessions'))}</strong>
-          ${escapeHtml(sessionsCopy)}
-        </div>
-        <div class="next-event-summary-item">
-          <strong>${escapeHtml(t('hero.availability'))}</strong>
-          ${escapeHtml(t('hero.availabilityText', { remaining: remainingSpots, total: totalSpots }))}
-        </div>
-      </div>
-      <div class="account-card-actions compact-actions">
-        <button type="button" class="btn btn-primary" id="heroNextEventBtn">${escapeHtml(t('hero.viewNextEvent'))}</button>
-        <button type="button" class="btn btn-secondary" id="heroMyAccountBtn">${escapeHtml(t('hero.myAccount'))}</button>
-      </div>
-    </div>`
-    : `
+  mount.innerHTML = `
     <div class="floating-card next-event-hero-card">
       <div class="card-glow"></div>
       ${nextEventPhotoUrl ? `<div class="next-event-hero-media"><img src="${escapeAttr(nextEventPhotoUrl)}" alt="${escapeAttr(nextEvent.title)}"></div>` : ''}
@@ -3331,11 +3291,43 @@ function initForms() {
   const contactForm = document.getElementById('contactForm');
   [contactForm].forEach((form) => {
     if (!form) return;
-    form.addEventListener('submit', () => {
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
       const button = form.querySelector('button[type="submit"]') || form.querySelector('.btn-submit');
+      const originalText = button ? button.textContent : '';
       if (button) {
         button.disabled = true;
         button.textContent = t('contact.sending');
+      }
+
+      try {
+        const formData = new FormData(form);
+        const payload = new URLSearchParams();
+        for (const [key, value] of formData.entries()) {
+          payload.append(key, value);
+        }
+
+        const response = await fetch('/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: payload.toString()
+        });
+
+        if (!response.ok) {
+          throw new Error(`Contact form failed (${response.status}).`);
+        }
+
+        const successUrl = form.getAttribute('action') || '/thank-you?form=contact';
+        window.location.href = successUrl;
+      } catch (error) {
+        console.error('Contact form submission failed:', error);
+        alert(t('contact.error') || 'Something went wrong. Please try again or email us directly.');
+        if (button) {
+          button.disabled = false;
+          button.textContent = originalText || t('contact.submit');
+        }
       }
     });
   });
@@ -3349,13 +3341,6 @@ function initNavigation() {
   window.addEventListener('scroll', () => {
     if (window.pageYOffset > 100) navbar.classList.add('scrolled');
     else navbar.classList.remove('scrolled');
-  });
-
-  state.heroViewportWidth = window.innerWidth;
-  window.addEventListener('resize', () => {
-    if (state.heroViewportWidth === window.innerWidth) return;
-    state.heroViewportWidth = window.innerWidth;
-    scheduleHeroSideCardRender();
   });
 
   if (mobileMenuBtn && navLinks) {
