@@ -1565,6 +1565,11 @@ function setAuthNotice(message = '', type = 'info') {
   state.authNotice = message ? { message, type } : null;
 }
 
+function shouldUseCompactHeroCard() {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  return window.matchMedia('(max-width: 560px)').matches;
+}
+
 function renderSignedInHeroFallback(mount) {
   mount.hidden = false;
   mount.innerHTML = `
@@ -1675,8 +1680,21 @@ function renderHeroSideCard() {
   }
 
   if (!state.user) {
+    const compactHeroCard = shouldUseCompactHeroCard();
     mount.hidden = false;
-    mount.innerHTML = `
+    mount.innerHTML = compactHeroCard
+      ? `
+      <div class="floating-card account-hero-card account-hero-card-compact">
+        <div class="card-glow"></div>
+        <span class="account-hero-label">${escapeHtml(t('hero.accountCardLabel'))}</span>
+        <h3>${escapeHtml(t('hero.accountCardTitle'))}</h3>
+        <p>${escapeHtml(t('hero.accountCardDesc'))}</p>
+        <div class="account-card-actions compact-actions">
+          <button type="button" class="btn btn-primary" data-open-auth="signup">${escapeHtml(t('account.createAccount'))}</button>
+          <button type="button" class="btn btn-secondary" data-open-auth="login">${escapeHtml(t('account.login'))}</button>
+        </div>
+      </div>`
+      : `
       <div class="floating-card account-hero-card">
         <div class="card-glow"></div>
         <span class="account-hero-label">${escapeHtml(t('hero.accountCardLabel'))}</span>
@@ -1711,8 +1729,34 @@ function renderHeroSideCard() {
     ? t('hero.availableSession', { count: nextEventSessions.length })
     : t('hero.availableSessions', { count: nextEventSessions.length });
 
+  const compactHeroCard = shouldUseCompactHeroCard();
   mount.hidden = false;
-  mount.innerHTML = `
+  mount.innerHTML = compactHeroCard
+    ? `
+    <div class="floating-card next-event-hero-card next-event-hero-card-compact">
+      <div class="card-glow"></div>
+      <span class="next-event-kicker">${escapeHtml(t('hero.nextEvent'))}</span>
+      <h3>${escapeHtml(nextEvent.title)}</h3>
+      <div class="next-event-meta compact-meta">
+        <span>${escapeHtml(formatDate(nextEvent.date))}</span>
+        <span>${escapeHtml(nextEvent.location)}</span>
+      </div>
+      <div class="next-event-summary compact-summary">
+        <div class="next-event-summary-item">
+          <strong>${escapeHtml(t('hero.sessions'))}</strong>
+          ${escapeHtml(sessionsCopy)}
+        </div>
+        <div class="next-event-summary-item">
+          <strong>${escapeHtml(t('hero.availability'))}</strong>
+          ${escapeHtml(t('hero.availabilityText', { remaining: remainingSpots, total: totalSpots }))}
+        </div>
+      </div>
+      <div class="account-card-actions compact-actions">
+        <button type="button" class="btn btn-primary" id="heroNextEventBtn">${escapeHtml(t('hero.viewNextEvent'))}</button>
+        <button type="button" class="btn btn-secondary" id="heroMyAccountBtn">${escapeHtml(t('hero.myAccount'))}</button>
+      </div>
+    </div>`
+    : `
     <div class="floating-card next-event-hero-card">
       <div class="card-glow"></div>
       ${nextEventPhotoUrl ? `<div class="next-event-hero-media"><img src="${escapeAttr(nextEventPhotoUrl)}" alt="${escapeAttr(nextEvent.title)}"></div>` : ''}
@@ -3305,6 +3349,13 @@ function initNavigation() {
   window.addEventListener('scroll', () => {
     if (window.pageYOffset > 100) navbar.classList.add('scrolled');
     else navbar.classList.remove('scrolled');
+  });
+
+  state.heroViewportWidth = window.innerWidth;
+  window.addEventListener('resize', () => {
+    if (state.heroViewportWidth === window.innerWidth) return;
+    state.heroViewportWidth = window.innerWidth;
+    scheduleHeroSideCardRender();
   });
 
   if (mobileMenuBtn && navLinks) {

@@ -2957,3 +2957,234 @@ body.info-page{
     grid-template-columns:1fr !important;
   }
 }
+
+/* --- iPhone compact hero pass from final mobile recording (2026-03-13) --- */
+@media (max-width: 560px){
+  .hero{
+    padding:94px 0 38px !important;
+  }
+
+  .hero-content{
+    gap:18px !important;
+  }
+
+  .hero-badge{
+    width:auto !important;
+    justify-content:flex-start !important;
+    text-align:left !important;
+    margin-bottom:12px !important;
+    padding:7px 12px !important;
+    font-size:.74rem !important;
+  }
+
+  .hero-title{
+    font-size:clamp(2.05rem, 11vw, 2.6rem) !important;
+    margin-bottom:10px !important;
+    letter-spacing:-0.03em;
+  }
+
+  .hero-subtitle{
+    font-size:.94rem !important;
+    line-height:1.56 !important;
+    margin-bottom:18px !important;
+    max-width:none !important;
+  }
+
+  .hero-stats{
+    grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+    gap:8px !important;
+    margin-bottom:18px !important;
+  }
+
+  .stat{
+    padding:10px 8px !important;
+    border-radius:14px !important;
+  }
+
+  .stat-number{
+    font-size:1.28rem !important;
+  }
+
+  .stat-label{
+    font-size:.72rem !important;
+    line-height:1.35 !important;
+  }
+
+  .hero-actions{
+    flex-direction:row !important;
+    flex-wrap:wrap !important;
+    gap:10px !important;
+    width:100% !important;
+  }
+
+  .hero-actions .btn,
+  .private-teaser-actions .btn,
+  .account-card-actions .btn,
+  .btn,
+  .btn-submit,
+  .nav-auth-btn.nav-cta,
+  .nav-auth-btn.account-pill{
+    min-height:42px !important;
+    padding:10px 14px !important;
+    border-radius:14px !important;
+    font-size:.88rem !important;
+    line-height:1.2 !important;
+  }
+
+  .hero-actions .btn,
+  .private-teaser-actions .btn,
+  .account-card-actions .btn{
+    width:auto !important;
+    flex:1 1 calc(50% - 5px) !important;
+    justify-content:center !important;
+  }
+
+  #heroSideCard .floating-card,
+  .event-card-content,
+  .process-card,
+  .expect-card,
+  .team-card,
+  .contact-form-wrapper,
+  .private-teaser-card,
+  .mini-value-card,
+  .faq-item{
+    padding:14px !important;
+    border-radius:18px !important;
+  }
+
+  .account-hero-card-compact,
+  .next-event-hero-card-compact{
+    gap:12px !important;
+  }
+
+  .account-hero-card-compact h3,
+  .next-event-hero-card-compact h3{
+    font-size:1.25rem !important;
+    line-height:1.08 !important;
+    margin:0 !important;
+  }
+
+  .account-hero-card-compact p,
+  .next-event-hero-card-compact p{
+    font-size:.9rem !important;
+    line-height:1.5 !important;
+    margin:0 !important;
+  }
+
+  .compact-actions{
+    display:grid !important;
+    grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
+    gap:10px !important;
+    width:100% !important;
+  }
+
+  .compact-actions .btn{
+    width:100% !important;
+    flex:0 0 auto !important;
+  }
+
+  .compact-summary,
+  .next-event-summary{
+    grid-template-columns:1fr !important;
+    gap:8px !important;
+  }
+
+  .next-event-summary-item,
+  .account-benefit{
+    padding:9px 10px !important;
+    border-radius:12px !important;
+    font-size:.85rem !important;
+  }
+
+  .next-event-meta,
+  .compact-meta,
+  .location-badges{
+    gap:6px !important;
+  }
+
+  .next-event-meta span,
+  .event-meta-chip,
+  .location-badges .badge,
+  .next-event-kicker,
+  .account-hero-label{
+    font-size:.72rem !important;
+    padding:5px 8px !important;
+  }
+
+  .location-badges{
+    margin-top:12px !important;
+  }
+
+  .section,
+  .section-dark,
+  .section-private-teaser,
+  .section-concept{
+    padding:68px 0 !important;
+  }
+
+  .section .section-title,
+  .section-header.centered .section-title{
+    font-size:clamp(1.85rem, 9vw, 2.35rem) !important;
+  }
+
+  .section-desc,
+  .event-summary,
+  .faq-item p,
+  .mini-value-card p,
+  .private-teaser-copy .section-desc,
+  .contact-item a,
+  .contact-item span,
+  .footer-brand p,
+  .footer-bottom p,
+  .footer-links a{
+    font-size:.92rem !important;
+    line-height:1.58 !important;
+  }
+
+  .nav-links{
+    width:min(84vw, 320px) !important;
+    padding:84px 20px 20px !important;
+    gap:8px !important;
+  }
+
+  .nav-links > a,
+  .nav-auth-btn{
+    padding:10px 0 !important;
+    font-size:.92rem !important;
+  }
+
+  .footer-links{
+    display:grid !important;
+    grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
+    gap:10px 14px !important;
+  }
+
+  .site-footer{
+    padding-bottom:58px !important;
+  }
+
+  .floating-home-btn{
+    display:none !important;
+  }
+}
+
+@media (max-width: 390px){
+  .hero-actions .btn,
+  .private-teaser-actions .btn,
+  .account-card-actions .btn,
+  .compact-actions .btn{
+    flex:1 1 100% !important;
+  }
+
+  .compact-actions{
+    grid-template-columns:1fr !important;
+  }
+
+  .hero-stats{
+    grid-template-columns:1fr !important;
+  }
+
+  .footer-links{
+    grid-template-columns:1fr !important;
+  }
+}
