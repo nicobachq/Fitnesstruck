@@ -1579,7 +1579,7 @@ function renderHeroSideCard() {
     return;
   }
 
-  const nextEvent = getUpcomingEvents()[0] || null;
+  const nextEvent = getUpcomingBookableEvents()[0] || null;
   const nextEventSessions = getPublicSessions(nextEvent);
   if (!nextEvent || !nextEventSessions.length) {
     renderSignedInHeroFallback(mount);
@@ -2616,10 +2616,16 @@ function isSessionRegistrationOpen(session) {
   return session?.registrationOpen !== false;
 }
 
+function getVisibleSessions(event) {
+  return Array.isArray(event?.sessions) ? event.sessions : [];
+}
+
 function getPublicSessions(event) {
-  return Array.isArray(event?.sessions)
-    ? event.sessions.filter((session) => isSessionRegistrationOpen(session))
-    : [];
+  return getVisibleSessions(event).filter((session) => isSessionRegistrationOpen(session));
+}
+
+function isEventBookable(event) {
+  return isEventRegistrationOpen(event) && getPublicSessions(event).length > 0;
 }
 
 function getUpcomingEvents() {
@@ -2627,9 +2633,12 @@ function getUpcomingEvents() {
   today.setHours(0, 0, 0, 0);
   return state.events
     .filter((event) => new Date(event.date) >= today)
-    .filter((event) => isEventRegistrationOpen(event))
-    .filter((event) => getPublicSessions(event).length > 0)
+    .filter((event) => getVisibleSessions(event).length > 0)
     .sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
+function getUpcomingBookableEvents() {
+  return getUpcomingEvents().filter((event) => isEventBookable(event));
 }
 
 function updateEmptyState() {
@@ -2645,17 +2654,27 @@ function renderEvents() {
 
   const upcomingEvents = getUpcomingEvents().slice(0, 2);
   container.innerHTML = upcomingEvents.map((event) => {
+    const visibleSessions = getVisibleSessions(event);
     const publicSessions = getPublicSessions(event);
-    const isSoldOut = publicSessions.every((session) => session.registered >= session.maxParticipants);
+    const isClosed = !isEventRegistrationOpen(event);
+    const isSoldOut = !isClosed && publicSessions.length > 0 && publicSessions.every((session) => session.registered >= session.maxParticipants);
     const totalSpots = publicSessions.reduce((sum, session) => sum + session.maxParticipants, 0);
     const totalRegistered = publicSessions.reduce((sum, session) => sum + session.registered, 0);
     const fillPercentage = totalSpots ? (totalRegistered / totalSpots) * 100 : 0;
+    const cardClasses = ['event-card'];
+    if (isClosed) cardClasses.push('event-card-closed');
 
     return `
-      <article class="event-card" tabindex="0" data-event-id="${escapeAttr(event.id)}">
+      <article class="${cardClasses.join(' ')}" tabindex="${isClosed ? '-1' : '0'}" data-event-id="${escapeAttr(event.id)}" aria-disabled="${isClosed ? 'true' : 'false'}">
         <div class="event-image ${getEventPhotoUrl(event) ? 'has-photo' : ''}" data-location="${escapeAttr(getEventLocationMarker(event))}">
           ${getEventPhotoUrl(event) ? `<img class="event-image-photo" src="${escapeAttr(getEventPhotoUrl(event))}" alt="${escapeAttr(event.title)}">` : ''}
-          ${isSoldOut ? `<span class="event-badge sold-out">${escapeHtml(t('events.soldOut'))}</span>` : fillPercentage > 80 ? `<span class="event-badge">${escapeHtml(t('events.almostFull'))}</span>` : ''}
+          ${isClosed
+            ? `<span class="event-badge event-badge-closed">${escapeHtml(t('events.closed'))}</span>`
+            : isSoldOut
+              ? `<span class="event-badge sold-out">${escapeHtml(t('events.soldOut'))}</span>`
+              : fillPercentage > 80
+                ? `<span class="event-badge">${escapeHtml(t('events.almostFull'))}</span>`
+                : ''}
           ${getEventPhotoUrl(event) ? '' : `<span class="event-image-caption">${escapeHtml(getEventLocationMarker(event))}</span>`}
         </div>
         <div class="event-content">
@@ -2663,15 +2682,17 @@ function renderEvents() {
           <h3 class="event-title">${escapeHtml(event.title)}</h3>
           <p class="event-location">${escapeHtml(event.location)}</p>
           <div class="event-sessions">
-            ${publicSessions.map((session) => {
-              const isFull = session.registered >= session.maxParticipants;
+            ${visibleSessions.map((session) => {
+              const isSessionClosed = isClosed || !isSessionRegistrationOpen(session);
+              const isFull = !isSessionClosed && session.registered >= session.maxParticipants;
               const percentage = session.maxParticipants ? (session.registered / session.maxParticipants) * 100 : 0;
               return `
-                <div class="session-row ${isFull ? 'full' : ''}">
+                <div class="session-row ${isFull ? 'full' : ''} ${isSessionClosed ? 'session-row-closed' : ''}">
                   <div class="session-info">
                     <span class="session-time">${escapeHtml(session.startTime)} - ${escapeHtml(session.endTime)}</span>
                     <span class="session-type">${escapeHtml(session.exerciseType)}</span>
                     ${getSessionPriceLabel(event, session) ? `<span style="display:block;margin-top:4px;font-size:0.85rem;opacity:0.9;">${getSessionPriceLabel(event, session)}</span>` : ''}
+                    ${isSessionClosed ? `<span class="session-note">${escapeHtml(t('events.closed'))}</span>` : ''}
                   </div>
                   <div class="session-capacity">
                     <div class="capacity-bar"><div class="capacity-fill ${isFull ? 'full' : ''}" style="width:${percentage}%"></div></div>
@@ -2695,13 +2716,17 @@ function renderCalendar() {
   container.innerHTML = upcomingEvents.map((event) => {
     const date = new Date(event.date);
     const publicSessions = getPublicSessions(event);
+    const isClosed = !isEventRegistrationOpen(event);
     const totalSpots = publicSessions.reduce((sum, session) => sum + session.maxParticipants, 0);
     const totalRegistered = publicSessions.reduce((sum, session) => sum + session.registered, 0);
     const availableSpots = totalSpots - totalRegistered;
 
     let statusClass = 'available';
     let statusText = t('events.open');
-    if (availableSpots <= 0) {
+    if (isClosed) {
+      statusClass = 'closed';
+      statusText = t('events.closed');
+    } else if (availableSpots <= 0) {
       statusClass = 'sold-out';
       statusText = t('events.soldOut');
     } else if (availableSpots < 10) {
@@ -2710,7 +2735,7 @@ function renderCalendar() {
     }
 
     return `
-      <div class="calendar-item" tabindex="0" data-event-id="${escapeAttr(event.id)}">
+      <div class="calendar-item ${isClosed ? 'calendar-item-closed' : ''}" tabindex="${isClosed ? '-1' : '0'}" data-event-id="${escapeAttr(event.id)}" aria-disabled="${isClosed ? 'true' : 'false'}">
         <div class="calendar-date">
           <span class="day">${date.getDate()}</span>
           <span class="month">${date.toLocaleString(getLocale(), { month: 'short' })}</span>
@@ -2728,6 +2753,8 @@ function renderCalendar() {
 
 function bindEventLaunchers(nodes) {
   nodes.forEach((node) => {
+    if (node.getAttribute('aria-disabled') === 'true') return;
+
     const open = () => {
       state.lastTriggerEl = node;
       openEventModal(node.dataset.eventId);
@@ -2744,7 +2771,7 @@ function bindEventLaunchers(nodes) {
 
 function openEventModal(eventId) {
   const event = state.events.find((item) => item.id === eventId);
-  if (!event || !isEventRegistrationOpen(event) || !getPublicSessions(event).length) {
+  if (!event || !isEventBookable(event)) {
     showToast(t('events.closed'), 'error');
     return;
   }
@@ -2768,7 +2795,7 @@ function handleRequestedEventOpen() {
   if (!requestedEventId) return;
 
   const requestedEvent = state.events.find((item) => item.id === requestedEventId);
-  if (!requestedEvent || !isEventRegistrationOpen(requestedEvent) || !getPublicSessions(requestedEvent).length) {
+  if (!requestedEvent || !isEventBookable(requestedEvent)) {
     clearRequestedEventIdFromUrl();
     clearQueuedRequestedEventId();
     return;
