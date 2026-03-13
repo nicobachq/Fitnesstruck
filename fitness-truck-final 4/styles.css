@@ -1772,3 +1772,411 @@ body.info-page{
 }
 
 .info-page a.inline-link{color:var(--text);text-decoration:underline}
+
+
+/* --- Mobile/tablet polish pass (2026-03-13 evening) --- */
+.hero-image{
+  filter:brightness(.34) saturate(.82) contrast(1.04);
+}
+
+.hero-bg::before{
+  background:
+    radial-gradient(ellipse 72% 48% at 50% -14%, rgba(255,26,26,.09), transparent 60%),
+    linear-gradient(180deg, rgba(5,5,5,.26) 0%, rgba(5,5,5,.42) 38%, rgba(5,5,5,.9) 100%);
+}
+
+.next-event-summary{
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+}
+
+.site-footer,
+.footer-brand p,
+.footer-links a,
+.footer-bottom p{
+  font-size:.96rem;
+}
+
+.footer-brand p,
+.footer-bottom p,
+.footer-links .admin-link{
+  line-height:1.7;
+}
+
+@media (max-width:1180px){
+  .mobile-menu-btn{
+    display:flex;
+  }
+
+  .nav-links{
+    position:fixed;
+    top:0;
+    right:-100%;
+    width:min(84vw, 340px);
+    height:100vh;
+    flex-direction:column;
+    align-items:flex-start;
+    justify-content:flex-start;
+    gap:12px;
+    padding:92px 28px 28px;
+    background:rgba(8,8,8,.98);
+    border-left:1px solid rgba(255,255,255,.1);
+    box-shadow:-24px 0 60px rgba(0,0,0,.38);
+    overflow-y:auto;
+  }
+
+  .nav-links.active{
+    right:0;
+  }
+
+  .nav-links > a,
+  .nav-auth-btn{
+    width:100%;
+    justify-content:flex-start;
+    font-size:1rem;
+    padding:12px 0;
+  }
+
+  .nav-links .lang-switch{
+    margin:10px 0 4px;
+    width:auto;
+    flex:0 0 auto;
+    justify-content:flex-start;
+  }
+
+  .nav-auth-btn.nav-cta,
+  .nav-auth-btn.account-pill{
+    min-width:0;
+    width:100%;
+    min-height:52px;
+    justify-content:center;
+    margin-top:6px;
+  }
+
+  .hero{
+    min-height:auto;
+    padding:132px 0 72px;
+  }
+
+  .hero-content{
+    grid-template-columns:1fr;
+    gap:34px;
+    align-items:start;
+  }
+
+  .hero-left{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    text-align:left;
+    max-width:760px;
+    margin:0 auto;
+  }
+
+  .hero-right{
+    width:100%;
+    max-width:640px;
+    margin:0 auto;
+  }
+
+  .hero-subtitle{
+    max-width:62ch;
+    min-height:auto;
+    font-size:1.08rem;
+    margin-bottom:28px;
+  }
+
+  .hero-stats,
+  .location-badges{
+    justify-content:flex-start;
+  }
+
+  .hero-stats{
+    gap:18px;
+    flex-wrap:wrap;
+    margin-bottom:28px;
+  }
+
+  .hero-actions{
+    width:100%;
+  }
+
+  .hero-actions .btn,
+  #heroSideCard .account-card-actions .btn{
+    flex:1 1 220px;
+    min-width:0;
+  }
+
+  .scroll-indicator{
+    display:none;
+  }
+
+  .section{
+    padding:96px 0;
+  }
+
+  .section-header{
+    margin-bottom:34px;
+  }
+
+  .events-showcase,
+  .process-grid,
+  .team-grid,
+  .contact-grid,
+  .expect-cards{
+    gap:20px;
+  }
+
+  .private-teaser-card{
+    padding:32px;
+  }
+}
+
+@media (max-width:900px){
+  :root{
+    --section-padding:92px;
+  }
+
+  .container,
+  nav{
+    padding-left:20px;
+    padding-right:20px;
+  }
+
+  .nav-container{
+    padding:10px 0;
+    background:rgba(8,8,8,.82);
+  }
+
+  nav{
+    min-height:64px;
+  }
+
+  .logo-img{
+    height:50px;
+  }
+
+  .hero{
+    padding:118px 0 60px;
+  }
+
+  .hero-badge{
+    margin-bottom:18px;
+    padding:8px 13px;
+    font-size:.8rem;
+  }
+
+  .hero-title{
+    font-size:clamp(2.85rem, 12vw, 4.2rem);
+    margin-bottom:18px;
+  }
+
+  .hero-subtitle,
+  .section .section-desc,
+  .event-summary,
+  .faq-item p,
+  .mini-value-card p,
+  .private-teaser-copy .section-desc{
+    font-size:1rem;
+    line-height:1.72;
+  }
+
+  .hero-stats{
+    width:100%;
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:12px;
+  }
+
+  .stat{
+    padding:14px 12px;
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,.08);
+    background:rgba(255,255,255,.03);
+  }
+
+  .stat-number{
+    font-size:2rem;
+  }
+
+  .stat-label{
+    font-size:.8rem;
+    line-height:1.45;
+  }
+
+  #heroSideCard .floating-card,
+  .event-card-content,
+  .process-card,
+  .expect-card,
+  .team-card,
+  .contact-form-wrapper,
+  .private-teaser-card,
+  .mini-value-card,
+  .thank-you-card,
+  .info-page-card{
+    padding:22px;
+  }
+
+  .next-event-hero-card,
+  .account-hero-card{
+    gap:14px;
+  }
+
+  .next-event-hero-media{
+    aspect-ratio:16 / 10;
+    min-height:auto;
+  }
+
+  .next-event-meta span,
+  .event-meta-chip,
+  .auth-registrations-count,
+  .auth-registration-meta span,
+  .auth-registration-footer span,
+  .location-badges .badge{
+    font-size:.84rem;
+  }
+
+  .event-card-footer{
+    align-items:flex-start;
+  }
+
+  .calendar-item{
+    padding:16px;
+  }
+
+  .footer-content,
+  .footer-bottom{
+    gap:18px;
+  }
+}
+
+@media (max-width:640px){
+  .section{
+    padding:84px 0;
+  }
+
+  .section-concept,
+  .section-private-teaser{
+    padding-top:0;
+  }
+
+  .section .section-title,
+  .section-header.centered .section-title{
+    font-size:clamp(2rem, 10vw, 2.8rem);
+    line-height:1.06;
+  }
+
+  .hero-title{
+    font-size:clamp(2.5rem, 13vw, 3.6rem);
+  }
+
+  .hero-actions{
+    flex-direction:column;
+  }
+
+  .hero-actions .btn,
+  #heroSideCard .account-card-actions .btn,
+  #heroSideCard .account-card-actions,
+  .account-card-actions .btn{
+    width:100%;
+  }
+
+  .hero-stats,
+  .next-event-summary,
+  .account-benefits{
+    grid-template-columns:1fr;
+  }
+
+  .location-badges{
+    margin-top:16px;
+    gap:10px;
+  }
+
+  .events-showcase,
+  .process-grid,
+  .team-grid,
+  .contact-grid,
+  .expect-cards,
+  .mini-value-grid{
+    gap:16px;
+  }
+
+  .event-card-footer,
+  .private-teaser-card,
+  .footer-content,
+  .footer-bottom,
+  .info-page-topbar{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .calendar-item{
+    align-items:flex-start;
+  }
+
+  .calendar-date{
+    width:54px;
+    height:54px;
+  }
+
+  .faq-item summary{
+    padding:18px 0;
+    font-size:1rem;
+  }
+
+  .contact-item a,
+  .contact-item span,
+  .footer-links a,
+  .footer-brand p,
+  .footer-bottom p{
+    font-size:.95rem;
+  }
+}
+
+@media (max-width:420px){
+  .container,
+  nav{
+    padding-left:16px;
+    padding-right:16px;
+  }
+
+  .logo-img{
+    height:44px;
+  }
+
+  .nav-links{
+    width:100%;
+    max-width:none;
+    padding-left:22px;
+    padding-right:22px;
+  }
+
+  .hero{
+    padding-top:108px;
+  }
+
+  .hero-badge{
+    width:100%;
+    justify-content:center;
+    text-align:center;
+  }
+
+  .event-card-content,
+  .process-card,
+  .expect-card,
+  .team-card,
+  .contact-form-wrapper,
+  .private-teaser-card,
+  .mini-value-card,
+  .faq-item,
+  #heroSideCard .floating-card{
+    padding:18px;
+  }
+
+  .modal-content{
+    padding:28px 18px;
+  }
+
+  .footer-links{
+    gap:16px;
+  }
+}
