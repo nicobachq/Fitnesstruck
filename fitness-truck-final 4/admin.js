@@ -913,22 +913,44 @@ async function setEventRegistrationOpen(eventId, shouldOpen) {
   if (!event) return;
 
   try {
-    const { error } = await supabaseClient
-      .from('events')
-      .update({ registration_open: shouldOpen })
-      .eq('id', eventId);
+    const updates = [
+      supabaseClient
+        .from('events')
+        .update({ registration_open: shouldOpen })
+        .eq('id', eventId)
+    ];
 
-    if (error) throw error;
+    if (Array.isArray(event.sessions) && event.sessions.length) {
+      updates.push(
+        supabaseClient
+          .from('sessions')
+          .update({ registration_open: shouldOpen })
+          .eq('event_id', eventId)
+      );
+    }
+
+    const results = await Promise.all(updates);
+    const failed = results.find((result) => result?.error);
+    if (failed?.error) throw failed.error;
 
     event.registrationOpen = shouldOpen;
+    if (Array.isArray(event.sessions)) {
+      event.sessions.forEach((session) => {
+        session.registrationOpen = shouldOpen;
+      });
+    }
 
     if (editingEventId === eventId) {
       const checkbox = document.getElementById('eventRegistrationOpen');
       if (checkbox) checkbox.checked = shouldOpen;
+      sessionForms.forEach((form) => {
+        const sessionCheckbox = form?.querySelector('.session-registration-open');
+        if (sessionCheckbox) sessionCheckbox.checked = shouldOpen;
+      });
     }
 
     refreshAdminDataView();
-    showToast(`Event registration ${shouldOpen ? 'opened' : 'closed'}.`, 'success');
+    showToast(`Event registration ${shouldOpen ? 'opened' : 'closed'}${Array.isArray(event.sessions) && event.sessions.length ? ' for all sessions' : ''}.`, 'success');
   } catch (error) {
     console.error('Event registration toggle failed:', error);
     showToast(error.message || 'Could not update event registration.', 'error');
