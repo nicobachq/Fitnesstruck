@@ -3007,16 +3007,18 @@ function renderEvents() {
     const visibleSessions = getVisibleSessions(event);
     const publicSessions = getPublicSessions(event);
     const isClosed = !isEventRegistrationOpen(event);
-    const isSoldOut = !isClosed && publicSessions.length > 0 && publicSessions.every((session) => session.registered >= session.maxParticipants);
+    const hasBookableSessions = publicSessions.length > 0;
+    const isPublicClosed = isClosed || !hasBookableSessions;
+    const isSoldOut = !isPublicClosed && publicSessions.every((session) => session.registered >= session.maxParticipants);
     const totalSpots = visibleSessions.reduce((sum, session) => sum + Number(session.maxParticipants || 0), 0);
     const totalRegistered = visibleSessions.reduce((sum, session) => sum + Number(session.registered || 0), 0);
     const fillPercentage = totalSpots ? (totalRegistered / totalSpots) * 100 : 0;
     const cardClasses = ['event-card'];
-    if (isClosed) cardClasses.push('event-card-closed');
+    if (isPublicClosed) cardClasses.push('event-card-closed');
 
     const participantLabel = getCountLabel('events.joining', totalRegistered);
     const sessionsLabel = getCountLabel('events.sessionsLabel', visibleSessions.length);
-    const statusCopy = isClosed
+    const statusCopy = isPublicClosed
       ? t('events.closedCardDesc')
       : isSoldOut
         ? t('events.soldOutCardDesc')
@@ -3024,10 +3026,10 @@ function renderEvents() {
     const participantPreview = renderParticipantPreview(getEventParticipants(event), totalRegistered);
 
     return `
-      <article class="${cardClasses.join(' ')}" tabindex="${isClosed ? '-1' : '0'}" data-event-id="${escapeAttr(event.id)}" aria-disabled="${isClosed ? 'true' : 'false'}">
+      <article class="${cardClasses.join(' ')}" tabindex="${isPublicClosed ? '-1' : '0'}" data-event-id="${escapeAttr(event.id)}" aria-disabled="${isPublicClosed ? 'true' : 'false'}">
         <div class="event-image ${getEventPhotoUrl(event) ? 'has-photo' : ''}" data-location="${escapeAttr(getEventLocationMarker(event))}">
           ${getEventPhotoUrl(event) ? `<img class="event-image-photo" src="${escapeAttr(getEventPhotoUrl(event))}" alt="${escapeAttr(event.title)}">` : ''}
-          ${isClosed
+          ${isPublicClosed
             ? `<span class="event-badge event-badge-closed">${escapeHtml(t('events.closed'))}</span>`
             : isSoldOut
               ? `<span class="event-badge sold-out">${escapeHtml(t('events.soldOut'))}</span>`
@@ -3049,7 +3051,7 @@ function renderEvents() {
           <p class="event-summary">${escapeHtml(getEventSummaryCopy(event))}</p>
           <div class="event-sessions">
             ${visibleSessions.map((session) => {
-              const isSessionClosed = isClosed || !isSessionRegistrationOpen(session);
+              const isSessionClosed = isPublicClosed || !isSessionRegistrationOpen(session);
               const isFull = !isSessionClosed && session.registered >= session.maxParticipants;
               const percentage = session.maxParticipants ? (session.registered / session.maxParticipants) * 100 : 0;
               return `
@@ -3087,13 +3089,15 @@ function renderCalendar() {
     const date = new Date(event.date);
     const publicSessions = getPublicSessions(event);
     const isClosed = !isEventRegistrationOpen(event);
+    const hasBookableSessions = publicSessions.length > 0;
+    const isPublicClosed = isClosed || !hasBookableSessions;
     const totalSpots = publicSessions.reduce((sum, session) => sum + session.maxParticipants, 0);
     const totalRegistered = publicSessions.reduce((sum, session) => sum + session.registered, 0);
     const availableSpots = totalSpots - totalRegistered;
 
     let statusClass = 'available';
     let statusText = t('events.open');
-    if (isClosed) {
+    if (isPublicClosed) {
       statusClass = 'closed';
       statusText = t('events.closed');
     } else if (availableSpots <= 0) {
@@ -3105,7 +3109,7 @@ function renderCalendar() {
     }
 
     return `
-      <div class="calendar-item ${isClosed ? 'calendar-item-closed' : ''}" tabindex="${isClosed ? '-1' : '0'}" data-event-id="${escapeAttr(event.id)}" aria-disabled="${isClosed ? 'true' : 'false'}">
+      <div class="calendar-item ${isPublicClosed ? 'calendar-item-closed' : ''}" tabindex="${isPublicClosed ? '-1' : '0'}" data-event-id="${escapeAttr(event.id)}" aria-disabled="${isPublicClosed ? 'true' : 'false'}">
         <div class="calendar-date">
           <span class="day">${date.getDate()}</span>
           <span class="month">${date.toLocaleString(getLocale(), { month: 'short' })}</span>
