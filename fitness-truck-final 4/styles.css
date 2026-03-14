@@ -1776,13 +1776,13 @@ body.info-page{
 
 /* --- Mobile/tablet polish pass (2026-03-13 evening) --- */
 .hero-image{
-  filter:brightness(.34) saturate(.82) contrast(1.04);
+  filter:brightness(.48) saturate(.88) contrast(1.01);
 }
 
 .hero-bg::before{
   background:
-    radial-gradient(ellipse 72% 48% at 50% -14%, rgba(255,26,26,.09), transparent 60%),
-    linear-gradient(180deg, rgba(5,5,5,.26) 0%, rgba(5,5,5,.42) 38%, rgba(5,5,5,.9) 100%);
+    radial-gradient(ellipse 72% 48% at 50% -14%, rgba(255,26,26,.07), transparent 60%),
+    linear-gradient(180deg, rgba(5,5,5,.12) 0%, rgba(5,5,5,.24) 38%, rgba(5,5,5,.78) 100%);
 }
 
 .next-event-summary{
