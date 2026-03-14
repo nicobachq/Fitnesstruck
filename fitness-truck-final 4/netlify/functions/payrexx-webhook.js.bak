@@ -15,32 +15,6 @@ function extractReferenceFromPurpose(value) {
   return match ? String(match[1]).trim() : '';
 }
 
-
-async function cleanupRefundedRegistration(intent) {
-  const registrationId = String(intent?.registration_id || '').trim();
-  if (!registrationId) return false;
-
-  try {
-    try {
-      await supabaseRequest(`/registrations?id=eq.${encodeURIComponent(registrationId)}`, {
-        method: 'PATCH',
-        body: { attendance_status: 'cancelled' }
-      });
-    } catch (patchError) {
-      console.error('Refund cleanup patch warning:', patchError);
-    }
-
-    await supabaseRequest(`/registrations?id=eq.${encodeURIComponent(registrationId)}`, {
-      method: 'DELETE',
-      headers: { Prefer: 'return=minimal' }
-    });
-    return true;
-  } catch (deleteError) {
-    console.error('Refund cleanup delete warning:', deleteError);
-    return false;
-  }
-}
-
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return jsonResponse(405, { success: false, message: 'Method not allowed' });
@@ -68,21 +42,15 @@ exports.handler = async (event) => {
 
     const incomingStatus = String(incomingTransaction.status || '').trim().toLowerCase();
     if (incomingStatus && incomingStatus !== 'confirmed') {
-      const refundedStatus = incomingStatus === 'refunded' || incomingStatus === 'partially-refunded';
-      if (refundedStatus && intent.registration_id) {
-        await cleanupRefundedRegistration(intent);
-      }
-
       await supabaseRequest(`/payment_intents?reference_id=eq.${encodeURIComponent(referenceId)}`, {
         method: 'PATCH',
         body: {
           status: incomingStatus,
           payrexx_transaction_id: incomingTransaction.id ? String(incomingTransaction.id) : intent.payrexx_transaction_id,
-          payment_method: incomingTransaction.psp || intent.payment_method || null,
-          registration_id: refundedStatus ? null : intent.registration_id
+          payment_method: incomingTransaction.psp || intent.payment_method || null
         }
       });
-      console.log('Payrexx webhook updated non-confirmed status', { referenceId, incomingStatus, refundedStatus });
+      console.log('Payrexx webhook updated non-confirmed status', { referenceId, incomingStatus });
       return jsonResponse(200, { success: true, processed: true, status: incomingStatus });
     }
 
@@ -99,21 +67,15 @@ exports.handler = async (event) => {
 
     const verifiedStatus = String(verifiedTransaction.status || '').trim().toLowerCase();
     if (verifiedStatus !== 'confirmed') {
-      const refundedStatus = verifiedStatus === 'refunded' || verifiedStatus === 'partially-refunded';
-      if (refundedStatus && intent.registration_id) {
-        await cleanupRefundedRegistration(intent);
-      }
-
       await supabaseRequest(`/payment_intents?reference_id=eq.${encodeURIComponent(referenceId)}`, {
         method: 'PATCH',
         body: {
           status: verifiedStatus || 'unknown',
           payrexx_transaction_id: String(verifiedTransaction.id || transactionId),
-          payment_method: verifiedTransaction.psp || intent.payment_method || null,
-          registration_id: refundedStatus ? null : intent.registration_id
+          payment_method: verifiedTransaction.psp || intent.payment_method || null
         }
       });
-      console.log('Payrexx webhook verified non-confirmed status', { referenceId, verifiedStatus, refundedStatus });
+      console.log('Payrexx webhook verified non-confirmed status', { referenceId, verifiedStatus });
       return jsonResponse(200, { success: true, processed: true, status: verifiedStatus || 'unknown' });
     }
 

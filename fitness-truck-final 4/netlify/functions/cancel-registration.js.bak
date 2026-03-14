@@ -57,34 +57,6 @@ async function lookupPaymentIntent(registrationId) {
   return Array.isArray(intents) && intents[0] ? intents[0] : null;
 }
 
-async function safelyMarkRegistrationCancelled(registrationId) {
-  try {
-    await supabaseRequest(`/registrations?id=eq.${encodeURIComponent(registrationId)}`, {
-      method: 'PATCH',
-      body: {
-        attendance_status: 'cancelled'
-      }
-    });
-    return true;
-  } catch (error) {
-    console.error('Could not mark registration cancelled:', error);
-    return false;
-  }
-}
-
-async function safelyDeleteRegistration(registrationId) {
-  try {
-    await supabaseRequest(`/registrations?id=eq.${encodeURIComponent(registrationId)}`, {
-      method: 'DELETE',
-      headers: { Prefer: 'return=minimal' }
-    });
-    return true;
-  } catch (error) {
-    console.error('Could not delete registration:', error);
-    return false;
-  }
-}
-
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return jsonResponse(405, { success: false, message: 'Method not allowed' });
@@ -114,6 +86,10 @@ exports.handler = async (event) => {
       return jsonResponse(403, { success: false, message: 'This booking does not belong to your account.' });
     }
 
+    if (String(registration.attendance_status || '').trim().toLowerCase() === 'cancelled') {
+      return jsonResponse(200, { success: true, alreadyCancelled: true, message: 'This booking was already cancelled.' });
+    }
+
     const eventStart = parseEventStart(eventRow.date, session.start_time);
     if (!eventStart) {
       return jsonResponse(400, { success: false, message: 'This booking cannot be cancelled online right now. Please contact Fitness Truck directly.' });
@@ -136,7 +112,6 @@ exports.handler = async (event) => {
     let paymentMethod = String(paymentIntent?.payment_method || '').trim();
     let referenceId = String(paymentIntent?.reference_id || paymentIntent?.id || '').trim();
     const amountChf = Number(paymentIntent?.amount_chf || session.price_chf || eventRow.base_price_chf || 0);
-    const paymentIntentStatus = String(paymentIntent?.status || '').trim().toLowerCase();
 
     if (paymentIntent && String(paymentIntent.payrexx_transaction_id || '').trim()) {
       const originalTransactionId = String(paymentIntent.payrexx_transaction_id || '').trim();
@@ -145,7 +120,7 @@ exports.handler = async (event) => {
       const transactionStatus = String(transaction.status || '').trim().toLowerCase();
       paymentMethod = String(transaction.psp || paymentMethod || '').trim();
 
-      if (transactionStatus === 'refunded' || transactionStatus === 'partially-refunded' || paymentIntentStatus === 'refunded') {
+      if (transactionStatus === 'refunded' || transactionStatus === 'partially-refunded') {
         refundTriggered = true;
         refundTransactionId = String(transaction.id || originalTransactionId);
       } else {
@@ -154,7 +129,7 @@ exports.handler = async (event) => {
           const refundJson = await payrexxFormRequest(`Transaction/${encodeURIComponent(originalTransactionId)}/refund`, amountInCents > 0 ? { amount: String(amountInCents) } : {});
           const refundTx = extractTransaction(refundJson) || refundJson || {};
           refundTriggered = true;
-          refundTransactionId = String(refundTx.id || refundTx.uuid || originalTransactionId || '');
+          refundTransactionId = String(refundTx.id || refundTx.uuid || '');
         } catch (refundError) {
           console.error('Payrexx refund error:', refundError);
           const message = String(refundError?.message || '');
@@ -164,7 +139,7 @@ exports.handler = async (event) => {
           throw refundError;
         }
       }
-    } else if (amountChf > 0 && paymentIntentStatus !== 'refunded') {
+    } else if (amountChf > 0) {
       return jsonResponse(409, {
         success: false,
         refundUnavailable: true,
@@ -172,20 +147,21 @@ exports.handler = async (event) => {
       });
     }
 
+    await supabaseRequest(`/registrations?id=eq.${encodeURIComponent(registrationId)}`, {
+      method: 'PATCH',
+      body: {
+        attendance_status: 'cancelled'
+      }
+    });
+
     if (paymentIntent) {
       await supabaseRequest(`/payment_intents?id=eq.${encodeURIComponent(String(paymentIntent.id || ''))}`, {
         method: 'PATCH',
         body: {
-          status: refundTriggered || paymentIntentStatus === 'refunded' ? 'refunded' : 'cancelled',
-          registration_id: null
+          status: refundTriggered ? 'refunded' : 'cancelled'
         }
       });
     }
-
-    // Keep the attendance status update as a first pass for compatibility with any admin views,
-    // then remove the registration row so it no longer appears in account/admin/seat counts.
-    await safelyMarkRegistrationCancelled(registrationId);
-    const deleted = await safelyDeleteRegistration(registrationId);
 
     const participant = {
       fullName: registration.full_name || paymentIntent?.full_name || authUser.user_metadata?.full_name || '',
@@ -236,9 +212,8 @@ exports.handler = async (event) => {
 
     return jsonResponse(200, {
       success: true,
-      refunded: refundTriggered || paymentIntentStatus === 'refunded',
-      deleted,
-      message: refundTriggered || paymentIntentStatus === 'refunded'
+      refunded: refundTriggered,
+      message: refundTriggered
         ? 'Your booking has been cancelled and the refund has been started.'
         : 'Your booking has been cancelled.'
     });

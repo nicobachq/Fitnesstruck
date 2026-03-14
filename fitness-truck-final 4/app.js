@@ -1334,6 +1334,8 @@ function normalizeMyRegistrationItem(item = {}) {
     session_exercise_type: String(item.session_exercise_type || ''),
     session_price_chf: Number(item.session_price_chf || 0),
     event_base_price_chf: Number(item.event_base_price_chf || 0),
+    attendance_status: String(item.attendance_status || '').trim().toLowerCase(),
+    payment_status: String(item.payment_status || '').trim().toLowerCase(),
     created_at_label: item.created_at ? formatDateTime(item.created_at) : '',
     is_upcoming: !!item.event_date && new Date(item.event_date) >= startOfToday()
   };
@@ -1605,7 +1607,7 @@ async function loadMyRegistrations(options = {}) {
     const { data, error } = await supabaseClient.rpc('get_my_registrations');
     if (error) throw error;
 
-    state.myRegistrations = Array.isArray(data) ? data.map(normalizeMyRegistrationItem) : [];
+    state.myRegistrations = Array.isArray(data) ? data.map(normalizeMyRegistrationItem).filter((item) => item.attendance_status !== 'cancelled' && item.payment_status !== 'refunded') : [];
     state.visiblePastRegistrations = 5;
     state.myRegistrationsStatus = 'success';
     state.myRegistrationsForEmail = userEmail;
