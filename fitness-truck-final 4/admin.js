@@ -324,6 +324,24 @@ function showAdminInterface() {
   }
 }
 
+function normalizeMealType(value) {
+  const normalized = String(value || 'none').trim().toLowerCase();
+  return ['breakfast', 'lunch', 'supper'].includes(normalized) ? normalized : 'none';
+}
+
+function getMealLabel(mealType) {
+  switch (normalizeMealType(mealType)) {
+    case 'breakfast':
+      return 'Breakfast included';
+    case 'lunch':
+      return 'Lunch included';
+    case 'supper':
+      return 'Supper included';
+    default:
+      return '';
+  }
+}
+
 function mapDatabaseToUi(eventRows, sessionRows) {
   return (eventRows || []).map((event) => ({
     id: event.id,
@@ -333,6 +351,7 @@ function mapDatabaseToUi(eventRows, sessionRows) {
     description: event.description || '',
     heroPhrase: event.hero_phrase || '',
     basePriceChf: event.base_price_chf || 0,
+    mealType: normalizeMealType(event.meal_type),
     photoUrl: event.photo_url || '',
     photoPath: event.photo_path || '',
     registrationOpen: event.registration_open !== false,
@@ -759,6 +778,14 @@ function saveButtonLoading(isLoading) {
     : (editingEventId ? 'Update Event' : 'Create Event');
 }
 
+function withMealSchemaHint(error) {
+  const message = String(error?.message || '');
+  if (message.includes('meal_type')) {
+    error.message = 'The new meal field is not in Supabase yet. Run SUPABASE-add-meal-type-to-events.sql once, then try again.';
+  }
+  return error;
+}
+
 async function saveEventToSupabase(eventData) {
   const eventRow = {
     id: eventData.id,
@@ -768,6 +795,7 @@ async function saveEventToSupabase(eventData) {
     description: eventData.description,
     hero_phrase: eventData.heroPhrase,
     base_price_chf: eventData.basePriceChf,
+    meal_type: normalizeMealType(eventData.mealType),
     photo_url: eventData.photoUrl || '',
     photo_path: eventData.photoPath || '',
     registration_open: !!eventData.registrationOpen
@@ -779,13 +807,13 @@ async function saveEventToSupabase(eventData) {
       .update(eventRow)
       .eq('id', editingEventId);
 
-    if (eventError) throw eventError;
+    if (eventError) throw withMealSchemaHint(eventError);
   } else {
     const { error: eventError } = await supabaseClient
       .from('events')
       .insert(eventRow);
 
-    if (eventError) throw eventError;
+    if (eventError) throw withMealSchemaHint(eventError);
   }
 
   const sessionRows = eventData.sessions.map((session) => ({
@@ -893,6 +921,7 @@ function renderEvents() {
               </div>
               <div class="event-meta">${formatDate(event.date)} · ${escapeHtml(event.location)} · ${totalRegistered}/${totalSpots} active</div>
               <div class="event-meta" style="margin-top:4px;">Open sessions: ${openSessions}/${event.sessions.length} · Attended: ${statusCounts.attended} · No-show: ${statusCounts.no_show} · Cancelled: ${statusCounts.cancelled}</div>
+              ${getMealLabel(event.mealType) ? `<div class="event-meta" style="margin-top:4px;">${escapeHtml(getMealLabel(event.mealType))}</div>` : ''}
             </div>
           </div>
           <div class="event-actions" onclick="event.stopPropagation()">
@@ -1077,6 +1106,7 @@ async function handleSubmit(e) {
     description: document.getElementById('eventDescription').value.trim(),
     heroPhrase: document.getElementById('heroPhrase').value.trim(),
     basePriceChf: parseFloat(document.getElementById('basePriceChf').value) || 0,
+    mealType: normalizeMealType(document.getElementById('eventMealType')?.value),
     registrationOpen: document.getElementById('eventRegistrationOpen')?.checked || false,
     sessions: gatherSessionsData(eventId, existingEvent)
   };
@@ -1183,6 +1213,7 @@ function editEvent(eventId) {
   document.getElementById('eventDescription').value = event.description || '';
   document.getElementById('heroPhrase').value = event.heroPhrase || '';
   document.getElementById('basePriceChf').value = event.basePriceChf ?? 0;
+  document.getElementById('eventMealType').value = normalizeMealType(event.mealType);
   document.getElementById('eventRegistrationOpen').checked = !!event.registrationOpen;
   clearPendingEventPhotoState();
   bindEventPhotoControls(event);
@@ -1217,6 +1248,7 @@ function resetForm() {
   document.getElementById('formTitle').textContent = 'Create Event';
   document.getElementById('submitBtn').textContent = 'Create Event';
   document.getElementById('eventRegistrationOpen').checked = false;
+  document.getElementById('eventMealType').value = 'none';
   clearPendingEventPhotoState();
   bindEventPhotoControls({ location: document.getElementById('eventLocation').value || 'Ticino' });
   renderEventPhotoPreview({ location: document.getElementById('eventLocation').value || 'Ticino' });

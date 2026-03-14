@@ -37,6 +37,9 @@ const state = {
   claimRegistrationsCount: 0,
   visiblePastRegistrations: 5,
   sessionParticipation: {},
+  lastEventsLoadAt: 0,
+  eventsRefreshTimer: null,
+  eventsRefreshInFlight: null,
   cancellingRegistrationIds: {},
   eventsLoaded: false,
   paymentReturn: null,
@@ -414,6 +417,9 @@ const TRANSLATIONS = {
       sessionsLabel_one: '{count} sessione',
       sessionsLabel_other: '{count} sessioni',
       equipmentIncluded: 'Attrezzatura inclusa',
+      breakfastIncluded: 'Colazione inclusa',
+      lunchIncluded: 'Pranzo incluso',
+      supperIncluded: 'Cena inclusa',
       defaultSummary: 'Coaching professionale, attrezzatura premium e una community che si muove.',
       openCardDesc: 'Registrazioni aperte ora',
       soldOutCardDesc: 'Evento visibile ma al completo',
@@ -770,6 +776,9 @@ const TRANSLATIONS = {
       sessionsLabel_one: '{count} session',
       sessionsLabel_other: '{count} sessions',
       equipmentIncluded: 'Equipment included',
+      breakfastIncluded: 'Breakfast included',
+      lunchIncluded: 'Lunch included',
+      supperIncluded: 'Supper included',
       defaultSummary: 'Professional coaching, premium equipment, and a community that moves.',
       openCardDesc: 'Registration is open now',
       soldOutCardDesc: 'Visible now, but fully booked',
@@ -1062,6 +1071,25 @@ function getEventSummaryCopy(event) {
   const summary = String(event?.heroPhrase || event?.description || '').trim();
   return summary || t('events.defaultSummary');
 }
+
+function normalizeMealType(value) {
+  const normalized = String(value || 'none').trim().toLowerCase();
+  return ['breakfast', 'lunch', 'supper'].includes(normalized) ? normalized : 'none';
+}
+
+function getEventMealLabel(event) {
+  switch (normalizeMealType(event?.mealType || event?.meal_type)) {
+    case 'breakfast':
+      return t('events.breakfastIncluded');
+    case 'lunch':
+      return t('events.lunchIncluded');
+    case 'supper':
+      return t('events.supperIncluded');
+    default:
+      return '';
+  }
+}
+
 
 function applyStaticTranslations(root = document) {
   root.querySelectorAll('[data-i18n]').forEach((el) => {
@@ -2801,12 +2829,14 @@ function initAuth() {
   window.addEventListener('focus', () => {
     if (isAuthModalOpen() && state.user && state.accountMode === 'edit') return;
     syncAuthUI();
+    refreshEventsIfNeeded({ force: true });
   });
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
     if (isAuthModalOpen() && state.user && state.accountMode === 'edit') return;
     syncAuthUI();
+    refreshEventsIfNeeded({ force: true });
   });
 
   supabaseClient.auth.onAuthStateChange((_event, session) => {
@@ -2895,7 +2925,32 @@ function renderParticipantPreview(participants = [], totalCount = 0) {
     </div>`;
 }
 
-async function loadEvents() {
+async function refreshEventsIfNeeded(options = {}) {
+  const { force = false } = options;
+  const now = Date.now();
+  if (!force && state.eventsRefreshInFlight) return state.eventsRefreshInFlight;
+  if (!force && state.lastEventsLoadAt && (now - state.lastEventsLoadAt) < 5000) return null;
+
+  const run = loadEvents({ force });
+  if (run && typeof run.finally === 'function') {
+    state.eventsRefreshInFlight = run.finally(() => {
+      state.eventsRefreshInFlight = null;
+    });
+    return state.eventsRefreshInFlight;
+  }
+
+  return run;
+}
+
+function startEventsAutoRefresh() {
+  if (state.eventsRefreshTimer) clearInterval(state.eventsRefreshTimer);
+  state.eventsRefreshTimer = setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    refreshEventsIfNeeded();
+  }, 30000);
+}
+
+async function loadEvents(options = {}) {
   try {
     const [eventsResponse, sessionsResponse, _participationLoaded] = await Promise.all([
       supabaseClient
@@ -2922,6 +2977,7 @@ async function loadEvents() {
       description: event.description || '',
       heroPhrase: event.hero_phrase || '',
       basePriceChf: Number(event.base_price_chf || 0),
+      mealType: normalizeMealType(event.meal_type),
       photoUrl: event.photo_url || '',
       photoPath: event.photo_path || '',
       registrationOpen: event.registration_open !== false,
@@ -2949,6 +3005,7 @@ async function loadEvents() {
     state.events = [];
   } finally {
     state.eventsLoaded = true;
+    state.lastEventsLoadAt = Date.now();
   }
 
   renderEvents();
@@ -3046,6 +3103,7 @@ function renderEvents() {
             <span class="event-meta-chip">${escapeHtml(participantLabel)}</span>
             <span class="event-meta-chip">${escapeHtml(sessionsLabel)}</span>
             <span class="event-meta-chip">${escapeHtml(t('events.equipmentIncluded'))}</span>
+            ${getEventMealLabel(event) ? `<span class="event-meta-chip">${escapeHtml(getEventMealLabel(event))}</span>` : ''}
           </div>
           ${participantPreview}
           <p class="event-summary">${escapeHtml(getEventSummaryCopy(event))}</p>
@@ -3203,6 +3261,7 @@ function renderEventModal(event) {
       <div class="event-meta-chips modal-meta-chips">
         <span class="event-meta-chip">${escapeHtml(getCountLabel('events.joining', participantCount))}</span>
         <span class="event-meta-chip">${escapeHtml(t('events.equipmentIncluded'))}</span>
+        ${getEventMealLabel(event) ? `<span class="event-meta-chip">${escapeHtml(getEventMealLabel(event))}</span>` : ''}
         <span class="event-meta-chip">${escapeHtml(t('events.modalMixedLevels'))}</span>
       </div>
       ${participantPreview}
@@ -3788,5 +3847,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   await loadEvents();
+  startEventsAutoRefresh();
   handleRequestedEventOpen();
 });

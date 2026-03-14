@@ -114,6 +114,18 @@
                 </div>
               </div>
               <div class="form-row">
+                <div class="form-group">
+                  <label for="eventMealType">Meal included</label>
+                  <select id="eventMealType">
+                    <option value="none">No meal included</option>
+                    <option value="breakfast">Breakfast included</option>
+                    <option value="lunch">Lunch included</option>
+                    <option value="supper">Supper included</option>
+                  </select>
+                  <small>Show clearly on the public website if this event includes breakfast, lunch, or supper.</small>
+                </div>
+              </div>
+              <div class="form-row">
                 <div class="form-group form-group-checkbox">
                   <label class="checkbox-row admin-checkbox-row">
                     <input type="checkbox" id="eventRegistrationOpen">
@@ -139,6 +151,6 @@
 
   <div class="toast-container" id="toastContainer"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=16"></script>
+  <script src="admin.js?v=17"></script>
 </body>
 </html>
