@@ -3291,12 +3291,54 @@ function initForms() {
   const contactForm = document.getElementById('contactForm');
   if (!contactForm) return;
 
-  contactForm.addEventListener('submit', () => {
-    const button = contactForm.querySelector('button[type="submit"]') || contactForm.querySelector('.btn-submit');
-    if (!button) return;
+  contactForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
 
-    button.disabled = true;
-    button.textContent = t('contact.sending') || 'Sending...';
+    const button = contactForm.querySelector('button[type="submit"]') || contactForm.querySelector('.btn-submit');
+    const originalLabel = button ? button.textContent : '';
+    const formData = new FormData(contactForm);
+    const payload = {
+      name: String(formData.get('name') || '').trim(),
+      email: String(formData.get('email') || '').trim(),
+      message: String(formData.get('message') || '').trim(),
+      language: state.language,
+      pageUrl: window.location.href,
+      userAgent: navigator.userAgent
+    };
+
+    if (!payload.name || !payload.email || !payload.message) {
+      alert(t('contact.error') || 'Something went wrong. Please try again or email us directly.');
+      return;
+    }
+
+    if (button) {
+      button.disabled = true;
+      button.textContent = t('contact.sending') || 'Sending...';
+    }
+
+    try {
+      const response = await fetch('/.netlify/functions/send-contact-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok || !json.success) {
+        throw new Error(json.message || 'Contact form request failed');
+      }
+
+      window.location.href = '/thank-you.html?form=contact';
+    } catch (error) {
+      console.error('Contact form submission failed', error);
+      alert(t('contact.error') || 'Something went wrong. Please try again or email us directly.');
+      if (button) {
+        button.disabled = false;
+        button.textContent = originalLabel || t('contact.send') || 'Send message';
+      }
+    }
   });
 }
 

@@ -83,11 +83,7 @@
           </div>
           <h1 class="hero-title">THE GYM<br>THAT <span class="text-accent">MOVES</span></h1>
           <p class="hero-subtitle" data-i18n="hero.subtitle">Allenamento outdoor premium nei luoghi più suggestivi del Ticino. Piccoli gruppi, coaching esperto e sessioni pensate per metterti alla prova, darti energia e lasciarti qualcosa addosso.</p>
-          <div class="hero-stats">
-            <div class="stat"><span class="stat-number" data-i18n="hero.statValue1">Mixed</span><span class="stat-label" data-i18n="hero.statStops">Livelli benvenuti</span></div>
-            <div class="stat"><span class="stat-number" data-i18n="hero.statValue2">Gear</span><span class="stat-label" data-i18n="hero.statSpots">Attrezzatura inclusa</span></div>
-            <div class="stat"><span class="stat-number" data-i18n="hero.statValue3">Ticino</span><span class="stat-label" data-i18n="hero.statEvents">Punto di partenza</span></div>
-          </div>
+          <div class="hero-stats" aria-hidden="true"></div>
           <div class="hero-actions">
             <a href="#events" class="btn btn-primary"><span data-i18n="hero.viewUpcoming">Vedi i prossimi eventi</span></a>
             <button type="button" class="btn btn-secondary" data-open-auth="signup" data-i18n="hero.createAccount">Crea account</button>
@@ -337,7 +333,7 @@
             <div class="contact-item"><span class="contact-label" data-i18n="contact.locations">Luoghi</span><span data-i18n="contact.locationsValue">Prima il Ticino · pronti a muoverci oltre</span></div>
           </div>
           <div class="contact-form-wrapper">
-            <form name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/thank-you.html?form=contact" class="contact-form" id="contactForm">
+            <form name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/thank-you.html" class="contact-form" id="contactForm">
               <input type="hidden" name="form-name" value="contact" />
               <p class="sr-only" hidden>
                 <label>Don't fill this out if you're human: <input name="bot-field" /></label>
