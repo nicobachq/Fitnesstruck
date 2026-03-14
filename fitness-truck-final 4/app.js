@@ -41,6 +41,7 @@ const state = {
   eventsLoaded: false,
   paymentReturn: null,
   paymentReturnNotice: null,
+  recentToasts: new Map(),
   language: (() => {
     try {
       const saved = localStorage.getItem('ft_lang');
@@ -3742,14 +3743,29 @@ function escapeAttr(text) { return escapeHtml(String(text ?? '')).replace(/"/g, 
 
 function showToast(message, type = 'success') {
   const container = document.getElementById('toastContainer');
-  if (!container) return;
+  const normalizedMessage = String(message || '').trim();
+  if (!container || !normalizedMessage) return;
+
+  if (!(state.recentToasts instanceof Map)) {
+    state.recentToasts = new Map();
+  }
+
+  const dedupeKey = `${type}:${normalizedMessage.toLowerCase()}`;
+  const now = Date.now();
+  const lastShownAt = Number(state.recentToasts.get(dedupeKey) || 0);
+  if (lastShownAt && now - lastShownAt < 3500) return;
+  state.recentToasts.set(dedupeKey, now);
+
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
-  toast.innerHTML = `<div class="toast-icon">${type === 'success' ? '✓' : '!'}</div><div class="toast-message">${escapeHtml(message)}</div>`;
+  toast.innerHTML = `<div class="toast-icon">${type === 'success' ? '✓' : '!'}</div><div class="toast-message">${escapeHtml(normalizedMessage)}</div>`;
   container.appendChild(toast);
   setTimeout(() => {
     toast.style.opacity = '0';
     toast.style.transform = 'translateX(100%)';
+    if (state.recentToasts.get(dedupeKey) === now) {
+      state.recentToasts.delete(dedupeKey);
+    }
     setTimeout(() => toast.remove(), 400);
   }, 4000);
 }
