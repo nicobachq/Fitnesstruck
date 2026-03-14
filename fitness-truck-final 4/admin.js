@@ -342,6 +342,11 @@ function getMealLabel(mealType) {
   }
 }
 
+function getSessionMealSummary(event) {
+  const labels = [...new Set((event?.sessions || []).map((session) => getMealLabel(session?.mealType)).filter(Boolean))];
+  return labels.join(' · ');
+}
+
 function mapDatabaseToUi(eventRows, sessionRows) {
   return (eventRows || []).map((event) => ({
     id: event.id,
@@ -351,7 +356,6 @@ function mapDatabaseToUi(eventRows, sessionRows) {
     description: event.description || '',
     heroPhrase: event.hero_phrase || '',
     basePriceChf: event.base_price_chf || 0,
-    mealType: normalizeMealType(event.meal_type),
     photoUrl: event.photo_url || '',
     photoPath: event.photo_path || '',
     registrationOpen: event.registration_open !== false,
@@ -367,6 +371,7 @@ function mapDatabaseToUi(eventRows, sessionRows) {
         storedRegisteredCount: session.registered_count || 0,
         registered: session.registered_count || 0,
         priceChf: session.price_chf || 0,
+        mealType: normalizeMealType(session.meal_type || event.meal_type),
         registrationOpen: session.registration_open !== false
       }))
   }));
@@ -781,7 +786,7 @@ function saveButtonLoading(isLoading) {
 function withMealSchemaHint(error) {
   const message = String(error?.message || '');
   if (message.includes('meal_type')) {
-    error.message = 'The new meal field is not in Supabase yet. Run SUPABASE-add-meal-type-to-events.sql once, then try again.';
+    error.message = 'The new session meal field is not in Supabase yet. Run SUPABASE-add-meal-type-to-sessions.sql once, then try again.';
   }
   return error;
 }
@@ -795,7 +800,6 @@ async function saveEventToSupabase(eventData) {
     description: eventData.description,
     hero_phrase: eventData.heroPhrase,
     base_price_chf: eventData.basePriceChf,
-    meal_type: normalizeMealType(eventData.mealType),
     photo_url: eventData.photoUrl || '',
     photo_path: eventData.photoPath || '',
     registration_open: !!eventData.registrationOpen
@@ -826,6 +830,7 @@ async function saveEventToSupabase(eventData) {
     max_participants: session.maxParticipants,
     registered_count: session.registered,
     price_chf: session.priceChf || 0,
+    meal_type: normalizeMealType(session.mealType),
     registration_open: !!session.registrationOpen
   }));
 
@@ -921,7 +926,7 @@ function renderEvents() {
               </div>
               <div class="event-meta">${formatDate(event.date)} · ${escapeHtml(event.location)} · ${totalRegistered}/${totalSpots} active</div>
               <div class="event-meta" style="margin-top:4px;">Open sessions: ${openSessions}/${event.sessions.length} · Attended: ${statusCounts.attended} · No-show: ${statusCounts.no_show} · Cancelled: ${statusCounts.cancelled}</div>
-              ${getMealLabel(event.mealType) ? `<div class="event-meta" style="margin-top:4px;">${escapeHtml(getMealLabel(event.mealType))}</div>` : ''}
+              ${getSessionMealSummary(event) ? `<div class="event-meta" style="margin-top:4px;">Meals: ${escapeHtml(getSessionMealSummary(event))}</div>` : ''}
             </div>
           </div>
           <div class="event-actions" onclick="event.stopPropagation()">
@@ -931,7 +936,7 @@ function renderEvents() {
           </div>
         </div>
         <div class="event-sessions-preview" id="sessions-${escapeAttr(event.id)}" style="display:none;">
-          ${event.sessions.map((session) => `<div class="admin-session-row"><span class="session-tag ${session.registered >= session.maxParticipants ? 'full' : ''}"><span class="time">${escapeHtml(session.startTime)}</span>${escapeHtml(session.title)} <span class="capacity">(${session.registered}/${session.maxParticipants})</span></span><div class="admin-session-actions">${getRegistrationToggleBadge(isSessionRegistrationOpen(session))}<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();setSessionRegistrationOpen('${escapeJs(event.id)}','${escapeJs(session.id)}', ${isSessionRegistrationOpen(session) ? 'false' : 'true'})">${isSessionRegistrationOpen(session) ? 'Close session' : 'Open session'}</button></div></div>`).join('')}
+          ${event.sessions.map((session) => `<div class="admin-session-row"><span class="session-tag ${session.registered >= session.maxParticipants ? 'full' : ''}"><span class="time">${escapeHtml(session.startTime)}</span>${escapeHtml(session.title)} <span class="capacity">(${session.registered}/${session.maxParticipants})</span></span><div class="admin-session-actions">${getMealLabel(session.mealType) ? `<span class="admin-reg-badge open">${escapeHtml(getMealLabel(session.mealType))}</span>` : ''}${getRegistrationToggleBadge(isSessionRegistrationOpen(session))}<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();setSessionRegistrationOpen('${escapeJs(event.id)}','${escapeJs(session.id)}', ${isSessionRegistrationOpen(session) ? 'false' : 'true'})">${isSessionRegistrationOpen(session) ? 'Close session' : 'Open session'}</button></div></div>`).join('')}
         </div>
       </div>`;
   }).join('');
@@ -1063,6 +1068,7 @@ function addSessionForm(sessionData = null) {
     </div>
     <div class="form-row">
       <div class="form-group"><label>Session Price (CHF)</label><input type="number" class="session-price" min="0" step="0.01" value="${sessionData?.priceChf ?? 0}"></div>
+      <div class="form-group"><label>Meal included</label><select class="session-meal-type"><option value="none" ${normalizeMealType(sessionData?.mealType) === 'none' ? 'selected' : ''}>No meal included</option><option value="breakfast" ${normalizeMealType(sessionData?.mealType) === 'breakfast' ? 'selected' : ''}>Breakfast included</option><option value="lunch" ${normalizeMealType(sessionData?.mealType) === 'lunch' ? 'selected' : ''}>Lunch included</option><option value="supper" ${normalizeMealType(sessionData?.mealType) === 'supper' ? 'selected' : ''}>Supper included</option></select><small>Displayed clearly on the public event for this specific session.</small></div>
     </div>
     <div class="form-row">
       <div class="form-group form-group-checkbox">
@@ -1106,7 +1112,6 @@ async function handleSubmit(e) {
     description: document.getElementById('eventDescription').value.trim(),
     heroPhrase: document.getElementById('heroPhrase').value.trim(),
     basePriceChf: parseFloat(document.getElementById('basePriceChf').value) || 0,
-    mealType: normalizeMealType(document.getElementById('eventMealType')?.value),
     registrationOpen: document.getElementById('eventRegistrationOpen')?.checked || false,
     sessions: gatherSessionsData(eventId, existingEvent)
   };
@@ -1194,6 +1199,7 @@ function gatherSessionsData(eventId, existingEvent = null) {
       maxParticipants: max,
       registered: reg,
       priceChf: parseFloat(form.querySelector('.session-price')?.value) || 0,
+      mealType: normalizeMealType(form.querySelector('.session-meal-type')?.value),
       registrationOpen: form.querySelector('.session-registration-open')?.checked || false
     };
   });
@@ -1213,7 +1219,6 @@ function editEvent(eventId) {
   document.getElementById('eventDescription').value = event.description || '';
   document.getElementById('heroPhrase').value = event.heroPhrase || '';
   document.getElementById('basePriceChf').value = event.basePriceChf ?? 0;
-  document.getElementById('eventMealType').value = normalizeMealType(event.mealType);
   document.getElementById('eventRegistrationOpen').checked = !!event.registrationOpen;
   clearPendingEventPhotoState();
   bindEventPhotoControls(event);
@@ -1248,8 +1253,7 @@ function resetForm() {
   document.getElementById('formTitle').textContent = 'Create Event';
   document.getElementById('submitBtn').textContent = 'Create Event';
   document.getElementById('eventRegistrationOpen').checked = false;
-  document.getElementById('eventMealType').value = 'none';
-  clearPendingEventPhotoState();
+    clearPendingEventPhotoState();
   bindEventPhotoControls({ location: document.getElementById('eventLocation').value || 'Ticino' });
   renderEventPhotoPreview({ location: document.getElementById('eventLocation').value || 'Ticino' });
   document.getElementById('sessionsContainer').innerHTML = '';

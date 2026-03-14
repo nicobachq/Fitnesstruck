@@ -1077,8 +1077,8 @@ function normalizeMealType(value) {
   return ['breakfast', 'lunch', 'supper'].includes(normalized) ? normalized : 'none';
 }
 
-function getEventMealLabel(event) {
-  switch (normalizeMealType(event?.mealType || event?.meal_type)) {
+function getSessionMealLabel(session) {
+  switch (normalizeMealType(session?.mealType || session?.meal_type)) {
     case 'breakfast':
       return t('events.breakfastIncluded');
     case 'lunch':
@@ -1088,6 +1088,17 @@ function getEventMealLabel(event) {
     default:
       return '';
   }
+}
+
+function getEventMealLabels(event, sessions = null) {
+  const source = Array.isArray(sessions) ? sessions : (event?.sessions || []);
+  return [...new Set(source.map((session) => getSessionMealLabel(session)).filter(Boolean))];
+}
+
+function renderMealHighlightBadges(event, sessions = null) {
+  const labels = getEventMealLabels(event, sessions);
+  if (!labels.length) return '';
+  return `<div class="event-highlight-badges">${labels.map((label) => `<span class="event-highlight-pill">${escapeHtml(label)}</span>`).join('')}</div>`;
 }
 
 
@@ -2977,7 +2988,6 @@ async function loadEvents(options = {}) {
       description: event.description || '',
       heroPhrase: event.hero_phrase || '',
       basePriceChf: Number(event.base_price_chf || 0),
-      mealType: normalizeMealType(event.meal_type),
       photoUrl: event.photo_url || '',
       photoPath: event.photo_path || '',
       registrationOpen: event.registration_open !== false,
@@ -2995,6 +3005,7 @@ async function loadEvents(options = {}) {
             registered: Number(participation?.count ?? session.registered_count ?? 0),
             participants: Array.isArray(participation?.participants) ? participation.participants : [],
             priceChf: Number(session.price_chf || 0),
+            mealType: normalizeMealType(session.meal_type || event.meal_type),
             registrationOpen: session.registration_open !== false
           };
         })
@@ -3099,11 +3110,11 @@ function renderEvents() {
           <div class="event-date">${formatDate(event.date)}</div>
           <h3 class="event-title">${escapeHtml(event.title)}</h3>
           <p class="event-location">${escapeHtml(event.location)}</p>
+          ${renderMealHighlightBadges(event, visibleSessions)}
           <div class="event-meta-chips">
             <span class="event-meta-chip">${escapeHtml(participantLabel)}</span>
             <span class="event-meta-chip">${escapeHtml(sessionsLabel)}</span>
             <span class="event-meta-chip">${escapeHtml(t('events.equipmentIncluded'))}</span>
-            ${getEventMealLabel(event) ? `<span class="event-meta-chip">${escapeHtml(getEventMealLabel(event))}</span>` : ''}
           </div>
           ${participantPreview}
           <p class="event-summary">${escapeHtml(getEventSummaryCopy(event))}</p>
@@ -3118,6 +3129,7 @@ function renderEvents() {
                     <span class="session-time">${escapeHtml(session.startTime)} - ${escapeHtml(session.endTime)}</span>
                     <span class="session-type">${escapeHtml(session.exerciseType)}</span>
                     ${getSessionPriceLabel(event, session) ? `<span style="display:block;margin-top:4px;font-size:0.85rem;opacity:0.9;">${getSessionPriceLabel(event, session)}</span>` : ''}
+                    ${getSessionMealLabel(session) ? `<span class="session-meal-pill">${escapeHtml(getSessionMealLabel(session))}</span>` : ''}
                     ${isSessionClosed ? `<span class="session-note">${escapeHtml(t('events.closed'))}</span>` : ''}
                   </div>
                   <div class="session-capacity">
@@ -3258,10 +3270,10 @@ function renderEventModal(event) {
       <h2 id="modalTitle">${escapeHtml(event.title)}</h2>
       <p>${formatDate(event.date)} · ${escapeHtml(event.location)}</p>
       ${event.description ? `<p style="margin-top:8px;">${escapeHtml(event.description)}</p>` : ''}
+      ${renderMealHighlightBadges(event, publicSessions)}
       <div class="event-meta-chips modal-meta-chips">
         <span class="event-meta-chip">${escapeHtml(getCountLabel('events.joining', participantCount))}</span>
         <span class="event-meta-chip">${escapeHtml(t('events.equipmentIncluded'))}</span>
-        ${getEventMealLabel(event) ? `<span class="event-meta-chip">${escapeHtml(getEventMealLabel(event))}</span>` : ''}
         <span class="event-meta-chip">${escapeHtml(t('events.modalMixedLevels'))}</span>
       </div>
       ${participantPreview}
@@ -3279,6 +3291,7 @@ function renderEventModal(event) {
             <div class="modal-session-info">
               <h4>${escapeHtml(session.title)}</h4>
               <p>${escapeHtml(session.startTime)} - ${escapeHtml(session.endTime)} · ${escapeHtml(session.exerciseType)}</p>
+              ${getSessionMealLabel(session) ? `<p class="modal-meal-highlight">${escapeHtml(getSessionMealLabel(session))}</p>` : ''}
               ${priceLabel ? `<p class="modal-price">${priceLabel}</p>` : ''}
             </div>
             <div class="modal-session-capacity">
