@@ -5,6 +5,7 @@ const {
   normalizeEmail,
   payrexxFormRequest,
   readJsonBody,
+  splitFullName,
   supabaseRequest
 } = require('./_payment-helpers');
 
@@ -101,6 +102,7 @@ exports.handler = async (event) => {
     const successUrl = `${siteUrl}/account.html?payment=success&ref=${encodeURIComponent(referenceId)}`;
     const failedUrl = `${siteUrl}/account.html?payment=failed&ref=${encodeURIComponent(referenceId)}`;
     const cancelUrl = `${siteUrl}/account.html?payment=cancel&ref=${encodeURIComponent(referenceId)}`;
+    const { forename, surname } = splitFullName(participant.fullName);
 
     const gatewayPayload = {
       amount: String(amountInCents),
@@ -110,7 +112,11 @@ exports.handler = async (event) => {
       successRedirectUrl: successUrl,
       failedRedirectUrl: failedUrl,
       cancelRedirectUrl: cancelUrl,
-      skipResultPage: 'true'
+      skipResultPage: 'true',
+      'fields[forename][value]': String(forename || '').trim(),
+      'fields[surname][value]': String(surname || '').trim(),
+      'fields[email][value]': email,
+      'fields[phone][value]': String(participant.phone || '').trim()
     };
 
     console.log('Create Payrexx gateway payload', gatewayPayload);

@@ -274,6 +274,80 @@ async function sendRegistrationEmail({ participant, eventData, session }) {
   return { success: true, emailId: json?.id || null };
 }
 
+
+async function sendAdminPaymentEmail({ participant, eventData, session, payment }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.RESEND_FROM_EMAIL;
+  const toEmail = process.env.CONTACT_TO_EMAIL || 'info@fitnesstruck.ch';
+  const replyTo = participant?.email ? String(participant.email).trim() : '';
+
+  if (!apiKey || !fromEmail || !toEmail) {
+    return { success: false, skipped: true, message: 'Admin email service is not configured.' };
+  }
+
+  const subject = `New paid Fitness Truck booking: ${eventData.title}`;
+  const paymentMethod = String(payment?.method || '').trim() || 'Unknown';
+  const amountLine = payment?.amountChf && Number(payment.amountChf) > 0
+    ? `CHF ${Number(payment.amountChf).toFixed(2)}`
+    : 'Unknown';
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111;max-width:680px;margin:0 auto;">
+      <h1 style="font-size:24px;margin-bottom:16px;">New paid booking received</h1>
+      <p>A payment has been confirmed for a Fitness Truck booking.</p>
+      <div style="border:1px solid #ddd;border-radius:12px;padding:16px;margin:20px 0;">
+        <h2 style="font-size:18px;margin:0 0 12px;">Participant</h2>
+        <p><strong>Name:</strong> ${escapeHtml(participant.fullName || '')}</p>
+        <p><strong>Email:</strong> ${escapeHtml(participant.email || '')}</p>
+        <p><strong>Phone:</strong> ${escapeHtml(participant.phone || '')}</p>
+        <p><strong>Age:</strong> ${escapeHtml(participant.age || '')}</p>
+        <p><strong>Gender:</strong> ${escapeHtml(participant.gender || '')}</p>
+        <p><strong>Emergency contact:</strong> ${escapeHtml(participant.emergencyContactName || '')} — ${escapeHtml(participant.emergencyContactPhone || '')}</p>
+        ${participant.foodAllergies ? `<p><strong>Food allergies:</strong> ${escapeHtml(participant.foodAllergies)}</p>` : ''}
+        ${participant.medicalConditions ? `<p><strong>Medical conditions:</strong> ${escapeHtml(participant.medicalConditions)}</p>` : ''}
+      </div>
+      <div style="border:1px solid #ddd;border-radius:12px;padding:16px;margin:20px 0;">
+        <h2 style="font-size:18px;margin:0 0 12px;">Booking</h2>
+        <p><strong>Event:</strong> ${escapeHtml(eventData.title || '')}</p>
+        <p><strong>Date:</strong> ${escapeHtml(formatDate(eventData.date) || '')}</p>
+        <p><strong>Location:</strong> ${escapeHtml(eventData.location || '')}</p>
+        <p><strong>Session:</strong> ${escapeHtml(session.title || '')}</p>
+        <p><strong>Time:</strong> ${escapeHtml(session.startTime || '')} - ${escapeHtml(session.endTime || '')}</p>
+        <p><strong>Training:</strong> ${escapeHtml(session.exerciseType || '')}</p>
+        <p><strong>Amount paid:</strong> ${escapeHtml(amountLine)}</p>
+        <p><strong>Payment method:</strong> ${escapeHtml(paymentMethod)}</p>
+        <p><strong>Reference ID:</strong> ${escapeHtml(payment.referenceId || '')}</p>
+        <p><strong>Payrexx transaction ID:</strong> ${escapeHtml(payment.transactionId || '')}</p>
+      </div>
+    </div>
+  `;
+
+  const payload = {
+    from: fromEmail,
+    to: [toEmail],
+    subject,
+    html
+  };
+
+  if (replyTo) payload.reply_to = replyTo;
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(json?.message || 'Resend API error');
+  }
+
+  return { success: true, emailId: json?.id || null, toEmail };
+}
+
 module.exports = {
   extractGatewayInfo,
   extractTransaction,
@@ -285,6 +359,7 @@ module.exports = {
   payrexxFormRequest,
   payrexxGet,
   readJsonBody,
+  sendAdminPaymentEmail,
   sendRegistrationEmail,
   splitFullName,
   supabaseRequest,

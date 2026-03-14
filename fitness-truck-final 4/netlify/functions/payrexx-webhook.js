@@ -3,6 +3,7 @@ const {
   jsonResponse,
   normalizeEmail,
   payrexxGet,
+  sendAdminPaymentEmail,
   sendRegistrationEmail,
   supabaseRequest,
   supabaseRpc
@@ -136,38 +137,60 @@ exports.handler = async (event) => {
       throw new Error(rpcResult?.message || 'Booking could not be finalized after payment.');
     }
 
+    const participantDetails = {
+      fullName: intent.full_name,
+      email: intent.email,
+      phone: intent.phone,
+      age: intent.age,
+      gender: intent.gender,
+      foodAllergies: intent.food_allergies,
+      medicalConditions: intent.medical_conditions,
+      emergencyContactName: intent.emergency_contact_name,
+      emergencyContactPhone: intent.emergency_contact_phone
+    };
+    const eventDetails = {
+      title: intent.event_title,
+      date: intent.event_date,
+      location: intent.event_location
+    };
+    const sessionDetails = {
+      title: intent.session_title,
+      startTime: intent.session_start_time,
+      endTime: intent.session_end_time,
+      exerciseType: intent.session_exercise_type,
+      priceChf: intent.amount_chf
+    };
+
     let emailSent = !!intent.email_sent;
     if (!emailSent) {
       try {
         await sendRegistrationEmail({
-          participant: {
-            fullName: intent.full_name,
-            email: intent.email,
-            phone: intent.phone,
-            age: intent.age,
-            gender: intent.gender,
-            foodAllergies: intent.food_allergies,
-            medicalConditions: intent.medical_conditions,
-            emergencyContactName: intent.emergency_contact_name,
-            emergencyContactPhone: intent.emergency_contact_phone
-          },
-          eventData: {
-            title: intent.event_title,
-            date: intent.event_date,
-            location: intent.event_location
-          },
-          session: {
-            title: intent.session_title,
-            startTime: intent.session_start_time,
-            endTime: intent.session_end_time,
-            exerciseType: intent.session_exercise_type,
-            priceChf: intent.amount_chf
-          }
+          participant: participantDetails,
+          eventData: eventDetails,
+          session: sessionDetails
         });
         emailSent = true;
       } catch (emailError) {
-        console.error('Payment webhook email error:', emailError);
+        console.error('Payment webhook participant email error:', emailError);
       }
+    }
+
+    let adminEmailSent = false;
+    try {
+      await sendAdminPaymentEmail({
+        participant: participantDetails,
+        eventData: eventDetails,
+        session: sessionDetails,
+        payment: {
+          amountChf: intent.amount_chf,
+          method: verifiedTransaction.psp || intent.payment_method || '',
+          referenceId,
+          transactionId: String(verifiedTransaction.id || transactionId)
+        }
+      });
+      adminEmailSent = true;
+    } catch (adminEmailError) {
+      console.error('Payment webhook admin email error:', adminEmailError);
     }
 
     await supabaseRequest(`/payment_intents?reference_id=eq.${encodeURIComponent(referenceId)}`, {
@@ -181,13 +204,14 @@ exports.handler = async (event) => {
       }
     });
 
-    console.log('Payrexx webhook finalized booking', { referenceId, registrationId, emailSent });
+    console.log('Payrexx webhook finalized booking', { referenceId, registrationId, emailSent, adminEmailSent });
 
     return jsonResponse(200, {
       success: true,
       processed: true,
       registrationId,
-      emailSent
+      emailSent,
+      adminEmailSent
     });
   } catch (error) {
     console.error('Payrexx webhook error:', error);
