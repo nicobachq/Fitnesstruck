@@ -95,6 +95,23 @@ async function supabaseRpc(functionName, payload) {
   });
 }
 
+async function syncSessionRegisteredCount(sessionId) {
+  const normalizedSessionId = String(sessionId || '').trim();
+  if (!normalizedSessionId) return 0;
+
+  const registrations = await supabaseRequest(`/registrations?session_id=eq.${encodeURIComponent(normalizedSessionId)}&select=id,attendance_status`);
+  const liveCount = Array.isArray(registrations)
+    ? registrations.filter((row) => String(row?.attendance_status || '').trim().toLowerCase() !== 'cancelled').length
+    : 0;
+
+  await supabaseRequest(`/sessions?id=eq.${encodeURIComponent(normalizedSessionId)}`, {
+    method: 'PATCH',
+    body: { registered_count: liveCount }
+  });
+
+  return liveCount;
+}
+
 async function getAuthenticatedSupabaseUser(accessToken) {
   const token = String(accessToken || '').trim();
   if (!token) throw new Error('Missing access token.');
@@ -497,5 +514,6 @@ module.exports = {
   sendRegistrationEmail,
   splitFullName,
   supabaseRequest,
-  supabaseRpc
+  supabaseRpc,
+  syncSessionRegisteredCount
 };

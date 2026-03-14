@@ -6,7 +6,8 @@ const {
   sendAdminPaymentEmail,
   sendRegistrationEmail,
   supabaseRequest,
-  supabaseRpc
+  supabaseRpc,
+  syncSessionRegisteredCount
 } = require('./_payment-helpers');
 
 function extractReferenceFromPurpose(value) {
@@ -34,6 +35,13 @@ async function cleanupRefundedRegistration(intent) {
       method: 'DELETE',
       headers: { Prefer: 'return=minimal' }
     });
+
+    try {
+      await syncSessionRegisteredCount(intent?.session_id);
+    } catch (countError) {
+      console.error('Refund cleanup session count warning:', countError);
+    }
+
     return true;
   } catch (deleteError) {
     console.error('Refund cleanup delete warning:', deleteError);
@@ -173,6 +181,12 @@ exports.handler = async (event) => {
         }
       });
       throw new Error(rpcResult?.message || 'Booking could not be finalized after payment.');
+    }
+
+    try {
+      await syncSessionRegisteredCount(intent.session_id);
+    } catch (countError) {
+      console.error('Booking finalization session count warning:', countError);
     }
 
     const participantDetails = {

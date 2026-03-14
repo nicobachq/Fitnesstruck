@@ -8,7 +8,8 @@ const {
   readJsonBody,
   sendAdminCancellationEmail,
   sendCancellationEmail,
-  supabaseRequest
+  supabaseRequest,
+  syncSessionRegisteredCount
 } = require('./_payment-helpers');
 
 const CANCELLATION_WINDOW_HOURS = 72;
@@ -186,6 +187,12 @@ exports.handler = async (event) => {
     // then remove the registration row so it no longer appears in account/admin/seat counts.
     await safelyMarkRegistrationCancelled(registrationId);
     const deleted = await safelyDeleteRegistration(registrationId);
+
+    try {
+      await syncSessionRegisteredCount(session.id);
+    } catch (countError) {
+      console.error('Could not sync session count after cancellation:', countError);
+    }
 
     const participant = {
       fullName: registration.full_name || paymentIntent?.full_name || authUser.user_metadata?.full_name || '',

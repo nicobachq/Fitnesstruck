@@ -36,6 +36,7 @@ const state = {
   claimRegistrationsForEmail: '',
   claimRegistrationsCount: 0,
   visiblePastRegistrations: 5,
+  sessionParticipation: {},
   cancellingRegistrationIds: {},
   eventsLoaded: false,
   paymentReturn: null,
@@ -421,7 +422,11 @@ const TRANSLATIONS = {
       modalLogisticsDesc: 'Porta outfit adeguato e strati caldi se serve. Noi portiamo l\'attrezzatura e ti aggiorniamo se meteo o logistica richiedono cambiamenti.',
       modalMixedLevels: 'Livelli misti',
       modalWeather: 'Aggiornamenti meteo inclusi',
-      modalAccountRequired: 'Account richiesto per prenotare'
+      modalAccountRequired: 'Account richiesto per prenotare',
+      participantPreview: 'Chi partecipa',
+      participantPreviewEmpty: 'Sii tra i primi a partecipare',
+      participantMore_one: '+{count} altro',
+      participantMore_other: '+{count} altri'
     },
     experience: {
       eyebrow: 'Come partecipare',
@@ -773,7 +778,11 @@ const TRANSLATIONS = {
       modalLogisticsDesc: 'Bring suitable training clothes and warm layers if needed. We bring the equipment and keep you updated if weather or logistics require changes.',
       modalMixedLevels: 'Mixed levels',
       modalWeather: 'Weather updates included',
-      modalAccountRequired: 'Account required to book'
+      modalAccountRequired: 'Account required to book',
+      participantPreview: 'Who is joining',
+      participantPreviewEmpty: 'Be one of the first to join',
+      participantMore_one: '+{count} more',
+      participantMore_other: '+{count} more'
     },
     experience: {
       eyebrow: 'How to join',
@@ -1672,7 +1681,10 @@ async function handleCancelRegistration(registrationId = '') {
 
     state.myRegistrations = state.myRegistrations.filter((item) => String(item.registration_id || '') !== normalizedId);
     showToast(payload?.refunded === false ? t('account.cancelSuccessNoRefund') : t('account.cancelSuccess'), 'success');
-    await loadMyRegistrations({ force: true });
+    await Promise.allSettled([
+      loadMyRegistrations({ force: true }),
+      loadEvents()
+    ]);
   } catch (error) {
     console.error('Cancel registration error:', error);
     showToast(error.message || t('contact.error'), 'error');
@@ -2813,18 +2825,92 @@ function initAuth() {
 }
 
 
+async function loadSessionParticipation() {
+  try {
+    const response = await fetch('/.netlify/functions/public-participants', {
+      method: 'GET',
+      headers: { Accept: 'application/json' }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload?.success === false) {
+      throw new Error(payload?.message || 'Could not load participants.');
+    }
+    state.sessionParticipation = payload?.sessions && typeof payload.sessions === 'object' ? payload.sessions : {};
+  } catch (error) {
+    console.error('Session participation load warning:', error);
+    state.sessionParticipation = {};
+  }
+}
+
+function getSessionParticipation(sessionId = '') {
+  return state.sessionParticipation?.[String(sessionId || '').trim()] || null;
+}
+
+function getSessionParticipants(session) {
+  const participants = getSessionParticipation(session?.id)?.participants;
+  return Array.isArray(participants) ? participants : [];
+}
+
+function getEventParticipants(event) {
+  const seen = new Set();
+  const participants = [];
+  getVisibleSessions(event).forEach((session) => {
+    getSessionParticipants(session).forEach((participant) => {
+      const key = String(participant?.key || '').trim() || `${participant?.firstName || ''}:${participant?.avatarUrl || ''}`;
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      participants.push(participant);
+    });
+  });
+  return participants;
+}
+
+function renderParticipantPreview(participants = [], totalCount = 0) {
+  const safeParticipants = Array.isArray(participants) ? participants : [];
+  if (!safeParticipants.length && totalCount <= 0) {
+    return `<div class="participant-preview participant-preview-empty"><span class="participant-preview-label">${escapeHtml(t('events.participantPreviewEmpty'))}</span></div>`;
+  }
+
+  const visibleParticipants = safeParticipants.slice(0, 6);
+  const remainingCount = Math.max(0, Number(totalCount || 0) - visibleParticipants.length);
+  const items = visibleParticipants.map((participant) => {
+    const firstName = String(participant?.firstName || '').trim() || 'Guest';
+    const avatarUrl = String(participant?.avatarUrl || '').trim() || buildAvatarPlaceholderDataUri(firstName);
+    return `
+      <div class="participant-pill" title="${escapeAttr(firstName)}">
+        <img src="${escapeAttr(avatarUrl)}" alt="${escapeAttr(firstName)}" class="participant-pill-avatar" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeAttr(buildAvatarPlaceholderDataUri(firstName))}'">
+        <span class="participant-pill-name">${escapeHtml(firstName)}</span>
+      </div>`;
+  }).join('');
+
+  const more = remainingCount > 0
+    ? `<div class="participant-pill participant-pill-more">${escapeHtml(getCountLabel('events.participantMore', remainingCount))}</div>`
+    : '';
+
+  return `
+    <div class="participant-preview">
+      <span class="participant-preview-label">${escapeHtml(t('events.participantPreview'))}</span>
+      <div class="participant-preview-list">${items}${more}</div>
+    </div>`;
+}
+
 async function loadEvents() {
   try {
-    const { data: events, error: eventsError } = await supabaseClient
-      .from('events')
-      .select('*')
-      .order('date', { ascending: true });
-    if (eventsError) throw eventsError;
+    const [eventsResponse, sessionsResponse, _participationLoaded] = await Promise.all([
+      supabaseClient
+        .from('events')
+        .select('*')
+        .order('date', { ascending: true }),
+      supabaseClient
+        .from('sessions')
+        .select('*')
+        .order('start_time', { ascending: true }),
+      loadSessionParticipation()
+    ]);
 
-    const { data: sessions, error: sessionsError } = await supabaseClient
-      .from('sessions')
-      .select('*')
-      .order('start_time', { ascending: true });
+    const { data: events, error: eventsError } = eventsResponse;
+    const { data: sessions, error: sessionsError } = sessionsResponse;
+    if (eventsError) throw eventsError;
     if (sessionsError) throw sessionsError;
 
     state.events = (events || []).map((event) => ({
@@ -2840,17 +2926,21 @@ async function loadEvents() {
       registrationOpen: event.registration_open !== false,
       sessions: (sessions || [])
         .filter((session) => session.event_id === event.id)
-        .map((session) => ({
-          id: session.id,
-          title: session.title,
-          startTime: session.start_time,
-          endTime: session.end_time,
-          exerciseType: session.exercise_type,
-          maxParticipants: Number(session.max_participants || 0),
-          registered: Number(session.registered_count || 0),
-          priceChf: Number(session.price_chf || 0),
-          registrationOpen: session.registration_open !== false
-        }))
+        .map((session) => {
+          const participation = getSessionParticipation(session.id);
+          return {
+            id: session.id,
+            title: session.title,
+            startTime: session.start_time,
+            endTime: session.end_time,
+            exerciseType: session.exercise_type,
+            maxParticipants: Number(session.max_participants || 0),
+            registered: Number(participation?.count ?? session.registered_count ?? 0),
+            participants: Array.isArray(participation?.participants) ? participation.participants : [],
+            priceChf: Number(session.price_chf || 0),
+            registrationOpen: session.registration_open !== false
+          };
+        })
     }));
   } catch (error) {
     console.error('Failed to load events:', error);
@@ -2930,6 +3020,7 @@ function renderEvents() {
       : isSoldOut
         ? t('events.soldOutCardDesc')
         : t('events.openCardDesc');
+    const participantPreview = renderParticipantPreview(getEventParticipants(event), totalRegistered);
 
     return `
       <article class="${cardClasses.join(' ')}" tabindex="${isClosed ? '-1' : '0'}" data-event-id="${escapeAttr(event.id)}" aria-disabled="${isClosed ? 'true' : 'false'}">
@@ -2953,6 +3044,7 @@ function renderEvents() {
             <span class="event-meta-chip">${escapeHtml(sessionsLabel)}</span>
             <span class="event-meta-chip">${escapeHtml(t('events.equipmentIncluded'))}</span>
           </div>
+          ${participantPreview}
           <p class="event-summary">${escapeHtml(getEventSummaryCopy(event))}</p>
           <div class="event-sessions">
             ${visibleSessions.map((session) => {
@@ -3096,6 +3188,7 @@ function renderEventModal(event) {
   const visibleSessions = getVisibleSessions(event);
   const publicSessions = getPublicSessions(event);
   const participantCount = visibleSessions.reduce((sum, session) => sum + Number(session.registered || 0), 0);
+  const participantPreview = renderParticipantPreview(getEventParticipants(event), participantCount);
   return `
     <div class="modal-header">
       ${eventPhotoUrl ? `<div class="modal-event-photo"><img src="${escapeAttr(eventPhotoUrl)}" alt="${escapeAttr(event.title)}"></div>` : ''}
@@ -3107,6 +3200,7 @@ function renderEventModal(event) {
         <span class="event-meta-chip">${escapeHtml(t('events.equipmentIncluded'))}</span>
         <span class="event-meta-chip">${escapeHtml(t('events.modalMixedLevels'))}</span>
       </div>
+      ${participantPreview}
     </div>
     <div class="modal-sessions" role="list">
       ${publicSessions.map((session) => {

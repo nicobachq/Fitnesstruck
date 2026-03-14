@@ -1574,6 +1574,53 @@ html[lang="it"] .team-role, html[lang="it"] .contact-item, html[lang="it"] .auth
   line-height:1.7;
   margin-bottom:18px;
 }
+.participant-preview{
+  display:grid;
+  gap:10px;
+  margin:-4px 0 18px;
+}
+.participant-preview-empty{
+  margin-top:0;
+}
+.participant-preview-label{
+  font-size:.8rem;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--text-muted);
+}
+.participant-preview-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+.participant-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:40px;
+  padding:6px 10px 6px 6px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.05);
+  color:var(--text);
+}
+.participant-pill-avatar{
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  object-fit:cover;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.08);
+  flex:0 0 28px;
+}
+.participant-pill-name{
+  font-size:.88rem;
+  line-height:1;
+}
+.participant-pill-more{
+  padding-inline:12px;
+  color:var(--text-secondary);
+}
 .event-card-footer{
   display:flex;
   align-items:center;
