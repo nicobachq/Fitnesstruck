@@ -209,8 +209,11 @@ nav{max-width:var(--container-width);margin:0 auto;padding:0 24px;display:flex;j
 .auth-registration-detail strong{display:block;margin-bottom:6px;font-size:.8rem;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted)}
 .auth-registration-detail span{display:block;color:var(--text)}
 .auth-registration-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.auth-registration-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}
+.auth-registration-note{padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.03);font-size:.84rem;color:var(--text-secondary)}
+.auth-cancel-registration-btn[disabled]{opacity:.7;cursor:wait}
 .auth-registrations-empty{padding:20px;border:1px dashed rgba(255,255,255,.12);border-radius:16px;color:var(--text-secondary);background:rgba(255,255,255,.02)}
-@media (max-width:768px){.auth-registrations-header,.auth-registration-card-top,.auth-registration-footer{flex-direction:column;align-items:flex-start}.auth-registration-details{grid-template-columns:1fr}.auth-registrations-count{white-space:normal}}
+@media (max-width:768px){.auth-registrations-header,.auth-registration-card-top,.auth-registration-footer{flex-direction:column;align-items:flex-start}.auth-registration-details{grid-template-columns:1fr}.auth-registrations-count{white-space:normal}.auth-registration-actions{margin-left:0;justify-content:flex-start}}
 
 .auth-group-note{margin-top:-4px;color:var(--text-muted);font-size:.84rem}
 .auth-past-history-list{display:flex;flex-direction:column;gap:10px}

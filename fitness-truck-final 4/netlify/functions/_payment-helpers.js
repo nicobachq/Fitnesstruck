@@ -43,8 +43,12 @@ function makeReferenceId() {
   return `ftpay_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 }
 
+function getSupabaseProjectUrl() {
+  return getEnv('SUPABASE_URL').replace(/\/$/, '');
+}
+
 function getSupabaseBaseUrl() {
-  return `${getEnv('SUPABASE_URL').replace(/\/$/, '')}/rest/v1`;
+  return `${getSupabaseProjectUrl()}/rest/v1`;
 }
 
 function getSupabaseHeaders(extra = {}) {
@@ -89,6 +93,34 @@ async function supabaseRpc(functionName, payload) {
     body: payload,
     headers: { Prefer: 'return=representation' }
   });
+}
+
+async function getAuthenticatedSupabaseUser(accessToken) {
+  const token = String(accessToken || '').trim();
+  if (!token) throw new Error('Missing access token.');
+
+  const response = await fetch(`${getSupabaseProjectUrl()}/auth/v1/user`, {
+    method: 'GET',
+    headers: {
+      apikey: getEnv('SUPABASE_SERVICE_ROLE_KEY'),
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  const text = await response.text();
+  let json = null;
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch (error) {
+    json = null;
+  }
+
+  if (!response.ok) {
+    const message = json?.msg || json?.message || json?.error_description || text || `Supabase auth failed (${response.status})`;
+    throw new Error(message);
+  }
+
+  return json;
 }
 
 function getPayrexxApiUrl(path) {
@@ -348,10 +380,110 @@ async function sendAdminPaymentEmail({ participant, eventData, session, payment 
   return { success: true, emailId: json?.id || null, toEmail };
 }
 
+
+async function sendCancellationEmail({ participant, eventData, session, payment, deadlineHours = 72 }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.RESEND_FROM_EMAIL;
+  const replyTo = process.env.REGISTRATION_REPLY_TO || '';
+
+  if (!apiKey || !fromEmail || !participant?.email) {
+    return { success: false, skipped: true, message: 'Email service is not configured.' };
+  }
+
+  const subject = `Fitness Truck cancellation confirmed: ${eventData.title}`;
+  const amountLine = payment?.amountChf && Number(payment.amountChf) > 0
+    ? `<p><strong>Refund:</strong> CHF ${Number(payment.amountChf).toFixed(2)} initiated to your original payment method.</p>`
+    : '';
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111;max-width:640px;margin:0 auto;">
+      <h1 style="font-size:24px;margin-bottom:16px;">Your Fitness Truck booking has been cancelled</h1>
+      <p>Hi ${escapeHtml(participant.fullName || '')},</p>
+      <p>Your place has been cancelled successfully.</p>
+      <div style="border:1px solid #ddd;border-radius:12px;padding:16px;margin:20px 0;">
+        <p><strong>Event:</strong> ${escapeHtml(eventData.title || '')}</p>
+        <p><strong>Date:</strong> ${escapeHtml(formatDate(eventData.date) || '')}</p>
+        <p><strong>Location:</strong> ${escapeHtml(eventData.location || '')}</p>
+        <p><strong>Session:</strong> ${escapeHtml(session.title || '')}</p>
+        <p><strong>Time:</strong> ${escapeHtml(session.startTime || '')} - ${escapeHtml(session.endTime || '')}</p>
+        ${amountLine}
+      </div>
+      <p>Online cancellation is available until ${escapeHtml(String(deadlineHours))} hours before the event start. After that point, refunds are no longer automatic unless Fitness Truck cancels the event.</p>
+      <p>If you have any questions, reply to this email and we will help.</p>
+      <p>Fitness Truck</p>
+    </div>
+  `;
+
+  const payload = { from: fromEmail, to: [participant.email], subject, html };
+  if (replyTo) payload.reply_to = replyTo;
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(json?.message || 'Resend API error');
+
+  return { success: true, emailId: json?.id || null };
+}
+
+async function sendAdminCancellationEmail({ participant, eventData, session, payment, deadlineHours = 72 }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.RESEND_FROM_EMAIL;
+  const toEmail = process.env.CONTACT_TO_EMAIL || 'info@fitnesstruck.ch';
+  const replyTo = participant?.email ? String(participant.email).trim() : '';
+
+  if (!apiKey || !fromEmail || !toEmail) {
+    return { success: false, skipped: true, message: 'Admin email service is not configured.' };
+  }
+
+  const subject = `Fitness Truck cancellation: ${eventData.title}`;
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111;max-width:680px;margin:0 auto;">
+      <h1 style="font-size:24px;margin-bottom:16px;">Booking cancelled and refund started</h1>
+      <p>A participant cancelled within the ${escapeHtml(String(deadlineHours))}-hour refund window.</p>
+      <div style="border:1px solid #ddd;border-radius:12px;padding:16px;margin:20px 0;">
+        <p><strong>Name:</strong> ${escapeHtml(participant.fullName || '')}</p>
+        <p><strong>Email:</strong> ${escapeHtml(participant.email || '')}</p>
+        <p><strong>Phone:</strong> ${escapeHtml(participant.phone || '')}</p>
+      </div>
+      <div style="border:1px solid #ddd;border-radius:12px;padding:16px;margin:20px 0;">
+        <p><strong>Event:</strong> ${escapeHtml(eventData.title || '')}</p>
+        <p><strong>Date:</strong> ${escapeHtml(formatDate(eventData.date) || '')}</p>
+        <p><strong>Location:</strong> ${escapeHtml(eventData.location || '')}</p>
+        <p><strong>Session:</strong> ${escapeHtml(session.title || '')}</p>
+        <p><strong>Time:</strong> ${escapeHtml(session.startTime || '')} - ${escapeHtml(session.endTime || '')}</p>
+        <p><strong>Refund amount:</strong> CHF ${escapeHtml(Number(payment?.amountChf || 0).toFixed(2))}</p>
+        <p><strong>Payment method:</strong> ${escapeHtml(payment?.method || '')}</p>
+        <p><strong>Reference ID:</strong> ${escapeHtml(payment?.referenceId || '')}</p>
+        <p><strong>Payrexx transaction ID:</strong> ${escapeHtml(payment?.transactionId || '')}</p>
+      </div>
+    </div>
+  `;
+
+  const payload = { from: fromEmail, to: [toEmail], subject, html };
+  if (replyTo) payload.reply_to = replyTo;
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(json?.message || 'Resend API error');
+
+  return { success: true, emailId: json?.id || null, toEmail };
+}
+
 module.exports = {
   extractGatewayInfo,
   extractTransaction,
   formatDate,
+  getAuthenticatedSupabaseUser,
   getEnv,
   jsonResponse,
   makeReferenceId,
@@ -359,7 +491,9 @@ module.exports = {
   payrexxFormRequest,
   payrexxGet,
   readJsonBody,
+  sendAdminCancellationEmail,
   sendAdminPaymentEmail,
+  sendCancellationEmail,
   sendRegistrationEmail,
   splitFullName,
   supabaseRequest,

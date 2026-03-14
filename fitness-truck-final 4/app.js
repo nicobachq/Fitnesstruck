@@ -36,6 +36,7 @@ const state = {
   claimRegistrationsForEmail: '',
   claimRegistrationsCount: 0,
   visiblePastRegistrations: 5,
+  cancellingRegistrationIds: {},
   eventsLoaded: false,
   paymentReturn: null,
   paymentReturnNotice: null,
@@ -488,7 +489,7 @@ const TRANSLATIONS = {
       q3: 'Cosa succede se il meteo peggiora?',
       a3: 'Gli eventi si svolgono normalmente in condizioni outdoor gestibili. Se il meteo è davvero insicuro, possiamo posticipare, spostare o annullare l\'evento e avvisarti in anticipo.',
       q4: 'Posso cancellare la mia partecipazione?',
-      a4: 'Sì. La cancellazione è gratuita fino a 48 ore prima dell\'evento. Dopo quel termine non è previsto rimborso, salvo cancellazione da parte di Fitness Truck.',
+      a4: 'Sì. La cancellazione è gratuita fino a 72 ore prima dell\'inizio dell\'evento. Nelle 72 ore precedenti non è più possibile annullare online né ricevere rimborso, salvo cancellazione da parte di Fitness Truck.',
       fullCta: 'Apri FAQ complete',
       policyCta: 'Leggi condizioni e policy'
     },
@@ -550,6 +551,15 @@ const TRANSLATIONS = {
       labelPrice: 'Prezzo',
       booked: 'Prenotato {value}',
       openEvent: 'Apri evento',
+      cancelRegistration: 'Annulla e rimborsa',
+      cancellingRegistration: 'Annullamento…',
+      cancellationUntil: 'Cancellazione gratuita fino al {value}',
+      cancellationClosed: 'Nelle 72 ore prima dell\'inizio non puoi più annullare online.',
+      cancelConfirm: 'Vuoi annullare questa prenotazione? Se sei ancora fuori dalla finestra delle 72 ore, il posto verrà cancellato e il rimborso verrà avviato automaticamente sul metodo di pagamento originale quando supportato.',
+      cancelSuccess: 'Prenotazione annullata. Rimborso avviato.',
+      cancelSuccessNoRefund: 'Prenotazione annullata.',
+      cancelTooLate: 'Nelle 72 ore prima dell\'evento non è più possibile annullare online.',
+      cancelRefundUnavailable: 'Questo pagamento non può essere rimborsato automaticamente. Scrivici direttamente e ti aiutiamo noi.',
       loadMorePast: 'Carica altri {count} eventi passati',
       signedIn: 'Connesso',
       yourAccount: 'Il tuo account',
@@ -831,7 +841,7 @@ const TRANSLATIONS = {
       q3: 'What happens if the weather gets worse?',
       a3: 'Events normally go ahead in manageable outdoor conditions. If the weather becomes unsafe, we may postpone, relocate, or cancel the event and notify you in advance.',
       q4: 'Can I cancel my participation?',
-      a4: 'Yes. Cancellation is free up to 48 hours before the event. After that, no refund is provided unless Fitness Truck cancels the event.',
+      a4: 'Yes. Cancellation is free up to 72 hours before the event start. Within the final 72 hours, online cancellation and refunds are no longer available unless Fitness Truck cancels the event.',
       fullCta: 'Open full FAQ',
       policyCta: 'Read terms and policies'
     },
@@ -893,6 +903,15 @@ const TRANSLATIONS = {
       labelPrice: 'Price',
       booked: 'Booked {value}',
       openEvent: 'Open event',
+      cancelRegistration: 'Cancel and refund',
+      cancellingRegistration: 'Cancelling…',
+      cancellationUntil: 'Free cancellation until {value}',
+      cancellationClosed: 'Online cancellation closes 72 hours before the event start.',
+      cancelConfirm: 'Do you want to cancel this booking? If you are still outside the 72-hour window, your place will be cancelled and the refund will be started automatically to the original payment method when supported.',
+      cancelSuccess: 'Booking cancelled. Refund started.',
+      cancelSuccessNoRefund: 'Booking cancelled.',
+      cancelTooLate: 'Online cancellation is no longer available within 72 hours of the event start.',
+      cancelRefundUnavailable: 'This payment cannot be refunded automatically. Please contact us directly and we will help.',
       loadMorePast: 'Load {count} more past events',
       signedIn: 'Signed in',
       yourAccount: 'Your account',
@@ -1326,6 +1345,44 @@ function startOfToday() {
   return today;
 }
 
+function parseRegistrationEventStart(item = {}) {
+  const datePart = String(item.event_date || '').trim();
+  if (!datePart) return null;
+  const timePart = String(item.session_start_time || '').trim() || '00:00';
+  const normalizedTime = /^\d{2}:\d{2}$/.test(timePart) ? `${timePart}:00` : timePart;
+  const parsed = new Date(`${datePart}T${normalizedTime}`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function getRegistrationCancellationInfo(item = {}) {
+  const eventStart = parseRegistrationEventStart(item);
+  if (!eventStart) {
+    return { canCancel: false, deadlineLabel: '', eventStart: null };
+  }
+
+  const deadline = new Date(eventStart.getTime() - (72 * 60 * 60 * 1000));
+  return {
+    canCancel: item.is_upcoming && new Date() < deadline,
+    deadlineLabel: formatDateTime(deadline.toISOString()),
+    eventStart,
+    deadline
+  };
+}
+
+function isRegistrationCancellationPending(registrationId = '') {
+  return !!state.cancellingRegistrationIds[String(registrationId || '').trim()];
+}
+
+function setRegistrationCancellationPending(registrationId = '', isPending = false) {
+  const key = String(registrationId || '').trim();
+  if (!key) return;
+  state.cancellingRegistrationIds = {
+    ...state.cancellingRegistrationIds,
+    [key]: !!isPending
+  };
+  if (!isPending) delete state.cancellingRegistrationIds[key];
+}
+
 function getRegistrationPriceLabel(item) {
   const sessionPrice = Number(item.session_price_chf || 0);
   const eventPrice = Number(item.event_base_price_chf || 0);
@@ -1338,45 +1395,61 @@ function renderUpcomingRegistrationCards(items = [], emptyMessage = t('account.n
     return `<div class="auth-registrations-empty">${escapeHtml(emptyMessage)}</div>`;
   }
 
-  return items.map((item) => `
-    <article class="auth-registration-card">
-      <div class="auth-registration-card-top">
-        <div>
-          <div class="auth-registration-kicker">${escapeHtml(t('account.upcomingEventKicker'))}</div>
-          <h4>${escapeHtml(item.event_title || t('common.event'))}</h4>
+  return items.map((item) => {
+    const cancellation = getRegistrationCancellationInfo(item);
+    const isCancelling = isRegistrationCancellationPending(item.registration_id);
+    const deadlineBadge = cancellation.deadlineLabel
+      ? `<span class="auth-registration-note">${escapeHtml(t(cancellation.canCancel ? 'account.cancellationUntil' : 'account.cancellationClosed', { value: cancellation.deadlineLabel }))}</span>`
+      : '';
+    const openEventAction = item.event_id ? (isAccountPage()
+      ? `<a href="${escapeAttr(buildEventOpenUrl(item.event_id))}" class="btn btn-secondary btn-inline" data-account-open-event-id="${escapeAttr(item.event_id)}">${escapeHtml(t('account.openEvent'))}</a>`
+      : `<button type="button" class="btn btn-secondary btn-inline" data-open-booking-event-id="${escapeAttr(item.event_id)}">${escapeHtml(t('account.openEvent'))}</button>`) : '';
+    const cancelAction = cancellation.canCancel
+      ? `<button type="button" class="btn btn-secondary btn-inline auth-cancel-registration-btn" data-cancel-registration-id="${escapeAttr(item.registration_id)}" ${isCancelling ? 'disabled' : ''}>${escapeHtml(isCancelling ? t('account.cancellingRegistration') : t('account.cancelRegistration'))}</button>`
+      : '';
+
+    return `
+      <article class="auth-registration-card">
+        <div class="auth-registration-card-top">
+          <div>
+            <div class="auth-registration-kicker">${escapeHtml(t('account.upcomingEventKicker'))}</div>
+            <h4>${escapeHtml(item.event_title || t('common.event'))}</h4>
+          </div>
+          <span class="auth-registration-status upcoming">${escapeHtml(t('account.upcomingStatus'))}</span>
         </div>
-        <span class="auth-registration-status upcoming">${escapeHtml(t('account.upcomingStatus'))}</span>
-      </div>
-      <div class="auth-registration-meta">
-        <span>${escapeHtml(formatDate(item.event_date))}</span>
-        <span>${escapeHtml(item.event_location || t('common.locationTbd'))}</span>
-      </div>
-      <div class="auth-registration-details">
-        <div class="auth-registration-detail">
-          <strong>${escapeHtml(t('account.labelSession'))}</strong>
-          <span>${escapeHtml(item.session_title || t('common.session'))}</span>
+        <div class="auth-registration-meta">
+          <span>${escapeHtml(formatDate(item.event_date))}</span>
+          <span>${escapeHtml(item.event_location || t('common.locationTbd'))}</span>
+          ${deadlineBadge}
         </div>
-        <div class="auth-registration-detail">
-          <strong>${escapeHtml(t('account.labelTime'))}</strong>
-          <span>${escapeHtml(item.session_start_time && item.session_end_time ? `${item.session_start_time} - ${item.session_end_time}` : t('common.timeTbd'))}</span>
+        <div class="auth-registration-details">
+          <div class="auth-registration-detail">
+            <strong>${escapeHtml(t('account.labelSession'))}</strong>
+            <span>${escapeHtml(item.session_title || t('common.session'))}</span>
+          </div>
+          <div class="auth-registration-detail">
+            <strong>${escapeHtml(t('account.labelTime'))}</strong>
+            <span>${escapeHtml(item.session_start_time && item.session_end_time ? `${item.session_start_time} - ${item.session_end_time}` : t('common.timeTbd'))}</span>
+          </div>
+          <div class="auth-registration-detail">
+            <strong>${escapeHtml(t('account.labelType'))}</strong>
+            <span>${escapeHtml(item.session_exercise_type || t('common.experience'))}</span>
+          </div>
+          <div class="auth-registration-detail">
+            <strong>${escapeHtml(t('account.labelPrice'))}</strong>
+            <span>${escapeHtml(getRegistrationPriceLabel(item))}</span>
+          </div>
         </div>
-        <div class="auth-registration-detail">
-          <strong>${escapeHtml(t('account.labelType'))}</strong>
-          <span>${escapeHtml(item.session_exercise_type || t('common.experience'))}</span>
+        <div class="auth-registration-footer">
+          <span>${escapeHtml(t('account.booked', { value: item.created_at_label || '' }))}</span>
+          <div class="auth-registration-actions">
+            ${openEventAction}
+            ${cancelAction}
+          </div>
         </div>
-        <div class="auth-registration-detail">
-          <strong>${escapeHtml(t('account.labelPrice'))}</strong>
-          <span>${escapeHtml(getRegistrationPriceLabel(item))}</span>
-        </div>
-      </div>
-      <div class="auth-registration-footer">
-        <span>${escapeHtml(t('account.booked', { value: item.created_at_label || '' }))}</span>
-        ${item.event_id ? (isAccountPage()
-          ? `<a href="${escapeAttr(buildEventOpenUrl(item.event_id))}" class="btn btn-secondary btn-inline" data-account-open-event-id="${escapeAttr(item.event_id)}">${escapeHtml(t('account.openEvent'))}</a>`
-          : `<button type="button" class="btn btn-secondary btn-inline" data-open-booking-event-id="${escapeAttr(item.event_id)}">${escapeHtml(t('account.openEvent'))}</button>`) : ''}
-      </div>
-    </article>
-  `).join('');
+      </article>
+    `;
+  }).join('');
 }
 
 function renderPastRegistrationCards(items = [], emptyMessage = t('account.noPastYet')) {
@@ -1547,6 +1620,64 @@ async function loadMyRegistrations(options = {}) {
 
   if (isAuthModalOpen() && state.user && state.accountMode === 'summary') renderAuthModal();
   return state.myRegistrations;
+}
+
+async function handleCancelRegistration(registrationId = '') {
+  const normalizedId = String(registrationId || '').trim();
+  if (!normalizedId || !state.user) return;
+
+  const targetItem = state.myRegistrations.find((item) => String(item.registration_id || '') === normalizedId);
+  if (!targetItem) return;
+
+  const cancellation = getRegistrationCancellationInfo(targetItem);
+  if (!cancellation.canCancel) {
+    showToast(t('account.cancelTooLate'), 'error');
+    return;
+  }
+
+  if (!window.confirm(t('account.cancelConfirm'))) {
+    return;
+  }
+
+  setRegistrationCancellationPending(normalizedId, true);
+  if (isAuthModalOpen() && state.accountMode === 'summary') renderAuthModal();
+
+  try {
+    const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+    if (sessionError) throw sessionError;
+    const accessToken = String(sessionData?.session?.access_token || '').trim();
+    if (!accessToken) throw new Error('Please sign in again and try once more.');
+
+    const response = await fetch('/.netlify/functions/cancel-registration', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({ registrationId: normalizedId })
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload?.success === false) {
+      if (payload?.tooLate) {
+        throw new Error(t('account.cancelTooLate'));
+      }
+      if (payload?.refundUnavailable) {
+        throw new Error(t('account.cancelRefundUnavailable'));
+      }
+      throw new Error(payload?.message || t('contact.error'));
+    }
+
+    state.myRegistrations = state.myRegistrations.filter((item) => String(item.registration_id || '') !== normalizedId);
+    showToast(payload?.refunded === false ? t('account.cancelSuccessNoRefund') : t('account.cancelSuccess'), 'success');
+    await loadMyRegistrations({ force: true });
+  } catch (error) {
+    console.error('Cancel registration error:', error);
+    showToast(error.message || t('contact.error'), 'error');
+  } finally {
+    setRegistrationCancellationPending(normalizedId, false);
+    if (isAuthModalOpen() && state.accountMode === 'summary') renderAuthModal();
+  }
 }
 
 function updateAccountButton() {
@@ -2064,6 +2195,11 @@ function renderAuthModal() {
         event.preventDefault();
         queueRequestedEventId(eventId);
         window.location.assign(buildEventOpenUrl(eventId));
+      });
+    });
+    mount.querySelectorAll('[data-cancel-registration-id]').forEach((button) => {
+      button.addEventListener('click', () => {
+        handleCancelRegistration(button.dataset.cancelRegistrationId);
       });
     });
     return;
