@@ -3289,47 +3289,14 @@ function closeModal() {
 
 function initForms() {
   const contactForm = document.getElementById('contactForm');
-  [contactForm].forEach((form) => {
-    if (!form) return;
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const button = form.querySelector('button[type="submit"]') || form.querySelector('.btn-submit');
-      const originalText = button ? button.textContent : '';
-      if (button) {
-        button.disabled = true;
-        button.textContent = t('contact.sending');
-      }
+  if (!contactForm) return;
 
-      try {
-        const formData = new FormData(form);
-        const payload = new URLSearchParams();
-        for (const [key, value] of formData.entries()) {
-          payload.append(key, value);
-        }
+  contactForm.addEventListener('submit', () => {
+    const button = contactForm.querySelector('button[type="submit"]') || contactForm.querySelector('.btn-submit');
+    if (!button) return;
 
-        const response = await fetch('/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: payload.toString()
-        });
-
-        if (!response.ok) {
-          throw new Error(`Contact form failed (${response.status}).`);
-        }
-
-        const successUrl = form.getAttribute('action') || '/thank-you.html?form=contact';
-        window.location.href = successUrl;
-      } catch (error) {
-        console.error('Contact form submission failed:', error);
-        alert(t('contact.error') || 'Something went wrong. Please try again or email us directly.');
-        if (button) {
-          button.disabled = false;
-          button.textContent = originalText || t('contact.submit');
-        }
-      }
-    });
+    button.disabled = true;
+    button.textContent = t('contact.sending') || 'Sending...';
   });
 }
 

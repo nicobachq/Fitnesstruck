@@ -337,8 +337,11 @@
             <div class="contact-item"><span class="contact-label" data-i18n="contact.locations">Luoghi</span><span data-i18n="contact.locationsValue">Prima il Ticino · pronti a muoverci oltre</span></div>
           </div>
           <div class="contact-form-wrapper">
-            <form name="contact" method="POST" data-netlify="true" action="/thank-you.html?form=contact" class="contact-form" id="contactForm">
+            <form name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/thank-you.html?form=contact" class="contact-form" id="contactForm">
               <input type="hidden" name="form-name" value="contact" />
+              <p class="sr-only" hidden>
+                <label>Don't fill this out if you're human: <input name="bot-field" /></label>
+              </p>
               <div class="form-group">
                 <label for="contactName"><span data-i18n="contact.formName">Il tuo nome</span> <span aria-hidden="true">*</span></label>
                 <input type="text" name="name" id="contactName" data-i18n-placeholder="contact.formNamePlaceholder" placeholder="Mario Rossi" required autocomplete="name" />
