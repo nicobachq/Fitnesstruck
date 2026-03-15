@@ -692,7 +692,7 @@ const TRANSLATIONS = {
       signupPasswordMismatch: 'Inserisci la stessa password in entrambi i campi.',
       creatingAccount: 'Creazione account...',
       loggingIn: 'Accesso in corso...',
-      accountCreatedAndLoggedIn: 'Il tuo account Fitness Truck è pronto. Ora hai effettuato l'accesso e puoi scoprire i prossimi eventi, gestire le tue prenotazioni e unirti alla tua prossima esperienza outdoor.',
+      accountCreatedAndLoggedIn: 'Il tuo account Fitness Truck è pronto. Ora hai effettuato l\'accesso e puoi scoprire i prossimi eventi, gestire le tue prenotazioni e unirti alla tua prossima esperienza outdoor.',
       accountCreatedConfirm: 'Il tuo account Fitness Truck è pronto. Ora puoi accedere con la tua email e password.',
       accountCreatedFor: 'Il tuo account Fitness Truck è pronto. Ora puoi accedere con la tua email e password.',
       accountCreationFailed: 'Creazione account non riuscita.',

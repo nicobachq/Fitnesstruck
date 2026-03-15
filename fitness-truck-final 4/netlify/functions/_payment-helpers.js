@@ -404,7 +404,7 @@ const REGISTRATION_COPY_IT = {
   remindersHeading: 'Da ricordare',
   reminderArrival: 'Ti consigliamo di arrivare con qualche minuto di anticipo per iniziare con calma.',
   reminderGear: 'Porta un outfit adatto, acqua e uno strato caldo in più se necessario.',
-  reminderCancel: 'Puoi cancellare direttamente dal tuo account fino a 72 ore prima dell'evento.',
+  reminderCancel: 'Puoi cancellare direttamente dal tuo account fino a 72 ore prima dell\'evento.',
   outro: 'Se hai domande o devi aggiornare qualche informazione, rispondi pure a questa email.',
   signoff: 'A presto',
   labels: {
