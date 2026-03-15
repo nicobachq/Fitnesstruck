@@ -3220,9 +3220,3 @@ body.info-page{
     padding:20px 22px;
   }
 }
-
-
-/* v67 forgot password */
-.account-page .auth-helper .auth-inline-btn {
-  font-size: 0.95rem;
-}

@@ -60,52 +60,23 @@ function isAccountPage() {
   return document.body?.dataset?.page === 'account' || /\/account\.html(?:$|[?#])/i.test(window.location.pathname + window.location.search + window.location.hash);
 }
 
-function normalizeAuthView(view = 'login') {
-  const value = String(view || '').trim().toLowerCase();
-  if (value === 'signup' || value === 'forgot' || value === 'reset') return value;
-  return 'login';
-}
-
-function urlHasPasswordRecoveryHash() {
-  try {
-    const hash = String(window.location.hash || '');
-    return /(?:^|[#&])type=recovery(?:&|$)/i.test(hash) || /(?:^|[#&])access_token=/i.test(hash);
-  } catch (error) {
-    return false;
-  }
-}
-
 function getRequestedAuthView() {
   try {
-    if (urlHasPasswordRecoveryHash()) return 'reset';
     const value = new URLSearchParams(window.location.search).get('view');
-    return normalizeAuthView(value || 'login');
+    return value === 'signup' ? 'signup' : 'login';
   } catch (error) {
     return 'login';
   }
 }
 
 function buildAccountPageUrl(view = 'login') {
-  const target = new URL('account.html', window.location.origin + '/');
-  const normalizedView = normalizeAuthView(view);
-  target.searchParams.set('view', normalizedView);
+  const target = new URL('account.html', window.location.href);
+  target.searchParams.set('view', view === 'signup' ? 'signup' : 'login');
   return `${target.pathname}${target.search}`;
-}
-
-function buildAbsoluteAccountPageUrl(view = 'login') {
-  return new URL(buildAccountPageUrl(view), window.location.origin).href;
 }
 
 function goToAccountPage(view = 'login') {
   window.location.href = buildAccountPageUrl(view);
-}
-
-function replaceUrlKeepingPath(view = 'login') {
-  try {
-    window.history.replaceState({}, document.title, buildAccountPageUrl(view));
-  } catch (error) {
-    // noop
-  }
 }
 
 const OPEN_EVENT_STORAGE_KEY = 'ft_open_event_id';
@@ -664,26 +635,6 @@ const TRANSLATIONS = {
       password: 'Password *',
       confirmPassword: 'Conferma password *',
       confirmEmailHint: 'Dopo la registrazione puoi accedere subito con email e password.',
-      forgotPassword: 'Password dimenticata?',
-      forgotPasswordTitle: 'Recupera password',
-      forgotPasswordDesc: 'Inserisci l\'email del tuo account e ti invieremo un link per scegliere una nuova password.',
-      sendResetLink: 'Invia link di reset',
-      sendingResetLink: 'Invio link…',
-      backToLogin: 'Torna al login',
-      resetEmailSentNotice: 'Ti abbiamo inviato un link per reimpostare la password. Controlla la tua email e aprilo da questo dispositivo.',
-      resetEmailSentToast: 'Email di reset inviata.',
-      resetRequestFailed: 'Non siamo riusciti a inviare il link di reset.',
-      resetPasswordTitle: 'Scegli una nuova password',
-      resetPasswordDesc: 'Inserisci qui sotto la tua nuova password per completare il recupero account.',
-      newPassword: 'Nuova password *',
-      confirmNewPassword: 'Conferma nuova password *',
-      resetPasswordMismatch: 'Inserisci la stessa nuova password in entrambi i campi.',
-      updatePassword: 'Aggiorna password',
-      updatingPassword: 'Aggiornamento password…',
-      resetReady: 'Il link è valido. Ora puoi scegliere una nuova password.',
-      resetLinkInvalid: 'Apri di nuovo il link di recupero dalla tua email per impostare una nuova password.',
-      passwordResetSuccess: 'Password aggiornata. Ora puoi accedere con la nuova password.',
-      passwordResetFailed: 'Impossibile aggiornare la password.',
       optInNote: 'Facoltativo e sempre separato dal tuo login account.',
       loginErrorUnconfirmed: 'Questo account non è ancora attivo. Controlla le impostazioni di accesso oppure riprova tra poco.',
       loginSuccess: 'Ora sei connesso.',
@@ -692,7 +643,7 @@ const TRANSLATIONS = {
       signupPasswordMismatch: 'Inserisci la stessa password in entrambi i campi.',
       creatingAccount: 'Creazione account...',
       loggingIn: 'Accesso in corso...',
-      accountCreatedAndLoggedIn: 'Il tuo account Fitness Truck è pronto. Ora hai effettuato l\'accesso e puoi scoprire i prossimi eventi, gestire le tue prenotazioni e unirti alla tua prossima esperienza outdoor.',
+      accountCreatedAndLoggedIn: 'Il tuo account Fitness Truck è pronto. Ora hai effettuato l'accesso e puoi scoprire i prossimi eventi, gestire le tue prenotazioni e unirti alla tua prossima esperienza outdoor.',
       accountCreatedConfirm: 'Il tuo account Fitness Truck è pronto. Ora puoi accedere con la tua email e password.',
       accountCreatedFor: 'Il tuo account Fitness Truck è pronto. Ora puoi accedere con la tua email e password.',
       accountCreationFailed: 'Creazione account non riuscita.',
@@ -1054,26 +1005,6 @@ const TRANSLATIONS = {
       password: 'Password *',
       confirmPassword: 'Confirm password *',
       confirmEmailHint: 'After signup, you can log in right away with your email and password.',
-      forgotPassword: 'Forgot password?',
-      forgotPasswordTitle: 'Reset password',
-      forgotPasswordDesc: 'Enter the email linked to your account and we will send you a link to choose a new password.',
-      sendResetLink: 'Send reset link',
-      sendingResetLink: 'Sending link…',
-      backToLogin: 'Back to login',
-      resetEmailSentNotice: 'We have sent you a password reset link. Please check your email and open it on this device.',
-      resetEmailSentToast: 'Password reset email sent.',
-      resetRequestFailed: 'We could not send the password reset link.',
-      resetPasswordTitle: 'Choose a new password',
-      resetPasswordDesc: 'Enter your new password below to complete the account recovery process.',
-      newPassword: 'New password *',
-      confirmNewPassword: 'Confirm new password *',
-      resetPasswordMismatch: 'Please enter the same new password in both fields.',
-      updatePassword: 'Update password',
-      updatingPassword: 'Updating password…',
-      resetReady: 'The reset link is valid. You can now choose a new password.',
-      resetLinkInvalid: 'Please open the recovery link from your email again to set a new password.',
-      passwordResetSuccess: 'Password updated. You can now log in with your new password.',
-      passwordResetFailed: 'We could not update your password.',
       optInNote: 'Optional and always separate from your account login.',
       loginErrorUnconfirmed: 'This account is not active yet. Please review the access settings or try again shortly.',
       loginSuccess: 'You are now logged in.',
@@ -2024,7 +1955,7 @@ function renderHeroSideCard() {
 }
 
 function openAuthModal(view = 'login', triggerEl = document.activeElement) {
-  state.authView = normalizeAuthView(view);
+  state.authView = view === 'signup' ? 'signup' : 'login';
   if (state.user) state.accountMode = 'summary';
   state.lastAuthTriggerEl = triggerEl || null;
 
@@ -2038,7 +1969,7 @@ function openAuthModal(view = 'login', triggerEl = document.activeElement) {
   renderAuthModal();
   const overlay = document.getElementById('authOverlay');
   if (!overlay) {
-    if (state.user && state.authView !== 'reset' && state.accountMode === 'summary') {
+    if (state.user && state.accountMode === 'summary') {
       loadMyRegistrations();
     }
     return;
@@ -2075,8 +2006,6 @@ function getAccountAuthStaticElements() {
     notice: document.getElementById('accountAuthNotice'),
     loginForm: document.getElementById('accountLoginForm'),
     signupForm: document.getElementById('accountSignupForm'),
-    forgotForm: document.getElementById('accountForgotForm'),
-    resetForm: document.getElementById('accountResetForm'),
     loginTab: document.getElementById('accountLoginTab'),
     signupTab: document.getElementById('accountSignupTab')
   };
@@ -2084,14 +2013,10 @@ function getAccountAuthStaticElements() {
 
 function renderAccountPageStaticAuth() {
   if (!isAccountPage()) return;
-  const { shell, mount, notice, loginForm, signupForm, forgotForm, resetForm, loginTab, signupTab } = getAccountAuthStaticElements();
+  const { shell, mount, notice, loginForm, signupForm, loginTab, signupTab } = getAccountAuthStaticElements();
   if (!shell) return;
 
-  const showSignup = state.authView === 'signup';
-  const showForgot = state.authView === 'forgot';
-  const showReset = state.authView === 'reset';
-  const forceAuthShell = showForgot || showReset;
-  const loggedOut = !state.user || forceAuthShell;
+  const loggedOut = !state.user;
   shell.hidden = !loggedOut;
   if (mount) mount.hidden = loggedOut;
 
@@ -2104,13 +2029,12 @@ function renderAccountPageStaticAuth() {
     return;
   }
 
-  if (loginForm) loginForm.hidden = showSignup || showForgot || showReset;
+  const showSignup = state.authView === 'signup';
+  if (loginForm) loginForm.hidden = showSignup;
   if (signupForm) signupForm.hidden = !showSignup;
-  if (forgotForm) forgotForm.hidden = !showForgot;
-  if (resetForm) resetForm.hidden = !showReset;
-  if (loginTab) loginTab.classList.toggle('active', !showSignup && !showForgot && !showReset);
+  if (loginTab) loginTab.classList.toggle('active', !showSignup);
   if (signupTab) signupTab.classList.toggle('active', showSignup);
-  if (loginTab) loginTab.setAttribute('aria-selected', String(!showSignup && !showForgot && !showReset));
+  if (loginTab) loginTab.setAttribute('aria-selected', String(!showSignup));
   if (signupTab) signupTab.setAttribute('aria-selected', String(showSignup));
 
   if (notice) {
@@ -2128,31 +2052,22 @@ function renderAccountPageStaticAuth() {
 
 function bindAccountPageStaticAuth() {
   if (!isAccountPage()) return;
-  const { shell, loginForm, signupForm, forgotForm, resetForm } = getAccountAuthStaticElements();
+  const { shell, loginForm, signupForm } = getAccountAuthStaticElements();
   if (!shell || shell.dataset.bound === '1') return;
   shell.dataset.bound = '1';
 
   shell.querySelectorAll('[data-account-view]').forEach((button) => {
     button.addEventListener('click', () => {
-      state.authView = normalizeAuthView(button.dataset.accountView || 'login');
+      state.authView = button.dataset.accountView === 'signup' ? 'signup' : 'login';
       if (state.authView === 'signup' && state.authNotice?.type === 'success') setAuthNotice();
-      if (state.authView === 'login' && state.authNotice?.type === 'info') setAuthNotice();
       renderAccountPageStaticAuth();
-      const target = state.authView === 'signup'
-        ? document.getElementById('signupFullName')
-        : state.authView === 'forgot'
-          ? document.getElementById('forgotPasswordEmail')
-          : state.authView === 'reset'
-            ? document.getElementById('resetPasswordNew')
-            : document.getElementById('loginEmail');
+      const target = state.authView === 'signup' ? document.getElementById('signupFullName') : document.getElementById('loginEmail');
       target?.focus();
     });
   });
 
   loginForm?.addEventListener('submit', handleLoginSubmit);
   signupForm?.addEventListener('submit', handleSignupSubmit);
-  forgotForm?.addEventListener('submit', handleForgotPasswordSubmit);
-  resetForm?.addEventListener('submit', handleResetPasswordSubmit);
 }
 
 function isAuthModalOpen() {
@@ -2171,7 +2086,7 @@ function renderAuthModal() {
     return;
   }
 
-  if (state.user && state.authView !== 'reset') {
+  if (state.user) {
     const profile = getUserProfileData();
 
     if (state.accountMode === 'edit') {
@@ -2369,15 +2284,13 @@ function renderAuthModal() {
   mount.innerHTML = `
     <div class="auth-card">
       <div>
-        <h2 class="auth-title" id="authModalTitle">${escapeHtml(state.authView === 'forgot' ? t('account.forgotPasswordTitle') : state.authView === 'reset' ? t('account.resetPasswordTitle') : t('account.accountTitle'))}</h2>
-        <p class="auth-muted">${escapeHtml(state.authView === 'forgot' ? t('account.forgotPasswordDesc') : state.authView === 'reset' ? t('account.resetPasswordDesc') : t('account.accountIntro'))}</p>
+        <h2 class="auth-title" id="authModalTitle">${escapeHtml(t('account.accountTitle'))}</h2>
+        <p class="auth-muted">${escapeHtml(t('account.accountIntro'))}</p>
       </div>
-      ${state.authView === 'forgot' || state.authView === 'reset' ? '' : `
-        <div class="auth-switch" role="tablist" aria-label="Choose account action">
-          <button type="button" class="auth-switch-btn ${state.authView === 'login' ? 'active' : ''}" data-auth-view="login">${escapeHtml(t('account.switchLogin'))}</button>
-          <button type="button" class="auth-switch-btn ${state.authView === 'signup' ? 'active' : ''}" data-auth-view="signup">${escapeHtml(t('account.switchSignup'))}</button>
-        </div>
-      `}
+      <div class="auth-switch" role="tablist" aria-label="Choose account action">
+        <button type="button" class="auth-switch-btn ${state.authView === 'login' ? 'active' : ''}" data-auth-view="login">${escapeHtml(t('account.switchLogin'))}</button>
+        <button type="button" class="auth-switch-btn ${state.authView === 'signup' ? 'active' : ''}" data-auth-view="signup">${escapeHtml(t('account.switchSignup'))}</button>
+      </div>
       ${state.authNotice ? `<div class="auth-notice ${escapeAttr(state.authNotice.type || 'info')}">${escapeHtml(state.authNotice.message)}</div>` : ''}
       ${state.authView === 'signup' ? `
         <form id="signupForm" class="auth-form">
@@ -2411,27 +2324,6 @@ function renderAuthModal() {
           <button type="submit" class="btn btn-primary">${escapeHtml(t('account.createAccount'))}</button>
           <p class="auth-confirm-hint">${escapeHtml(t('account.confirmEmailHint'))}</p>
         </form>
-      ` : state.authView === 'forgot' ? `
-        <form id="forgotPasswordForm" class="auth-form" autocomplete="on">
-          <div class="form-group">
-            <label for="forgotPasswordEmailModal">${escapeHtml(t('account.email'))}</label>
-            <input id="forgotPasswordEmailModal" name="email" type="email" required autocomplete="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" />
-          </div>
-          <button type="submit" class="btn btn-primary">${escapeHtml(t('account.sendResetLink'))}</button>
-          <p class="auth-helper"><button type="button" class="auth-inline-btn" data-auth-view="login">${escapeHtml(t('account.backToLogin'))}</button></p>
-        </form>
-      ` : state.authView === 'reset' ? `
-        <form id="resetPasswordForm" class="auth-form" autocomplete="on">
-          <div class="form-group">
-            <label for="resetPasswordNewModal">${escapeHtml(t('account.newPassword'))}</label>
-            <input id="resetPasswordNewModal" name="password" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" />
-          </div>
-          <div class="form-group">
-            <label for="resetPasswordConfirmModal">${escapeHtml(t('account.confirmNewPassword'))}</label>
-            <input id="resetPasswordConfirmModal" name="confirm_password" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" />
-          </div>
-          <button type="submit" class="btn btn-primary">${escapeHtml(t('account.updatePassword'))}</button>
-        </form>
       ` : `
         <form id="loginForm" class="auth-form" autocomplete="on">
           <div class="form-group">
@@ -2461,7 +2353,6 @@ function renderAuthModal() {
               spellcheck="false"
             />
           </div>
-          <p class="auth-helper"><button type="button" class="auth-inline-btn" data-auth-view="forgot">${escapeHtml(t('account.forgotPassword'))}</button></p>
           <button type="submit" class="btn btn-primary">${escapeHtml(t('account.login'))}</button>
         </form>
       `}
@@ -2470,17 +2361,14 @@ function renderAuthModal() {
 
   mount.querySelectorAll('[data-auth-view]').forEach((button) => {
     button.addEventListener('click', () => {
-      state.authView = normalizeAuthView(button.dataset.authView || 'login');
+      state.authView = button.dataset.authView === 'signup' ? 'signup' : 'login';
       if (state.authView === 'signup' && state.authNotice?.type === 'success') setAuthNotice();
-      if (state.authView === 'login' && state.authNotice?.type === 'info') setAuthNotice();
       renderAuthModal();
     });
   });
 
   document.getElementById('loginForm')?.addEventListener('submit', handleLoginSubmit);
   document.getElementById('signupForm')?.addEventListener('submit', handleSignupSubmit);
-  document.getElementById('forgotPasswordForm')?.addEventListener('submit', handleForgotPasswordSubmit);
-  document.getElementById('resetPasswordForm')?.addEventListener('submit', handleResetPasswordSubmit);
 }
 
 async function handleLoginSubmit(event) {
@@ -2498,7 +2386,6 @@ async function handleLoginSubmit(event) {
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) throw error;
     state.user = data.user || null;
-    state.authView = 'login';
     state.accountMode = 'summary';
     setAuthNotice();
     refreshAuthDependentUI();
@@ -2597,84 +2484,6 @@ async function handleSignupSubmit(event) {
     showToast(error.message || t('account.accountCreationFailed'), 'error');
     button.disabled = false;
     button.textContent = t('account.createAccount');
-  }
-}
-
-async function handleForgotPasswordSubmit(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const button = form.querySelector('button[type="submit"]');
-  const formData = new FormData(form);
-  const email = String(formData.get('email') || '').trim().toLowerCase();
-
-  if (!email) {
-    showToast(t('account.resetRequestFailed'), 'error');
-    return;
-  }
-
-  button.disabled = true;
-  button.textContent = t('account.sendingResetLink');
-
-  try {
-    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-      redirectTo: buildAbsoluteAccountPageUrl('reset')
-    });
-    if (error) throw error;
-    setAuthNotice(t('account.resetEmailSentNotice'), 'success');
-    showToast(t('account.resetEmailSentToast'), 'success');
-    renderAuthModal();
-  } catch (error) {
-    console.error('Password reset request error:', error);
-    showToast(error?.message || t('account.resetRequestFailed'), 'error');
-    button.disabled = false;
-    button.textContent = t('account.sendResetLink');
-  }
-}
-
-async function handleResetPasswordSubmit(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const button = form.querySelector('button[type="submit"]');
-  const formData = new FormData(form);
-  const password = String(formData.get('password') || '');
-  const confirmPassword = String(formData.get('confirm_password') || '');
-
-  if (password !== confirmPassword) {
-    showToast(t('account.resetPasswordMismatch'), 'error');
-    const confirmInput = form.querySelector('input[name="confirm_password"]');
-    if (confirmInput) {
-      confirmInput.value = '';
-      confirmInput.focus();
-    }
-    return;
-  }
-
-  button.disabled = true;
-  button.textContent = t('account.updatingPassword');
-
-  try {
-    const { error } = await supabaseClient.auth.updateUser({ password });
-    if (error) throw error;
-
-    try {
-      await supabaseClient.auth.signOut();
-    } catch (signOutError) {
-      console.warn('Sign-out after password reset warning:', signOutError);
-    }
-
-    state.user = null;
-    state.authView = 'login';
-    state.accountMode = 'summary';
-    setAuthNotice(t('account.passwordResetSuccess'), 'success');
-    replaceUrlKeepingPath('login');
-    refreshAuthDependentUI();
-    renderAuthModal();
-    showToast(t('account.passwordResetSuccess'), 'success');
-  } catch (error) {
-    console.error('Password reset update error:', error);
-    showToast(error?.message || t('account.passwordResetFailed'), 'error');
-    button.disabled = false;
-    button.textContent = t('account.updatePassword');
   }
 }
 
@@ -2981,7 +2790,7 @@ async function syncAuthUI(options = {}) {
 
   refreshAuthDependentUI();
 
-  if (state.user && state.authView !== 'reset' && isAccountPage() && state.accountMode === 'summary') {
+  if (state.user && isAccountPage() && state.accountMode === 'summary') {
     try {
       await loadMyRegistrations({ force: true });
       renderAuthModal();
@@ -2994,9 +2803,8 @@ async function syncAuthUI(options = {}) {
 }
 
 function initAuth() {
-  const requestedAuthView = getRequestedAuthView();
-  if (!state.user || requestedAuthView === 'forgot' || requestedAuthView === 'reset') {
-    state.authView = requestedAuthView;
+  if (!state.user) {
+    state.authView = getRequestedAuthView();
   }
   if (isAccountPage()) {
     state.paymentReturn = getAccountPaymentReturnFromUrl();
@@ -3064,36 +2872,18 @@ function initAuth() {
     refreshEventsIfNeeded({ force: true });
   });
 
-  supabaseClient.auth.onAuthStateChange((authEvent, session) => {
+  supabaseClient.auth.onAuthStateChange((_event, session) => {
     const wasEditingProfile = isAuthModalOpen() && state.user && state.accountMode === 'edit';
-
-    if (authEvent === 'PASSWORD_RECOVERY') {
-      state.authView = 'reset';
-      setAuthNotice(t('account.resetReady'), 'info');
-      replaceUrlKeepingPath('reset');
-    }
-
     state.user = session?.user || null;
     if (state.user) {
-      if (!wasEditingProfile && state.authView !== 'reset') state.accountMode = 'summary';
+      if (!wasEditingProfile) state.accountMode = 'summary';
     } else {
       state.accountMode = 'summary';
       clearPendingProfileAvatarState();
       resetMyRegistrationsState();
       resetClaimRegistrationsState();
-      if (state.authView === 'reset' && !urlHasPasswordRecoveryHash()) {
-        setAuthNotice(t('account.resetLinkInvalid'), 'info');
-        state.authView = 'forgot';
-      }
     }
     refreshAuthDependentUI();
-    if (state.authView === 'reset') {
-      setTimeout(() => {
-        document.getElementById('resetPasswordNew')?.focus();
-        document.getElementById('resetPasswordNewModal')?.focus();
-      }, 20);
-      return;
-    }
     if (state.user && !wasEditingProfile) loadMyRegistrations();
   });
 }
