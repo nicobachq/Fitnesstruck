@@ -212,6 +212,7 @@ exports.handler = async (event) => {
       exerciseType: intent.session_exercise_type,
       priceChf: intent.amount_chf
     };
+    const registrationLanguage = intent.language === 'en' ? 'en' : 'it';
 
     let emailSent = !!intent.email_sent;
     if (!emailSent) {
@@ -219,7 +220,8 @@ exports.handler = async (event) => {
         await sendRegistrationEmail({
           participant: participantDetails,
           eventData: eventDetails,
-          session: sessionDetails
+          session: sessionDetails,
+          language: registrationLanguage
         });
         emailSent = true;
       } catch (emailError) {

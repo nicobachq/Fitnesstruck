@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=66" />
+  <link rel="stylesheet" href="styles.css?v=67" />
 </head>
 <body class="account-page" data-page="account">
   <div class="noise-overlay"></div>
@@ -67,7 +67,37 @@
                 <label for="loginPassword" data-i18n="account.password">Password</label>
                 <input id="loginPassword" name="password" type="password" required autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" />
               </div>
+              <p class="auth-helper"><button type="button" class="auth-inline-btn" data-account-view="forgot" data-i18n="account.forgotPassword">Password dimenticata?</button></p>
               <button type="submit" class="btn btn-primary" data-i18n="account.login">Sign in</button>
+            </form>
+
+            <form id="accountForgotForm" class="auth-form account-auth-form" autocomplete="on" novalidate hidden>
+              <div>
+                <h3 class="auth-title" data-i18n="account.forgotPasswordTitle">Recupera password</h3>
+                <p class="auth-muted" data-i18n="account.forgotPasswordDesc">Inserisci l'email del tuo account e ti invieremo un link per scegliere una nuova password.</p>
+              </div>
+              <div class="form-group">
+                <label for="forgotPasswordEmail" data-i18n="account.email">Email</label>
+                <input id="forgotPasswordEmail" name="email" type="email" required autocomplete="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" />
+              </div>
+              <button type="submit" class="btn btn-primary" data-i18n="account.sendResetLink">Invia link di reset</button>
+              <p class="auth-helper"><button type="button" class="auth-inline-btn" data-account-view="login" data-i18n="account.backToLogin">Torna al login</button></p>
+            </form>
+
+            <form id="accountResetForm" class="auth-form account-auth-form" autocomplete="on" novalidate hidden>
+              <div>
+                <h3 class="auth-title" data-i18n="account.resetPasswordTitle">Scegli una nuova password</h3>
+                <p class="auth-muted" data-i18n="account.resetPasswordDesc">Inserisci qui sotto la tua nuova password per completare il recupero account.</p>
+              </div>
+              <div class="form-group">
+                <label for="resetPasswordNew" data-i18n="account.newPassword">Nuova password *</label>
+                <input id="resetPasswordNew" name="password" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" />
+              </div>
+              <div class="form-group">
+                <label for="resetPasswordConfirm" data-i18n="account.confirmNewPassword">Conferma nuova password *</label>
+                <input id="resetPasswordConfirm" name="confirm_password" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" />
+              </div>
+              <button type="submit" class="btn btn-primary" data-i18n="account.updatePassword">Aggiorna password</button>
             </form>
 
             <form id="accountSignupForm" class="auth-form account-auth-form" autocomplete="on" novalidate hidden>
@@ -119,6 +149,6 @@
   <div class="toast-container" id="toastContainer" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=62"></script>
+  <script src="app.js?v=64"></script>
 </body>
 </html>
