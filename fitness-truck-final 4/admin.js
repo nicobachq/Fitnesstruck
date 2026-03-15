@@ -324,29 +324,6 @@ function showAdminInterface() {
   }
 }
 
-function normalizeMealType(value) {
-  const normalized = String(value || 'none').trim().toLowerCase();
-  return ['breakfast', 'lunch', 'supper'].includes(normalized) ? normalized : 'none';
-}
-
-function getMealLabel(mealType) {
-  switch (normalizeMealType(mealType)) {
-    case 'breakfast':
-      return 'Breakfast included';
-    case 'lunch':
-      return 'Lunch included';
-    case 'supper':
-      return 'Supper included';
-    default:
-      return '';
-  }
-}
-
-function getSessionMealSummary(event) {
-  const labels = [...new Set((event?.sessions || []).map((session) => getMealLabel(session?.mealType)).filter(Boolean))];
-  return labels.join(' · ');
-}
-
 function mapDatabaseToUi(eventRows, sessionRows) {
   return (eventRows || []).map((event) => ({
     id: event.id,
@@ -371,7 +348,6 @@ function mapDatabaseToUi(eventRows, sessionRows) {
         storedRegisteredCount: session.registered_count || 0,
         registered: session.registered_count || 0,
         priceChf: session.price_chf || 0,
-        mealType: normalizeMealType(session.meal_type || event.meal_type),
         registrationOpen: session.registration_open !== false
       }))
   }));
@@ -783,14 +759,6 @@ function saveButtonLoading(isLoading) {
     : (editingEventId ? 'Update Event' : 'Create Event');
 }
 
-function withMealSchemaHint(error) {
-  const message = String(error?.message || '');
-  if (message.includes('meal_type')) {
-    error.message = 'The new session meal field is not in Supabase yet. Run SUPABASE-add-meal-type-to-sessions.sql once, then try again.';
-  }
-  return error;
-}
-
 async function saveEventToSupabase(eventData) {
   const eventRow = {
     id: eventData.id,
@@ -811,13 +779,13 @@ async function saveEventToSupabase(eventData) {
       .update(eventRow)
       .eq('id', editingEventId);
 
-    if (eventError) throw withMealSchemaHint(eventError);
+    if (eventError) throw eventError;
   } else {
     const { error: eventError } = await supabaseClient
       .from('events')
       .insert(eventRow);
 
-    if (eventError) throw withMealSchemaHint(eventError);
+    if (eventError) throw eventError;
   }
 
   const sessionRows = eventData.sessions.map((session) => ({
@@ -830,7 +798,6 @@ async function saveEventToSupabase(eventData) {
     max_participants: session.maxParticipants,
     registered_count: session.registered,
     price_chf: session.priceChf || 0,
-    meal_type: normalizeMealType(session.mealType),
     registration_open: !!session.registrationOpen
   }));
 
@@ -926,7 +893,6 @@ function renderEvents() {
               </div>
               <div class="event-meta">${formatDate(event.date)} · ${escapeHtml(event.location)} · ${totalRegistered}/${totalSpots} active</div>
               <div class="event-meta" style="margin-top:4px;">Open sessions: ${openSessions}/${event.sessions.length} · Attended: ${statusCounts.attended} · No-show: ${statusCounts.no_show} · Cancelled: ${statusCounts.cancelled}</div>
-              ${getSessionMealSummary(event) ? `<div class="event-meta" style="margin-top:4px;">Meals: ${escapeHtml(getSessionMealSummary(event))}</div>` : ''}
             </div>
           </div>
           <div class="event-actions" onclick="event.stopPropagation()">
@@ -936,7 +902,7 @@ function renderEvents() {
           </div>
         </div>
         <div class="event-sessions-preview" id="sessions-${escapeAttr(event.id)}" style="display:none;">
-          ${event.sessions.map((session) => `<div class="admin-session-row"><span class="session-tag ${session.registered >= session.maxParticipants ? 'full' : ''}"><span class="time">${escapeHtml(session.startTime)}</span>${escapeHtml(session.title)} <span class="capacity">(${session.registered}/${session.maxParticipants})</span></span><div class="admin-session-actions">${getMealLabel(session.mealType) ? `<span class="admin-reg-badge open">${escapeHtml(getMealLabel(session.mealType))}</span>` : ''}${getRegistrationToggleBadge(isSessionRegistrationOpen(session))}<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();setSessionRegistrationOpen('${escapeJs(event.id)}','${escapeJs(session.id)}', ${isSessionRegistrationOpen(session) ? 'false' : 'true'})">${isSessionRegistrationOpen(session) ? 'Close session' : 'Open session'}</button></div></div>`).join('')}
+          ${event.sessions.map((session) => `<div class="admin-session-row"><span class="session-tag ${session.registered >= session.maxParticipants ? 'full' : ''}"><span class="time">${escapeHtml(session.startTime)}</span>${escapeHtml(session.title)} <span class="capacity">(${session.registered}/${session.maxParticipants})</span></span><div class="admin-session-actions">${getRegistrationToggleBadge(isSessionRegistrationOpen(session))}<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();setSessionRegistrationOpen('${escapeJs(event.id)}','${escapeJs(session.id)}', ${isSessionRegistrationOpen(session) ? 'false' : 'true'})">${isSessionRegistrationOpen(session) ? 'Close session' : 'Open session'}</button></div></div>`).join('')}
         </div>
       </div>`;
   }).join('');
@@ -1068,7 +1034,6 @@ function addSessionForm(sessionData = null) {
     </div>
     <div class="form-row">
       <div class="form-group"><label>Session Price (CHF)</label><input type="number" class="session-price" min="0" step="0.01" value="${sessionData?.priceChf ?? 0}"></div>
-      <div class="form-group"><label>Meal included</label><select class="session-meal-type"><option value="none" ${normalizeMealType(sessionData?.mealType) === 'none' ? 'selected' : ''}>No meal included</option><option value="breakfast" ${normalizeMealType(sessionData?.mealType) === 'breakfast' ? 'selected' : ''}>Breakfast included</option><option value="lunch" ${normalizeMealType(sessionData?.mealType) === 'lunch' ? 'selected' : ''}>Lunch included</option><option value="supper" ${normalizeMealType(sessionData?.mealType) === 'supper' ? 'selected' : ''}>Supper included</option></select><small>Displayed clearly on the public event for this specific session.</small></div>
     </div>
     <div class="form-row">
       <div class="form-group form-group-checkbox">
@@ -1199,7 +1164,6 @@ function gatherSessionsData(eventId, existingEvent = null) {
       maxParticipants: max,
       registered: reg,
       priceChf: parseFloat(form.querySelector('.session-price')?.value) || 0,
-      mealType: normalizeMealType(form.querySelector('.session-meal-type')?.value),
       registrationOpen: form.querySelector('.session-registration-open')?.checked || false
     };
   });
@@ -1253,7 +1217,7 @@ function resetForm() {
   document.getElementById('formTitle').textContent = 'Create Event';
   document.getElementById('submitBtn').textContent = 'Create Event';
   document.getElementById('eventRegistrationOpen').checked = false;
-    clearPendingEventPhotoState();
+  clearPendingEventPhotoState();
   bindEventPhotoControls({ location: document.getElementById('eventLocation').value || 'Ticino' });
   renderEventPhotoPreview({ location: document.getElementById('eventLocation').value || 'Ticino' });
   document.getElementById('sessionsContainer').innerHTML = '';
