@@ -414,6 +414,9 @@ const TRANSLATIONS = {
       sessionsLabel_one: '{count} sessione',
       sessionsLabel_other: '{count} sessioni',
       equipmentIncluded: 'Attrezzatura inclusa',
+      breakfastIncluded: 'Colazione inclusa',
+      lunchIncluded: 'Pranzo incluso',
+      supperIncluded: 'Cena inclusa',
       defaultSummary: 'Coaching professionale, attrezzatura premium e una community che si muove.',
       openCardDesc: 'Registrazioni aperte ora',
       soldOutCardDesc: 'Evento visibile ma al completo',
@@ -626,9 +629,9 @@ const TRANSLATIONS = {
       signupPasswordMismatch: 'Inserisci la stessa password in entrambi i campi.',
       creatingAccount: 'Creazione account...',
       loggingIn: 'Accesso in corso...',
-      accountCreatedAndLoggedIn: 'Il tuo account Fitness Truck è pronto. Hai effettuato l\'accesso.',
-      accountCreatedConfirm: 'Il tuo account Fitness Truck è pronto. Ora puoi accedere con la tua email e password.',
-      accountCreatedFor: 'Il tuo account Fitness Truck è pronto per {email}. Ora puoi accedere con la stessa email e password.',
+      accountCreatedAndLoggedIn: 'Account creato e accesso effettuato.',
+      accountCreatedConfirm: 'Account creato. Ora puoi accedere con le tue credenziali.',
+      accountCreatedFor: 'Il tuo account è stato creato per {email}. Ora puoi accedere con la stessa email e password.',
       accountCreationFailed: 'Creazione account non riuscita.',
       saveNamePhoneError: 'Salva almeno il tuo nome completo e il numero di telefono.',
       savingProfile: 'Salvataggio profilo...',
@@ -770,6 +773,9 @@ const TRANSLATIONS = {
       sessionsLabel_one: '{count} session',
       sessionsLabel_other: '{count} sessions',
       equipmentIncluded: 'Equipment included',
+      breakfastIncluded: 'Breakfast included',
+      lunchIncluded: 'Lunch included',
+      supperIncluded: 'Supper included',
       defaultSummary: 'Professional coaching, premium equipment, and a community that moves.',
       openCardDesc: 'Registration is open now',
       soldOutCardDesc: 'Visible now, but fully booked',
@@ -982,9 +988,9 @@ const TRANSLATIONS = {
       signupPasswordMismatch: 'Please re-enter the same password in both fields.',
       creatingAccount: 'Creating account...',
       loggingIn: 'Logging in...',
-      accountCreatedAndLoggedIn: 'Your Fitness Truck account is ready. You are now logged in.',
-      accountCreatedConfirm: 'Your Fitness Truck account is ready. You can now log in with your email and password.',
-      accountCreatedFor: 'Your Fitness Truck account is ready for {email}. You can now log in with the same email and password.',
+      accountCreatedAndLoggedIn: 'Account created and you are now logged in.',
+      accountCreatedConfirm: 'Account created. You can now log in with your credentials.',
+      accountCreatedFor: 'Your account was created for {email}. You can now log in with the same email and password.',
       accountCreationFailed: 'Account creation failed.',
       saveNamePhoneError: 'Please save at least your full name and phone number.',
       savingProfile: 'Saving profile...',
@@ -1061,6 +1067,35 @@ function getCountLabel(baseKey, count) {
 function getEventSummaryCopy(event) {
   const summary = String(event?.heroPhrase || event?.description || '').trim();
   return summary || t('events.defaultSummary');
+}
+
+function normalizeMealType(value) {
+  const normalized = String(value || 'none').trim().toLowerCase();
+  return ['breakfast', 'lunch', 'supper'].includes(normalized) ? normalized : 'none';
+}
+
+function getSessionMealLabel(session) {
+  switch (normalizeMealType(session?.mealType || session?.meal_type)) {
+    case 'breakfast':
+      return t('events.breakfastIncluded');
+    case 'lunch':
+      return t('events.lunchIncluded');
+    case 'supper':
+      return t('events.supperIncluded');
+    default:
+      return '';
+  }
+}
+
+function getEventMealLabels(event, sessions = null) {
+  const source = Array.isArray(sessions) ? sessions : (event?.sessions || []);
+  return [...new Set(source.map((session) => getSessionMealLabel(session)).filter(Boolean))];
+}
+
+function renderMealHighlightBadges(event, sessions = null) {
+  const labels = getEventMealLabels(event, sessions);
+  if (!labels.length) return '';
+  return `<div class="event-highlight-badges">${labels.map((label) => `<span class="event-highlight-pill">${escapeHtml(label)}</span>`).join('')}</div>`;
 }
 
 function applyStaticTranslations(root = document) {
@@ -2347,25 +2382,6 @@ async function handleLoginSubmit(event) {
   }
 }
 
-
-async function triggerWelcomeEmail(payload) {
-  try {
-    const response = await fetch('/.netlify/functions/send-account-welcome-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      keepalive: true
-    });
-
-    if (!response.ok) {
-      const errorJson = await response.json().catch(() => ({}));
-      console.warn('Welcome email could not be sent:', errorJson?.message || response.statusText || response.status);
-    }
-  } catch (error) {
-    console.warn('Welcome email request failed:', error);
-  }
-}
-
 async function handleSignupSubmit(event) {
   event.preventDefault();
   const form = event.currentTarget;
@@ -2404,13 +2420,6 @@ async function handleSignupSubmit(event) {
       }
     });
     if (error) throw error;
-
-    triggerWelcomeEmail({
-      email,
-      fullName,
-      phone,
-      language: state.language
-    });
 
     if (data.session) {
       state.user = data.user || null;
@@ -2965,6 +2974,7 @@ async function loadEvents() {
             registered: Number(participation?.count ?? session.registered_count ?? 0),
             participants: Array.isArray(participation?.participants) ? participation.participants : [],
             priceChf: Number(session.price_chf || 0),
+            mealType: normalizeMealType(session.meal_type),
             registrationOpen: session.registration_open !== false
           };
         })
@@ -3068,6 +3078,7 @@ function renderEvents() {
           <div class="event-date">${formatDate(event.date)}</div>
           <h3 class="event-title">${escapeHtml(event.title)}</h3>
           <p class="event-location">${escapeHtml(event.location)}</p>
+          ${renderMealHighlightBadges(event, visibleSessions)}
           <div class="event-meta-chips">
             <span class="event-meta-chip">${escapeHtml(participantLabel)}</span>
             <span class="event-meta-chip">${escapeHtml(sessionsLabel)}</span>
@@ -3086,6 +3097,7 @@ function renderEvents() {
                     <span class="session-time">${escapeHtml(session.startTime)} - ${escapeHtml(session.endTime)}</span>
                     <span class="session-type">${escapeHtml(session.exerciseType)}</span>
                     ${getSessionPriceLabel(event, session) ? `<span style="display:block;margin-top:4px;font-size:0.85rem;opacity:0.9;">${getSessionPriceLabel(event, session)}</span>` : ''}
+                    ${getSessionMealLabel(session) ? `<span class="session-meal-pill">${escapeHtml(getSessionMealLabel(session))}</span>` : ''}
                     ${isSessionClosed ? `<span class="session-note">${escapeHtml(t('events.closed'))}</span>` : ''}
                   </div>
                   <div class="session-capacity">
@@ -3226,6 +3238,7 @@ function renderEventModal(event) {
       <h2 id="modalTitle">${escapeHtml(event.title)}</h2>
       <p>${formatDate(event.date)} · ${escapeHtml(event.location)}</p>
       ${event.description ? `<p style="margin-top:8px;">${escapeHtml(event.description)}</p>` : ''}
+      ${renderMealHighlightBadges(event, publicSessions)}
       <div class="event-meta-chips modal-meta-chips">
         <span class="event-meta-chip">${escapeHtml(getCountLabel('events.joining', participantCount))}</span>
         <span class="event-meta-chip">${escapeHtml(t('events.equipmentIncluded'))}</span>
@@ -3246,6 +3259,7 @@ function renderEventModal(event) {
             <div class="modal-session-info">
               <h4>${escapeHtml(session.title)}</h4>
               <p>${escapeHtml(session.startTime)} - ${escapeHtml(session.endTime)} · ${escapeHtml(session.exerciseType)}</p>
+              ${getSessionMealLabel(session) ? `<p class="modal-meal-highlight">${escapeHtml(getSessionMealLabel(session))}</p>` : ''}
               ${priceLabel ? `<p class="modal-price">${priceLabel}</p>` : ''}
             </div>
             <div class="modal-session-capacity">
