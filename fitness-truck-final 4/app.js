@@ -626,9 +626,9 @@ const TRANSLATIONS = {
       signupPasswordMismatch: 'Inserisci la stessa password in entrambi i campi.',
       creatingAccount: 'Creazione account...',
       loggingIn: 'Accesso in corso...',
-      accountCreatedAndLoggedIn: 'Account creato e accesso effettuato.',
-      accountCreatedConfirm: 'Account creato. Ora puoi accedere con le tue credenziali.',
-      accountCreatedFor: 'Il tuo account è stato creato per {email}. Ora puoi accedere con la stessa email e password.',
+      accountCreatedAndLoggedIn: 'Il tuo account Fitness Truck è pronto. Hai effettuato l\'accesso.',
+      accountCreatedConfirm: 'Il tuo account Fitness Truck è pronto. Ora puoi accedere con la tua email e password.',
+      accountCreatedFor: 'Il tuo account Fitness Truck è pronto per {email}. Ora puoi accedere con la stessa email e password.',
       accountCreationFailed: 'Creazione account non riuscita.',
       saveNamePhoneError: 'Salva almeno il tuo nome completo e il numero di telefono.',
       savingProfile: 'Salvataggio profilo...',
@@ -982,9 +982,9 @@ const TRANSLATIONS = {
       signupPasswordMismatch: 'Please re-enter the same password in both fields.',
       creatingAccount: 'Creating account...',
       loggingIn: 'Logging in...',
-      accountCreatedAndLoggedIn: 'Account created and you are now logged in.',
-      accountCreatedConfirm: 'Account created. You can now log in with your credentials.',
-      accountCreatedFor: 'Your account was created for {email}. You can now log in with the same email and password.',
+      accountCreatedAndLoggedIn: 'Your Fitness Truck account is ready. You are now logged in.',
+      accountCreatedConfirm: 'Your Fitness Truck account is ready. You can now log in with your email and password.',
+      accountCreatedFor: 'Your Fitness Truck account is ready for {email}. You can now log in with the same email and password.',
       accountCreationFailed: 'Account creation failed.',
       saveNamePhoneError: 'Please save at least your full name and phone number.',
       savingProfile: 'Saving profile...',
@@ -2347,6 +2347,25 @@ async function handleLoginSubmit(event) {
   }
 }
 
+
+async function triggerWelcomeEmail(payload) {
+  try {
+    const response = await fetch('/.netlify/functions/send-account-welcome-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      keepalive: true
+    });
+
+    if (!response.ok) {
+      const errorJson = await response.json().catch(() => ({}));
+      console.warn('Welcome email could not be sent:', errorJson?.message || response.statusText || response.status);
+    }
+  } catch (error) {
+    console.warn('Welcome email request failed:', error);
+  }
+}
+
 async function handleSignupSubmit(event) {
   event.preventDefault();
   const form = event.currentTarget;
@@ -2385,6 +2404,13 @@ async function handleSignupSubmit(event) {
       }
     });
     if (error) throw error;
+
+    triggerWelcomeEmail({
+      email,
+      fullName,
+      phone,
+      language: state.language
+    });
 
     if (data.session) {
       state.user = data.user || null;
