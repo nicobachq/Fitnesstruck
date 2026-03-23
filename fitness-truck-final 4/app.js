@@ -41,6 +41,7 @@ const state = {
   eventsLoaded: false,
   paymentReturn: null,
   paymentReturnNotice: null,
+  passwordRecoveryActive: false,
   recentToasts: new Map(),
   language: (() => {
     try {
@@ -55,6 +56,30 @@ const state = {
 
 function isAccountPage() {
   return document.body?.dataset?.page === 'account' || /\/account\.html(?:$|[?#])/i.test(window.location.pathname + window.location.search + window.location.hash);
+}
+
+function isResetPasswordPage() {
+  return document.body?.dataset?.page === 'reset-password' || /\/reset-password\.html(?:$|[?#])/i.test(window.location.pathname + window.location.search + window.location.hash);
+}
+
+function buildResetPasswordPageUrl(email = '') {
+  const target = new URL('reset-password.html', window.location.href);
+  const normalizedEmail = String(email || '').trim();
+  if (normalizedEmail) target.searchParams.set('email', normalizedEmail);
+  else target.searchParams.delete('email');
+  return `${target.pathname}${target.search}`;
+}
+
+function goToResetPasswordPage(email = '') {
+  window.location.href = buildResetPasswordPageUrl(email);
+}
+
+function getPrefilledRecoveryEmail() {
+  try {
+    return String(new URLSearchParams(window.location.search).get('email') || '').trim().toLowerCase();
+  } catch (error) {
+    return '';
+  }
 }
 
 function getRequestedAuthView() {
@@ -626,6 +651,22 @@ const TRANSLATIONS = {
       loginSuccess: 'Ora sei connesso.',
       logoutSuccess: 'Ora hai effettuato il logout.',
       loginFailed: 'Accesso non riuscito.',
+      forgotPassword: 'Password dimenticata?',
+      recoveryEmailRequired: 'Inserisci la tua email per ricevere il link di recupero.',
+      sendResetLink: 'Invia link di recupero',
+      sendingResetLink: 'Invio in corso...',
+      resetTitle: 'Recupera password',
+      resetIntro: 'Inserisci la tua email e ti invieremo un link sicuro per impostare una nuova password.',
+      resetBackToLogin: 'Torna al login',
+      resetEmailSent: 'Link di recupero inviato. Controlla la tua email.',
+      resetEmailHint: 'Apri il link ricevuto via email da questo stesso dispositivo per impostare una nuova password.',
+      newPassword: 'Nuova password *',
+      updatePassword: 'Aggiorna password',
+      updatingPassword: 'Aggiornamento in corso...',
+      passwordUpdated: 'Password aggiornata. Ora puoi accedere.',
+      passwordRecoveryInvalid: 'Il link di recupero non è valido o è scaduto. Richiedine uno nuovo.',
+      passwordRecoveryReady: 'Puoi ora impostare una nuova password.',
+      passwordUpdateFailed: 'Aggiornamento password non riuscito.',
       signupPasswordMismatch: 'Inserisci la stessa password in entrambi i campi.',
       creatingAccount: 'Creazione account...',
       loggingIn: 'Accesso in corso...',
@@ -985,6 +1026,22 @@ const TRANSLATIONS = {
       loginSuccess: 'You are now logged in.',
       logoutSuccess: 'You are now logged out.',
       loginFailed: 'Login failed.',
+      forgotPassword: 'Forgot password?',
+      recoveryEmailRequired: 'Enter your email to receive a password reset link.',
+      sendResetLink: 'Send reset link',
+      sendingResetLink: 'Sending...',
+      resetTitle: 'Reset password',
+      resetIntro: 'Enter your email and we will send you a secure link to set a new password.',
+      resetBackToLogin: 'Back to login',
+      resetEmailSent: 'Password reset link sent. Check your email.',
+      resetEmailHint: 'Open the link from your email on this same device to set a new password.',
+      newPassword: 'New password *',
+      updatePassword: 'Update password',
+      updatingPassword: 'Updating...',
+      passwordUpdated: 'Password updated. You can now sign in.',
+      passwordRecoveryInvalid: 'The recovery link is invalid or expired. Request a new one.',
+      passwordRecoveryReady: 'You can now set a new password.',
+      passwordUpdateFailed: 'Password update failed.',
       signupPasswordMismatch: 'Please re-enter the same password in both fields.',
       creatingAccount: 'Creating account...',
       loggingIn: 'Logging in...',
@@ -2042,6 +2099,10 @@ function bindAccountPageStaticAuth() {
 
   loginForm?.addEventListener('submit', handleLoginSubmit);
   signupForm?.addEventListener('submit', handleSignupSubmit);
+  document.getElementById('accountForgotPasswordBtn')?.addEventListener('click', () => {
+    const email = document.getElementById('loginEmail')?.value || '';
+    goToResetPasswordPage(email);
+  });
 }
 
 function isAuthModalOpen() {
@@ -2328,6 +2389,7 @@ function renderAuthModal() {
             />
           </div>
           <button type="submit" class="btn btn-primary">${escapeHtml(t('account.login'))}</button>
+          <button type="button" class="auth-inline-btn" data-open-password-recovery="true">${escapeHtml(t('account.forgotPassword'))}</button>
         </form>
       `}
       <p class="auth-helper">${escapeHtml(t('account.helperGuest'))}</p>
@@ -2343,6 +2405,12 @@ function renderAuthModal() {
 
   document.getElementById('loginForm')?.addEventListener('submit', handleLoginSubmit);
   document.getElementById('signupForm')?.addEventListener('submit', handleSignupSubmit);
+  mount.querySelectorAll('[data-open-password-recovery]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const email = document.getElementById('loginEmail')?.value || '';
+      goToResetPasswordPage(email);
+    });
+  });
 }
 
 async function handleLoginSubmit(event) {
@@ -2458,6 +2526,140 @@ async function handleSignupSubmit(event) {
     showToast(error.message || t('account.accountCreationFailed'), 'error');
     button.disabled = false;
     button.textContent = t('account.createAccount');
+  }
+}
+
+
+async function handlePasswordRecoveryRequestSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const formData = new FormData(form);
+  const email = String(formData.get('email') || '').trim().toLowerCase();
+
+  if (!email) {
+    showToast(t('account.recoveryEmailRequired'), 'error');
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = t('account.sendingResetLink');
+
+  try {
+    const redirectTo = new URL('reset-password.html', window.location.origin).toString();
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) throw error;
+    const notice = document.getElementById('resetPasswordNotice');
+    if (notice) {
+      notice.hidden = false;
+      notice.textContent = t('account.resetEmailHint');
+      notice.className = 'auth-notice success';
+    }
+    showToast(t('account.resetEmailSent'), 'success');
+  } catch (error) {
+    console.error('Password recovery error:', error);
+    showToast(error?.message || t('account.passwordRecoveryInvalid'), 'error');
+  } finally {
+    button.disabled = false;
+    button.textContent = t('account.sendResetLink');
+  }
+}
+
+function setPasswordRecoveryActiveFromUrl() {
+  try {
+    const hash = window.location.hash.replace(/^#/, '');
+    const params = new URLSearchParams(hash);
+    const type = String(params.get('type') || '').trim().toLowerCase();
+    const hasRecoveryToken = Boolean(params.get('access_token')) && type === 'recovery';
+    if (hasRecoveryToken) {
+      state.passwordRecoveryActive = true;
+      window.sessionStorage.setItem('ft_password_recovery_active', '1');
+      return;
+    }
+    state.passwordRecoveryActive = window.sessionStorage.getItem('ft_password_recovery_active') === '1';
+  } catch (error) {
+    state.passwordRecoveryActive = false;
+  }
+}
+
+function clearPasswordRecoveryState() {
+  state.passwordRecoveryActive = false;
+  try {
+    window.sessionStorage.removeItem('ft_password_recovery_active');
+  } catch (error) {
+    // noop
+  }
+}
+
+function renderResetPasswordPage() {
+  if (!isResetPasswordPage()) return;
+  const requestCard = document.getElementById('resetPasswordRequestCard');
+  const updateCard = document.getElementById('resetPasswordUpdateCard');
+  if (!requestCard || !updateCard) return;
+
+  requestCard.hidden = state.passwordRecoveryActive;
+  updateCard.hidden = !state.passwordRecoveryActive;
+
+  if (!state.passwordRecoveryActive) {
+    const emailInput = document.getElementById('resetRequestEmail');
+    if (emailInput && !emailInput.value) emailInput.value = getPrefilledRecoveryEmail();
+  }
+}
+
+async function handleResetPasswordUpdateSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const formData = new FormData(form);
+  const password = String(formData.get('password') || '');
+  const confirmPassword = String(formData.get('confirm_password') || '');
+
+  if (password !== confirmPassword) {
+    showToast(t('account.signupPasswordMismatch'), 'error');
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = t('account.updatingPassword');
+
+  try {
+    const { error } = await supabaseClient.auth.updateUser({ password });
+    if (error) throw error;
+    clearPasswordRecoveryState();
+    showToast(t('account.passwordUpdated'), 'success');
+    setTimeout(() => {
+      window.location.href = buildAccountPageUrl('login');
+    }, 800);
+  } catch (error) {
+    console.error('Password update error:', error);
+    showToast(error?.message || t('account.passwordUpdateFailed'), 'error');
+  } finally {
+    button.disabled = false;
+    button.textContent = t('account.updatePassword');
+  }
+}
+
+async function initResetPasswordPage() {
+  if (!isResetPasswordPage()) return;
+  setPasswordRecoveryActiveFromUrl();
+  renderResetPasswordPage();
+
+  document.getElementById('resetPasswordRequestForm')?.addEventListener('submit', handlePasswordRecoveryRequestSubmit);
+  document.getElementById('resetPasswordUpdateForm')?.addEventListener('submit', handleResetPasswordUpdateSubmit);
+
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+    if (data?.session && state.passwordRecoveryActive) {
+      const notice = document.getElementById('resetPasswordNotice');
+      if (notice) {
+        notice.hidden = false;
+        notice.textContent = t('account.passwordRecoveryReady');
+        notice.className = 'auth-notice success';
+      }
+    }
+  } catch (error) {
+    console.error('Reset password session check error:', error);
   }
 }
 
@@ -2785,6 +2987,7 @@ function initAuth() {
     state.paymentReturnNotice = null;
   }
   if (isAccountPage()) bindAccountPageStaticAuth();
+  if (isResetPasswordPage()) setPasswordRecoveryActiveFromUrl();
   refreshAuthDependentUI();
 
   document.getElementById('accountBtn')?.addEventListener('click', (event) => {
@@ -2845,6 +3048,21 @@ function initAuth() {
   });
 
   supabaseClient.auth.onAuthStateChange((_event, session) => {
+    if (isResetPasswordPage()) {
+      if (_event === 'PASSWORD_RECOVERY') {
+        state.passwordRecoveryActive = true;
+        try { window.sessionStorage.setItem('ft_password_recovery_active', '1'); } catch (error) {}
+        const notice = document.getElementById('resetPasswordNotice');
+        if (notice) {
+          notice.hidden = false;
+          notice.textContent = t('account.passwordRecoveryReady');
+          notice.className = 'auth-notice success';
+        }
+      } else if (!session && _event === 'SIGNED_OUT') {
+        clearPasswordRecoveryState();
+      }
+      renderResetPasswordPage();
+    }
     const wasEditingProfile = isAuthModalOpen() && state.user && state.accountMode === 'edit';
     state.user = session?.user || null;
     if (state.user) {
@@ -3821,8 +4039,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   initModal();
   initForms();
   initAuth();
+  await initResetPasswordPage();
 
-  if (isAccountPage()) {
+  if (isAccountPage() || isResetPasswordPage()) {
     rerenderLanguageUI();
     return;
   }
