@@ -13,6 +13,9 @@ let sessionForms = [];
 let currentAdminUser = null;
 let registrations = [];
 let registrationSearchTerm = '';
+let selectedEventFilter = '';
+let selectedSessionFilter = '';
+let selectedStatusFilter = '';
 let isSyncingSessionCounts = false;
 let pendingEventPhotoFile = null;
 let pendingEventPhotoPreviewUrl = '';
@@ -459,6 +462,7 @@ async function syncStoredSessionCountsToSupabase() {
 function refreshAdminDataView() {
   applyLiveRegistrationCounts();
   renderEvents();
+  renderRegistrationsFilters();
   renderRegistrations();
   updateStats();
   refreshEditingSessionFormLiveCounts();
@@ -546,10 +550,6 @@ function getEventRegistrationStatusCounts(event) {
 function getFilteredRegistrations() {
   const term = registrationSearchTerm.trim().toLowerCase();
 
-  if (!term) {
-    return registrations;
-  }
-
   return registrations.filter((registration) => {
     const { matchedEvent, matchedSession } = getRegistrationMatchDetails(registration);
 
@@ -569,10 +569,79 @@ function getFilteredRegistrations() {
       matchedSession?.endTime
     ].filter(Boolean).join(' ').toLowerCase();
 
-    return searchableText.includes(term);
+    const matchesSearch = !term || searchableText.includes(term);
+    const matchesEvent = !selectedEventFilter || matchedEvent?.id === selectedEventFilter;
+    const matchesSession = !selectedSessionFilter || matchedSession?.id === selectedSessionFilter;
+    const matchesStatus = !selectedStatusFilter || normalizeRegistrationStatus(registration.attendance_status) === selectedStatusFilter;
+
+    return matchesSearch && matchesEvent && matchesSession && matchesStatus;
   });
 }
 
+function getUniqueEventFilterOptions() {
+  return [...events]
+    .sort((a, b) => String(a.title || '').localeCompare(String(b.title || '')))
+    .map((event) => ({ id: event.id, label: event.title || 'Untitled event' }));
+}
+
+function getUniqueSessionFilterOptions() {
+  const options = [];
+  events.forEach((event) => {
+    (event.sessions || []).forEach((session) => {
+      options.push({
+        id: session.id,
+        label: `${event.title || 'Untitled event'} — ${session.title || 'Untitled session'}`
+      });
+    });
+  });
+  return options.sort((a, b) => a.label.localeCompare(b.label));
+}
+
+function renderRegistrationsFilters() {
+  const controlsHost = document.getElementById('registrationsControls');
+  if (!controlsHost) return;
+
+  const eventOptions = getUniqueEventFilterOptions();
+  const sessionOptions = getUniqueSessionFilterOptions();
+
+  controlsHost.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 14px;">
+      <select id="registrationEventFilter" style="padding:10px 12px;border-radius:12px;border:1px solid rgba(15,23,42,0.14);background:#fff;min-width:180px;">
+        <option value="">All events</option>
+        ${eventOptions.map((option) => `<option value="${escapeAttr(option.id)}" ${selectedEventFilter === option.id ? 'selected' : ''}>${escapeHtml(option.label)}</option>`).join('')}
+      </select>
+
+      <select id="registrationSessionFilter" style="padding:10px 12px;border-radius:12px;border:1px solid rgba(15,23,42,0.14);background:#fff;min-width:220px;">
+        <option value="">All sessions</option>
+        ${sessionOptions.map((option) => `<option value="${escapeAttr(option.id)}" ${selectedSessionFilter === option.id ? 'selected' : ''}>${escapeHtml(option.label)}</option>`).join('')}
+      </select>
+
+      <select id="registrationStatusFilter" style="padding:10px 12px;border-radius:12px;border:1px solid rgba(15,23,42,0.14);background:#fff;min-width:160px;">
+        <option value="">All statuses</option>
+        ${Object.entries(REGISTRATION_STATUS_LABELS).map(([value, label]) => `<option value="${escapeAttr(value)}" ${selectedStatusFilter === value ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}
+      </select>
+    </div>
+  `;
+
+  const eventSelect = document.getElementById('registrationEventFilter');
+  const sessionSelect = document.getElementById('registrationSessionFilter');
+  const statusSelect = document.getElementById('registrationStatusFilter');
+
+  eventSelect?.addEventListener('change', (event) => {
+    selectedEventFilter = event.target.value || '';
+    renderRegistrations();
+  });
+
+  sessionSelect?.addEventListener('change', (event) => {
+    selectedSessionFilter = event.target.value || '';
+    renderRegistrations();
+  });
+
+  statusSelect?.addEventListener('change', (event) => {
+    selectedStatusFilter = event.target.value || '';
+    renderRegistrations();
+  });
+}
 
 function refreshEditingSessionFormLiveCounts() {
   if (!editingEventId || !sessionForms.length) return;
@@ -670,12 +739,32 @@ function updateRegistrationsSearchSummary(visibleCount, totalCount) {
     return;
   }
 
-  if (!registrationSearchTerm.trim()) {
+  const parts = [];
+
+  if (selectedEventFilter) {
+    const event = events.find((item) => item.id === selectedEventFilter);
+    if (event) parts.push(`event: ${event.title}`);
+  }
+
+  if (selectedSessionFilter) {
+    const { matchedEvent, matchedSession } = getRegistrationMatchDetails({ session_id: selectedSessionFilter });
+    if (matchedEvent && matchedSession) {
+      parts.push(`session: ${matchedEvent.title} — ${matchedSession.title}`);
+    }
+  }
+
+  if (selectedStatusFilter) {
+    parts.push(`status: ${formatRegistrationStatusLabel(selectedStatusFilter)}`);
+  }
+
+  if (!registrationSearchTerm.trim() && !parts.length) {
     summary.textContent = `Showing all ${totalCount} registration${totalCount === 1 ? '' : 's'}.`;
     return;
   }
 
-  summary.textContent = `Showing ${visibleCount} of ${totalCount} registration${totalCount === 1 ? '' : 's'} for “${registrationSearchTerm.trim()}”.`;
+  const filterText = parts.length ? ` (${parts.join(' · ')})` : '';
+  const searchText = registrationSearchTerm.trim() ? ` for “${registrationSearchTerm.trim()}”` : '';
+  summary.textContent = `Showing ${visibleCount} of ${totalCount} registration${totalCount === 1 ? '' : 's'}${searchText}${filterText}.`;
 }
 
 function renderRegistrations() {
@@ -692,7 +781,7 @@ function renderRegistrations() {
   updateRegistrationsSearchSummary(filteredRegistrations.length, registrations.length);
 
   if (!filteredRegistrations.length) {
-    container.innerHTML = '<div class="empty-state"><p>No registrations match your search.</p></div>';
+    container.innerHTML = '<div class="empty-state"><p>No registrations match your filters.</p></div>';
     return;
   }
 
@@ -770,6 +859,10 @@ function clearRegistrationSearch() {
   }
 
   registrationSearchTerm = '';
+  selectedEventFilter = '';
+  selectedSessionFilter = '';
+  selectedStatusFilter = '';
+  renderRegistrationsFilters();
   renderRegistrations();
 }
 
@@ -1303,6 +1396,7 @@ function exportData() {
 
 function showToast(message, type = 'success') {
   const container = document.getElementById('toastContainer');
+  if (!container) return;
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
   toast.innerHTML = `<span style="font-size:1.2rem;">${type === 'success' ? '✓' : '!'}</span><span>${escapeHtml(message)}</span>`;
@@ -1335,6 +1429,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('eventLocation')?.addEventListener('input', () => {
     if (!editingEventId) renderEventPhotoPreview();
   });
+
+  const registrationsSection = document.getElementById('registrationsList')?.parentElement;
+  if (registrationsSection && !document.getElementById('registrationsControls')) {
+    const controls = document.createElement('div');
+    controls.id = 'registrationsControls';
+    registrationsSection.insertBefore(controls, document.getElementById('registrationsSearchSummary') || document.getElementById('registrationsList'));
+  }
+
   bindEventPhotoControls();
   renderEventPhotoPreview();
 
