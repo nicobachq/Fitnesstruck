@@ -454,6 +454,7 @@ const TRANSLATIONS = {
       modalAccountRequired: 'Account richiesto per prenotare',
       participantPreview: 'Chi partecipa',
       participantPreviewEmpty: 'Sii tra i primi a partecipare',
+      spotsFilled: 'posti occupati',
       participantMore_one: '+{count} altro',
       participantMore_other: '+{count} altri'
     },
@@ -829,6 +830,7 @@ const TRANSLATIONS = {
       modalAccountRequired: 'Account required to book',
       participantPreview: 'Who is joining',
       participantPreviewEmpty: 'Be one of the first to join',
+      spotsFilled: 'spots filled',
       participantMore_one: '+{count} more',
       participantMore_other: '+{count} more'
     },
@@ -3270,14 +3272,13 @@ function renderEvents() {
     const cardClasses = ['event-card'];
     if (isPublicClosed) cardClasses.push('event-card-closed');
 
-    const participantLabel = getCountLabel('events.joining', totalRegistered);
+    const spotsLabel = `${totalRegistered}/${totalSpots}`;
     const sessionsLabel = getCountLabel('events.sessionsLabel', visibleSessions.length);
     const statusCopy = isPublicClosed
       ? t('events.closedCardDesc')
       : isSoldOut
         ? t('events.soldOutCardDesc')
         : t('events.openCardDesc');
-    const participantPreview = renderParticipantPreview(getEventParticipants(event), totalRegistered);
 
     return `
       <article class="${cardClasses.join(' ')}" tabindex="${isPublicClosed ? '-1' : '0'}" data-event-id="${escapeAttr(event.id)}" aria-disabled="${isPublicClosed ? 'true' : 'false'}">
@@ -3298,11 +3299,10 @@ function renderEvents() {
           <p class="event-location">${escapeHtml(event.location)}</p>
           ${renderMealHighlightBadges(event, visibleSessions)}
           <div class="event-meta-chips">
-            <span class="event-meta-chip">${escapeHtml(participantLabel)}</span>
+            <span class="event-meta-chip">${escapeHtml(spotsLabel)} ${escapeHtml(t('events.spotsFilled'))}</span>
             <span class="event-meta-chip">${escapeHtml(sessionsLabel)}</span>
             <span class="event-meta-chip">${escapeHtml(t('events.equipmentIncluded'))}</span>
           </div>
-          ${participantPreview}
           <p class="event-summary">${escapeHtml(getEventSummaryCopy(event))}</p>
           <div class="event-sessions">
             ${visibleSessions.map((session) => {
@@ -3449,7 +3449,7 @@ function renderEventModal(event) {
   const visibleSessions = getVisibleSessions(event);
   const publicSessions = getPublicSessions(event);
   const participantCount = visibleSessions.reduce((sum, session) => sum + Number(session.registered || 0), 0);
-  const participantPreview = renderParticipantPreview(getEventParticipants(event), participantCount);
+  const totalSpots = visibleSessions.reduce((sum, session) => sum + Number(session.maxParticipants || 0), 0);
   return `
     <div class="modal-header">
       ${eventPhotoUrl ? `<div class="modal-event-photo"><img src="${escapeAttr(eventPhotoUrl)}" alt="${escapeAttr(event.title)}"></div>` : ''}
@@ -3458,11 +3458,10 @@ function renderEventModal(event) {
       ${event.description ? `<p style="margin-top:8px;">${escapeHtml(event.description)}</p>` : ''}
       ${renderMealHighlightBadges(event, publicSessions)}
       <div class="event-meta-chips modal-meta-chips">
-        <span class="event-meta-chip">${escapeHtml(getCountLabel('events.joining', participantCount))}</span>
+        <span class="event-meta-chip">${escapeHtml(`${participantCount}/${totalSpots}`)} ${escapeHtml(t('events.spotsFilled'))}</span>
         <span class="event-meta-chip">${escapeHtml(t('events.equipmentIncluded'))}</span>
         <span class="event-meta-chip">${escapeHtml(t('events.modalMixedLevels'))}</span>
       </div>
-      ${participantPreview}
     </div>
     <div class="modal-sessions" role="list">
       ${publicSessions.map((session) => {
