@@ -16,6 +16,7 @@ let registrationSearchTerm = '';
 let selectedEventFilter = '';
 let selectedSessionFilter = '';
 let selectedStatusFilter = '';
+let selectedDateFilter = '';
 let isSyncingSessionCounts = false;
 let pendingEventPhotoFile = null;
 let pendingEventPhotoPreviewUrl = '';
@@ -35,6 +36,15 @@ function normalizeRegistrationStatus(status) {
 
 function formatRegistrationStatusLabel(status) {
   return REGISTRATION_STATUS_LABELS[normalizeRegistrationStatus(status)] || 'Registered';
+}
+
+function formatPaymentStatusLabel(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'paid') return 'Paid';
+  if (normalized === 'pending') return 'Pending';
+  if (normalized === 'refunded') return 'Refunded';
+  if (normalized === 'cancelled') return 'Cancelled';
+  return value || '';
 }
 
 function formatGenderLabel(value) {
@@ -302,16 +312,11 @@ async function attemptLogin() {
   }
 
   try {
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-      email,
-      password
-    });
-
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) throw error;
 
     const user = data?.user;
     const allowed = await isCurrentUserAdmin(user);
-
     if (!allowed) {
       await supabaseClient.auth.signOut();
       showLoginError('This account is not allowed to use the admin area.');
@@ -343,11 +348,8 @@ function showLoginScreen() {
 function showAdminInterface() {
   document.getElementById('loginScreen')?.classList.add('hidden');
   document.getElementById('adminInterface').style.display = 'block';
-
   const demoBanner = document.querySelector('.demo-banner');
-  if (demoBanner) {
-    demoBanner.innerHTML = '<strong>LIVE MODE:</strong> Admin login and event saving now use Supabase.';
-  }
+  if (demoBanner) demoBanner.innerHTML = '<strong>LIVE MODE:</strong> Admin login and event saving now use Supabase.';
 }
 
 function mapDatabaseToUi(eventRows, sessionRows) {
@@ -380,33 +382,24 @@ function mapDatabaseToUi(eventRows, sessionRows) {
   }));
 }
 
-function isEventRegistrationOpen(event) {
-  return event?.registrationOpen !== false;
-}
-
-function isSessionRegistrationOpen(session) {
-  return session?.registrationOpen !== false;
-}
-
+function isEventRegistrationOpen(event) { return event?.registrationOpen !== false; }
+function isSessionRegistrationOpen(session) { return session?.registrationOpen !== false; }
 function getRegistrationToggleBadge(isOpen) {
   return `<span class="admin-reg-badge ${isOpen ? 'open' : 'closed'}">${isOpen ? 'Open' : 'Closed'}</span>`;
 }
 
 function buildLiveRegistrationCountMap() {
   const countMap = new Map();
-
   registrations.forEach((registration) => {
     if (!registration?.session_id) return;
     if (!isSeatCountingStatus(registration.attendance_status)) return;
     countMap.set(registration.session_id, (countMap.get(registration.session_id) || 0) + 1);
   });
-
   return countMap;
 }
 
 function applyLiveRegistrationCounts() {
   const countMap = buildLiveRegistrationCountMap();
-
   events.forEach((event) => {
     (event.sessions || []).forEach((session) => {
       session.registered = countMap.get(session.id) || 0;
@@ -416,36 +409,21 @@ function applyLiveRegistrationCounts() {
 
 async function syncStoredSessionCountsToSupabase() {
   if (isSyncingSessionCounts) return;
-
   const updates = [];
-
   events.forEach((event) => {
     (event.sessions || []).forEach((session) => {
       const liveCount = Number(session.registered || 0);
       const storedCount = Number(session.storedRegisteredCount || 0);
-
-      if (liveCount !== storedCount) {
-        updates.push({
-          id: session.id,
-          registered_count: liveCount
-        });
-      }
+      if (liveCount !== storedCount) updates.push({ id: session.id, registered_count: liveCount });
     });
   });
-
   if (!updates.length) return;
 
   isSyncingSessionCounts = true;
-
   try {
-    await Promise.all(
-      updates.map((update) => (
-        supabaseClient
-          .from('sessions')
-          .update({ registered_count: update.registered_count })
-          .eq('id', update.id)
-      ))
-    );
+    await Promise.all(updates.map((update) => (
+      supabaseClient.from('sessions').update({ registered_count: update.registered_count }).eq('id', update.id)
+    )));
 
     events.forEach((event) => {
       (event.sessions || []).forEach((session) => {
@@ -470,46 +448,29 @@ function refreshAdminDataView() {
 
 async function loadEvents() {
   try {
-    const { data: eventRows, error: eventsError } = await supabaseClient
-      .from('events')
-      .select('*')
-      .order('date', { ascending: true });
-
+    const { data: eventRows, error: eventsError } = await supabaseClient.from('events').select('*').order('date', { ascending: true });
     if (eventsError) throw eventsError;
-
-    const { data: sessionRows, error: sessionsError } = await supabaseClient
-      .from('sessions')
-      .select('*')
-      .order('start_time', { ascending: true });
-
+    const { data: sessionRows, error: sessionsError } = await supabaseClient.from('sessions').select('*').order('start_time', { ascending: true });
     if (sessionsError) throw sessionsError;
-
     events = mapDatabaseToUi(eventRows, sessionRows);
   } catch (error) {
     console.error('Failed to load events:', error);
     events = [];
     showToast('Failed to load events from Supabase.', 'error');
   }
-
   refreshAdminDataView();
 }
 
 async function loadRegistrations() {
   try {
-    const { data, error } = await supabaseClient
-      .from('registrations')
-      .select('*')
-      .order('created_at', { ascending: false });
-
+    const { data, error } = await supabaseClient.from('registrations').select('*').order('created_at', { ascending: false });
     if (error) throw error;
-
     registrations = data || [];
   } catch (error) {
     console.error('Failed to load registrations:', error);
     registrations = [];
     showToast('Failed to load registrations from Supabase.', 'error');
   }
-
   refreshAdminDataView();
   await syncStoredSessionCountsToSupabase();
 }
@@ -517,7 +478,6 @@ async function loadRegistrations() {
 function getRegistrationMatchDetails(registration) {
   let matchedEvent = null;
   let matchedSession = null;
-
   for (const event of events) {
     const session = (event.sessions || []).find((item) => item.id === registration.session_id);
     if (session) {
@@ -526,33 +486,24 @@ function getRegistrationMatchDetails(registration) {
       break;
     }
   }
-
   return { matchedEvent, matchedSession };
 }
 
 function getEventRegistrationStatusCounts(event) {
   const sessionIds = new Set((event?.sessions || []).map((session) => session.id));
-  const counts = {
-    registered: 0,
-    attended: 0,
-    cancelled: 0,
-    no_show: 0
-  };
-
+  const counts = { registered: 0, attended: 0, cancelled: 0, no_show: 0 };
   registrations.forEach((registration) => {
     if (!sessionIds.has(registration.session_id)) return;
     counts[normalizeRegistrationStatus(registration.attendance_status)] += 1;
   });
-
   return counts;
 }
 
 function getFilteredRegistrations() {
   const term = registrationSearchTerm.trim().toLowerCase();
-
   return registrations.filter((registration) => {
     const { matchedEvent, matchedSession } = getRegistrationMatchDetails(registration);
-
+    const eventDate = matchedEvent?.date || '';
     const searchableText = [
       registration.full_name,
       registration.email,
@@ -562,127 +513,143 @@ function getFilteredRegistrations() {
       registration.gender,
       registration.food_allergies,
       registration.medical_conditions,
+      registration.payment_status,
       formatRegistrationStatusLabel(registration.attendance_status),
       matchedEvent?.title,
       matchedSession?.title,
       matchedSession?.startTime,
-      matchedSession?.endTime
+      matchedSession?.endTime,
+      eventDate
     ].filter(Boolean).join(' ').toLowerCase();
 
     const matchesSearch = !term || searchableText.includes(term);
     const matchesEvent = !selectedEventFilter || matchedEvent?.id === selectedEventFilter;
     const matchesSession = !selectedSessionFilter || matchedSession?.id === selectedSessionFilter;
     const matchesStatus = !selectedStatusFilter || normalizeRegistrationStatus(registration.attendance_status) === selectedStatusFilter;
-
-    return matchesSearch && matchesEvent && matchesSession && matchesStatus;
+    const matchesDate = !selectedDateFilter || eventDate === selectedDateFilter;
+    return matchesSearch && matchesEvent && matchesSession && matchesStatus && matchesDate;
   });
 }
 
-function getUniqueEventFilterOptions() {
-  return [...events]
-    .sort((a, b) => String(a.title || '').localeCompare(String(b.title || '')))
-    .map((event) => ({ id: event.id, label: event.title || 'Untitled event' }));
-}
-
-function getUniqueSessionFilterOptions() {
-  const options = [];
+function getRegistrationFilterOptions() {
+  const eventMap = new Map();
+  const sessionMap = new Map();
+  const dateMap = new Map();
   events.forEach((event) => {
+    if (event?.id) eventMap.set(event.id, { id: event.id, label: event.title || 'Untitled event' });
+    if (event?.date) dateMap.set(event.date, event.date);
     (event.sessions || []).forEach((session) => {
-      options.push({
-        id: session.id,
-        label: `${event.title || 'Untitled event'} — ${session.title || 'Untitled session'}`
-      });
+      if (!session?.id) return;
+      sessionMap.set(session.id, { id: session.id, label: `${event.title || 'Untitled event'} · ${session.title || 'Untitled session'}` });
     });
   });
-  return options.sort((a, b) => a.label.localeCompare(b.label));
+  return {
+    events: Array.from(eventMap.values()).sort((a, b) => a.label.localeCompare(b.label)),
+    sessions: Array.from(sessionMap.values()).sort((a, b) => a.label.localeCompare(b.label)),
+    dates: Array.from(dateMap.values()).sort((a, b) => a.localeCompare(b))
+  };
 }
 
 function renderRegistrationsFilters() {
-  const controlsHost = document.getElementById('registrationsControls');
-  if (!controlsHost) return;
+  const host = document.getElementById('registrationsControls');
+  if (!host) return;
+  const options = getRegistrationFilterOptions();
 
-  const eventOptions = getUniqueEventFilterOptions();
-  const sessionOptions = getUniqueSessionFilterOptions();
-
-  controlsHost.innerHTML = `
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 14px;">
-      <select id="registrationEventFilter" style="padding:10px 12px;border-radius:12px;border:1px solid rgba(15,23,42,0.14);background:#fff;min-width:180px;">
-        <option value="">All events</option>
-        ${eventOptions.map((option) => `<option value="${escapeAttr(option.id)}" ${selectedEventFilter === option.id ? 'selected' : ''}>${escapeHtml(option.label)}</option>`).join('')}
-      </select>
-
-      <select id="registrationSessionFilter" style="padding:10px 12px;border-radius:12px;border:1px solid rgba(15,23,42,0.14);background:#fff;min-width:220px;">
-        <option value="">All sessions</option>
-        ${sessionOptions.map((option) => `<option value="${escapeAttr(option.id)}" ${selectedSessionFilter === option.id ? 'selected' : ''}>${escapeHtml(option.label)}</option>`).join('')}
-      </select>
-
-      <select id="registrationStatusFilter" style="padding:10px 12px;border-radius:12px;border:1px solid rgba(15,23,42,0.14);background:#fff;min-width:160px;">
-        <option value="">All statuses</option>
-        ${Object.entries(REGISTRATION_STATUS_LABELS).map(([value, label]) => `<option value="${escapeAttr(value)}" ${selectedStatusFilter === value ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}
-      </select>
+  host.innerHTML = `
+    <div class="form-row" style="margin-bottom:12px; align-items:end; gap:12px; flex-wrap:wrap;">
+      <div class="form-group" style="min-width:170px; margin-bottom:0;">
+        <label for="registrationDateFilter">Filter by day</label>
+        <select id="registrationDateFilter">
+          <option value="">All days</option>
+          ${options.dates.map((date) => `<option value="${escapeAttr(date)}" ${selectedDateFilter === date ? 'selected' : ''}>${escapeHtml(formatDateShort(date))}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group" style="min-width:220px; margin-bottom:0;">
+        <label for="registrationEventFilter">Filter by event</label>
+        <select id="registrationEventFilter">
+          <option value="">All events</option>
+          ${options.events.map((event) => `<option value="${escapeAttr(event.id)}" ${selectedEventFilter === event.id ? 'selected' : ''}>${escapeHtml(event.label)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group" style="min-width:240px; margin-bottom:0;">
+        <label for="registrationSessionFilter">Filter by session</label>
+        <select id="registrationSessionFilter">
+          <option value="">All sessions</option>
+          ${options.sessions.map((session) => `<option value="${escapeAttr(session.id)}" ${selectedSessionFilter === session.id ? 'selected' : ''}>${escapeHtml(session.label)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group" style="min-width:170px; margin-bottom:0;">
+        <label for="registrationStatusFilter">Filter by status</label>
+        <select id="registrationStatusFilter">
+          <option value="">All statuses</option>
+          ${Object.entries(REGISTRATION_STATUS_LABELS).map(([value, label]) => `<option value="${escapeAttr(value)}" ${selectedStatusFilter === value ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin:0 0 10px;">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickRegistrationFilter('today')">Today</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickRegistrationFilter('upcoming')">Upcoming</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="clearRegistrationSearch()">Reset filters</button>
     </div>
   `;
 
-  const eventSelect = document.getElementById('registrationEventFilter');
-  const sessionSelect = document.getElementById('registrationSessionFilter');
-  const statusSelect = document.getElementById('registrationStatusFilter');
-
-  eventSelect?.addEventListener('change', (event) => {
+  document.getElementById('registrationDateFilter')?.addEventListener('change', (event) => {
+    selectedDateFilter = event.target.value || '';
+    renderRegistrations();
+  });
+  document.getElementById('registrationEventFilter')?.addEventListener('change', (event) => {
     selectedEventFilter = event.target.value || '';
     renderRegistrations();
   });
-
-  sessionSelect?.addEventListener('change', (event) => {
+  document.getElementById('registrationSessionFilter')?.addEventListener('change', (event) => {
     selectedSessionFilter = event.target.value || '';
     renderRegistrations();
   });
-
-  statusSelect?.addEventListener('change', (event) => {
+  document.getElementById('registrationStatusFilter')?.addEventListener('change', (event) => {
     selectedStatusFilter = event.target.value || '';
     renderRegistrations();
   });
 }
 
+function setQuickRegistrationFilter(mode) {
+  const today = new Date();
+  const localDate = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().slice(0, 10);
+  if (mode === 'today') {
+    selectedDateFilter = localDate;
+  } else if (mode === 'upcoming') {
+    selectedDateFilter = events.map((event) => event.date).filter(Boolean).filter((date) => date >= localDate).sort()[0] || '';
+  }
+  renderRegistrationsFilters();
+  renderRegistrations();
+}
+
 function refreshEditingSessionFormLiveCounts() {
   if (!editingEventId || !sessionForms.length) return;
-
   const editingEvent = events.find((event) => event.id === editingEventId);
   if (!editingEvent) return;
-
   sessionForms.forEach((form) => {
     const sessionId = form.dataset.sessionId;
     const countInput = form.querySelector('.session-registered');
     if (!countInput) return;
-
     if (!sessionId) {
       countInput.value = '0';
       return;
     }
-
     const matchingSession = (editingEvent.sessions || []).find((session) => session.id === sessionId);
     countInput.value = String(matchingSession?.registered || 0);
   });
 }
 
 async function deleteRegistrationFromSupabase(registrationId) {
-  if (!registrationId) {
-    throw new Error('This registration has no id, so it cannot be deleted.');
-  }
-
-  const { error } = await supabaseClient
-    .from('registrations')
-    .delete()
-    .eq('id', registrationId);
-
+  if (!registrationId) throw new Error('This registration has no id, so it cannot be deleted.');
+  const { error } = await supabaseClient.from('registrations').delete().eq('id', registrationId);
   if (error) throw error;
 }
 
 async function deleteRegistration(registrationId) {
   const registration = registrations.find((item) => item.id === registrationId);
   const participantName = registration?.full_name || 'this registration';
-
   if (!confirm(`Delete ${participantName}? This cannot be undone.`)) return;
-
   try {
     await deleteRegistrationFromSupabase(registrationId);
     await loadRegistrations();
@@ -696,20 +663,13 @@ async function deleteRegistration(registrationId) {
 async function updateRegistrationStatus(registrationId, nextStatus) {
   const normalizedStatus = normalizeRegistrationStatus(nextStatus);
   const registration = registrations.find((item) => item.id === registrationId);
-
   if (!registrationId || !registration) {
     showToast('Could not find this registration.', 'error');
     return;
   }
-
   try {
-    const { error } = await supabaseClient
-      .from('registrations')
-      .update({ attendance_status: normalizedStatus })
-      .eq('id', registrationId);
-
+    const { error } = await supabaseClient.from('registrations').update({ attendance_status: normalizedStatus }).eq('id', registrationId);
     if (error) throw error;
-
     registration.attendance_status = normalizedStatus;
     refreshAdminDataView();
     await syncStoredSessionCountsToSupabase();
@@ -726,45 +686,57 @@ function saveRegistrationStatus(registrationId) {
     showToast('Status selector not found.', 'error');
     return;
   }
-
   updateRegistrationStatus(registrationId, select.value);
 }
 
 function updateRegistrationsSearchSummary(visibleCount, totalCount) {
   const summary = document.getElementById('registrationsSearchSummary');
   if (!summary) return;
-
   if (!totalCount) {
     summary.textContent = '';
     return;
   }
 
   const parts = [];
-
+  if (selectedDateFilter) parts.push(`day: ${formatDateShort(selectedDateFilter)}`);
   if (selectedEventFilter) {
     const event = events.find((item) => item.id === selectedEventFilter);
     if (event) parts.push(`event: ${event.title}`);
   }
-
   if (selectedSessionFilter) {
-    const { matchedEvent, matchedSession } = getRegistrationMatchDetails({ session_id: selectedSessionFilter });
-    if (matchedEvent && matchedSession) {
-      parts.push(`session: ${matchedEvent.title} — ${matchedSession.title}`);
-    }
+    let label = '';
+    events.some((event) => {
+      const session = (event.sessions || []).find((item) => item.id === selectedSessionFilter);
+      if (!session) return false;
+      label = `${event.title} · ${session.title}`;
+      return true;
+    });
+    if (label) parts.push(`session: ${label}`);
   }
+  if (selectedStatusFilter) parts.push(`status: ${formatRegistrationStatusLabel(selectedStatusFilter)}`);
 
-  if (selectedStatusFilter) {
-    parts.push(`status: ${formatRegistrationStatusLabel(selectedStatusFilter)}`);
-  }
-
-  if (!registrationSearchTerm.trim() && !parts.length) {
-    summary.textContent = `Showing all ${totalCount} registration${totalCount === 1 ? '' : 's'}.`;
-    return;
-  }
-
-  const filterText = parts.length ? ` (${parts.join(' · ')})` : '';
   const searchText = registrationSearchTerm.trim() ? ` for “${registrationSearchTerm.trim()}”` : '';
+  const filterText = parts.length ? ` (${parts.join(' · ')})` : '';
   summary.textContent = `Showing ${visibleCount} of ${totalCount} registration${totalCount === 1 ? '' : 's'}${searchText}${filterText}.`;
+}
+
+function updateRegistrationSubstats(filteredRegistrations) {
+  const byStatus = { registered: 0, attended: 0, cancelled: 0, no_show: 0 };
+  let notesCount = 0;
+  filteredRegistrations.forEach((registration) => {
+    byStatus[normalizeRegistrationStatus(registration.attendance_status)] += 1;
+    if (registration.food_allergies || registration.medical_conditions) notesCount += 1;
+  });
+
+  const set = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = String(value);
+  };
+  set('registrationsVisibleCount', filteredRegistrations.length);
+  set('registrationsRegisteredCount', byStatus.registered);
+  set('registrationsCancelledCount', byStatus.cancelled);
+  set('registrationsNoShowCount', byStatus.no_show);
+  set('registrationsHasNotesCount', notesCount);
 }
 
 function renderRegistrations() {
@@ -774,11 +746,13 @@ function renderRegistrations() {
   if (!registrations.length) {
     container.innerHTML = '<div class="empty-state"><p>No registrations yet.</p></div>';
     updateRegistrationsSearchSummary(0, 0);
+    updateRegistrationSubstats([]);
     return;
   }
 
   const filteredRegistrations = getFilteredRegistrations();
   updateRegistrationsSearchSummary(filteredRegistrations.length, registrations.length);
+  updateRegistrationSubstats(filteredRegistrations);
 
   if (!filteredRegistrations.length) {
     container.innerHTML = '<div class="empty-state"><p>No registrations match your filters.</p></div>';
@@ -790,14 +764,20 @@ function renderRegistrations() {
     const normalizedStatus = normalizeRegistrationStatus(registration.attendance_status);
     const statusLabel = formatRegistrationStatusLabel(normalizedStatus);
     const statusSelectId = getRegistrationStatusSelectId(registration.id || '');
+    const paymentStatus = String(registration.payment_status || registration.status || '').trim();
+    const eventDateLabel = matchedEvent?.date ? formatDateShort(matchedEvent.date) : 'Unknown date';
+    const hasMedical = !!registration.medical_conditions;
+    const hasAllergies = !!registration.food_allergies;
+    const hasEmergency = !!(registration.emergency_contact_name || registration.emergency_contact_phone);
 
     return `
       <div class="event-item">
         <div class="event-header" style="align-items:flex-start; gap:16px;">
-          <div class="event-info">
+          <div class="event-info" style="flex:1;">
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
               <h3 style="margin:0;">${escapeHtml(registration.full_name || 'No name')}</h3>
               <span style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;font-size:0.82rem;font-weight:600;${getRegistrationStatusBadgeStyles(normalizedStatus)}">${escapeHtml(statusLabel)}</span>
+              ${paymentStatus ? `<span class="admin-reg-badge open">${escapeHtml(formatPaymentStatusLabel(paymentStatus))}</span>` : ''}
               <span style="font-size:0.82rem;opacity:0.72;">${registration.user_id ? 'Linked account' : 'Guest booking'}</span>
             </div>
 
@@ -809,25 +789,22 @@ function renderRegistrations() {
             <div class="event-meta" style="margin-top:4px;">
               ${matchedEvent ? `Event: ${escapeHtml(matchedEvent.title)}` : 'Event: Unknown'}
               ${matchedSession ? ` · Session: ${escapeHtml(matchedSession.title)} (${escapeHtml(matchedSession.startTime)} - ${escapeHtml(matchedSession.endTime)})` : ''}
+              ${matchedEvent?.date ? ` · Day: ${escapeHtml(eventDateLabel)}` : ''}
             </div>
 
-            <div class="event-meta" style="margin-top:4px;">
-              ${registration.age ? `Age: ${escapeHtml(String(registration.age))}` : 'Age: —'}
-              ${registration.gender ? ` · Gender: ${escapeHtml(formatGenderLabel(registration.gender))}` : ''}
-              ${registration.emergency_contact_name ? ` · Emergency Contact: ${escapeHtml(registration.emergency_contact_name)}` : ''}
-              ${registration.emergency_contact_phone ? ` (${escapeHtml(registration.emergency_contact_phone)})` : ''}
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:14px;">
+              <div class="auth-registration-detail"><strong>Booked</strong><span>${registration.created_at ? escapeHtml(new Date(registration.created_at).toLocaleString()) : '—'}</span></div>
+              <div class="auth-registration-detail"><strong>Participant</strong><span>${registration.age ? `Age ${escapeHtml(String(registration.age))}` : 'Age —'}${registration.gender ? ` · ${escapeHtml(formatGenderLabel(registration.gender))}` : ''}</span></div>
+              <div class="auth-registration-detail"><strong>Emergency Contact</strong><span>${hasEmergency ? `${escapeHtml(registration.emergency_contact_name || 'Contact')}${registration.emergency_contact_phone ? ` · ${escapeHtml(registration.emergency_contact_phone)}` : ''}` : '—'}</span></div>
+              <div class="auth-registration-detail"><strong>Health Notes</strong><span>${hasMedical ? escapeHtml(registration.medical_conditions) : '—'}</span></div>
+              <div class="auth-registration-detail"><strong>Allergies</strong><span>${hasAllergies ? escapeHtml(registration.food_allergies) : '—'}</span></div>
+              <div class="auth-registration-detail"><strong>Payment</strong><span>${paymentStatus ? escapeHtml(formatPaymentStatusLabel(paymentStatus)) : '—'}</span></div>
             </div>
 
-            <div class="event-meta" style="margin-top:4px;">
-              Food allergies: ${registration.food_allergies ? escapeHtml(registration.food_allergies) : '—'}
-            </div>
-
-            <div class="event-meta" style="margin-top:4px;">
-              Medical / physical conditions: ${registration.medical_conditions ? escapeHtml(registration.medical_conditions) : '—'}
-            </div>
-
-            <div class="event-meta" style="margin-top:4px;">
-              ${registration.created_at ? `Booked: ${new Date(registration.created_at).toLocaleString()}` : ''}
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+              ${hasMedical ? '<span class="admin-reg-badge closed">Medical note</span>' : ''}
+              ${hasAllergies ? '<span class="admin-reg-badge open">Allergy</span>' : ''}
+              ${hasEmergency ? '<span class="admin-reg-badge open">Emergency contact</span>' : ''}
             </div>
           </div>
           <div class="event-actions" style="flex-shrink:0;min-width:210px;display:flex;flex-direction:column;gap:8px;align-items:stretch;">
@@ -854,14 +831,12 @@ function handleRegistrationSearch() {
 
 function clearRegistrationSearch() {
   const input = document.getElementById('registrationSearch');
-  if (input) {
-    input.value = '';
-  }
-
+  if (input) input.value = '';
   registrationSearchTerm = '';
   selectedEventFilter = '';
   selectedSessionFilter = '';
   selectedStatusFilter = '';
+  selectedDateFilter = '';
   renderRegistrationsFilters();
   renderRegistrations();
 }
@@ -869,11 +844,8 @@ function clearRegistrationSearch() {
 function saveButtonLoading(isLoading) {
   const submitBtn = document.getElementById('submitBtn');
   if (!submitBtn) return;
-
   submitBtn.disabled = isLoading;
-  submitBtn.textContent = isLoading
-    ? (editingEventId ? 'Saving...' : 'Creating...')
-    : (editingEventId ? 'Update Event' : 'Create Event');
+  submitBtn.textContent = isLoading ? (editingEventId ? 'Saving...' : 'Creating...') : (editingEventId ? 'Update Event' : 'Create Event');
 }
 
 function withMealSchemaHint(error) {
@@ -899,17 +871,10 @@ async function saveEventToSupabase(eventData) {
   };
 
   if (editingEventId) {
-    const { error: eventError } = await supabaseClient
-      .from('events')
-      .update(eventRow)
-      .eq('id', editingEventId);
-
+    const { error: eventError } = await supabaseClient.from('events').update(eventRow).eq('id', editingEventId);
     if (eventError) throw withMealSchemaHint(eventError);
   } else {
-    const { error: eventError } = await supabaseClient
-      .from('events')
-      .insert(eventRow);
-
+    const { error: eventError } = await supabaseClient.from('events').insert(eventRow);
     if (eventError) throw withMealSchemaHint(eventError);
   }
 
@@ -934,62 +899,35 @@ async function saveEventToSupabase(eventData) {
     const sessionIdsToDelete = oldSessionIds.filter((id) => !newSessionIds.includes(id));
 
     if (sessionIdsToDelete.length) {
-      const { error: deleteSessionsError } = await supabaseClient
-        .from('sessions')
-        .delete()
-        .in('id', sessionIdsToDelete);
-
+      const { error: deleteSessionsError } = await supabaseClient.from('sessions').delete().in('id', sessionIdsToDelete);
       if (deleteSessionsError) throw deleteSessionsError;
     }
-
     if (sessionRows.length) {
-      const { error: upsertSessionsError } = await supabaseClient
-        .from('sessions')
-        .upsert(sessionRows, { onConflict: 'id' });
-
+      const { error: upsertSessionsError } = await supabaseClient.from('sessions').upsert(sessionRows, { onConflict: 'id' });
       if (upsertSessionsError) throw upsertSessionsError;
     }
-  } else {
-    if (sessionRows.length) {
-      const { error: insertSessionsError } = await supabaseClient
-        .from('sessions')
-        .insert(sessionRows);
-
-      if (insertSessionsError) throw insertSessionsError;
-    }
+  } else if (sessionRows.length) {
+    const { error: insertSessionsError } = await supabaseClient.from('sessions').insert(sessionRows);
+    if (insertSessionsError) throw insertSessionsError;
   }
 }
 
 async function deleteEventFromSupabase(eventId) {
   const existingEvent = events.find((event) => event.id === eventId);
   const sessionIds = (existingEvent?.sessions || []).map((session) => session.id);
-
   if (sessionIds.length) {
-    const { error: deleteSessionsError } = await supabaseClient
-      .from('sessions')
-      .delete()
-      .in('id', sessionIds);
-
+    const { error: deleteSessionsError } = await supabaseClient.from('sessions').delete().in('id', sessionIds);
     if (deleteSessionsError) throw deleteSessionsError;
   }
-
-  const { error: deleteEventError } = await supabaseClient
-    .from('events')
-    .delete()
-    .eq('id', eventId);
-
+  const { error: deleteEventError } = await supabaseClient.from('events').delete().eq('id', eventId);
   if (deleteEventError) throw deleteEventError;
-
   const existingPhotoPath = getEventPhotoPath(existingEvent);
-  if (existingPhotoPath) {
-    await supabaseClient.storage.from(CONFIG.EVENT_MEDIA_BUCKET).remove([existingPhotoPath]);
-  }
+  if (existingPhotoPath) await supabaseClient.storage.from(CONFIG.EVENT_MEDIA_BUCKET).remove([existingPhotoPath]);
 }
 
 function renderEvents() {
   const container = document.getElementById('eventsList');
   if (!container) return;
-
   if (!events.length) {
     container.innerHTML = '<div class="empty-state"><p>No events yet. Create your first event to get started.</p></div>';
     return;
@@ -997,7 +935,6 @@ function renderEvents() {
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
   const sorted = [...events].sort((a, b) => new Date(a.date) - new Date(b.date));
 
   container.innerHTML = sorted.map((event) => {
@@ -1038,35 +975,17 @@ function renderEvents() {
 async function setEventRegistrationOpen(eventId, shouldOpen) {
   const event = events.find((item) => item.id === eventId);
   if (!event) return;
-
   try {
-    const updates = [
-      supabaseClient
-        .from('events')
-        .update({ registration_open: shouldOpen })
-        .eq('id', eventId)
-    ];
-
+    const updates = [supabaseClient.from('events').update({ registration_open: shouldOpen }).eq('id', eventId)];
     if (Array.isArray(event.sessions) && event.sessions.length) {
-      updates.push(
-        supabaseClient
-          .from('sessions')
-          .update({ registration_open: shouldOpen })
-          .eq('event_id', eventId)
-      );
+      updates.push(supabaseClient.from('sessions').update({ registration_open: shouldOpen }).eq('event_id', eventId));
     }
-
     const results = await Promise.all(updates);
     const failed = results.find((result) => result?.error);
     if (failed?.error) throw failed.error;
 
     event.registrationOpen = shouldOpen;
-    if (Array.isArray(event.sessions)) {
-      event.sessions.forEach((session) => {
-        session.registrationOpen = shouldOpen;
-      });
-    }
-
+    if (Array.isArray(event.sessions)) event.sessions.forEach((session) => { session.registrationOpen = shouldOpen; });
     if (editingEventId === eventId) {
       const checkbox = document.getElementById('eventRegistrationOpen');
       if (checkbox) checkbox.checked = shouldOpen;
@@ -1075,7 +994,6 @@ async function setEventRegistrationOpen(eventId, shouldOpen) {
         if (sessionCheckbox) sessionCheckbox.checked = shouldOpen;
       });
     }
-
     refreshAdminDataView();
     showToast(`Event registration ${shouldOpen ? 'opened' : 'closed'}${Array.isArray(event.sessions) && event.sessions.length ? ' for all sessions' : ''}.`, 'success');
   } catch (error) {
@@ -1088,23 +1006,15 @@ async function setSessionRegistrationOpen(eventId, sessionId, shouldOpen) {
   const event = events.find((item) => item.id === eventId);
   const session = event?.sessions?.find((item) => item.id === sessionId);
   if (!event || !session) return;
-
   try {
-    const { error } = await supabaseClient
-      .from('sessions')
-      .update({ registration_open: shouldOpen })
-      .eq('id', sessionId);
-
+    const { error } = await supabaseClient.from('sessions').update({ registration_open: shouldOpen }).eq('id', sessionId);
     if (error) throw error;
-
     session.registrationOpen = shouldOpen;
-
     if (editingEventId === eventId) {
       const form = sessionForms.find((item) => item.dataset.sessionId === sessionId);
       const checkbox = form?.querySelector('.session-registration-open');
       if (checkbox) checkbox.checked = shouldOpen;
     }
-
     refreshAdminDataView();
     showToast(`Session registration ${shouldOpen ? 'opened' : 'closed'}.`, 'success');
   } catch (error) {
@@ -1121,9 +1031,7 @@ function toggleEvent(eventId) {
 function updateStats() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
   const attendedCount = registrations.filter((registration) => normalizeRegistrationStatus(registration.attendance_status) === 'attended').length;
-
   document.getElementById('totalEvents').textContent = events.length;
   document.getElementById('upcomingEvents').textContent = events.filter((event) => new Date(event.date) >= today).length;
   document.getElementById('totalSessions').textContent = events.reduce((sum, event) => sum + event.sessions.length, 0);
@@ -1131,9 +1039,7 @@ function updateStats() {
   document.getElementById('attendedRegistrations').textContent = attendedCount;
 }
 
-function initForm() {
-  document.getElementById('eventForm')?.addEventListener('submit', handleSubmit);
-}
+function initForm() { document.getElementById('eventForm')?.addEventListener('submit', handleSubmit); }
 
 function addSessionForm(sessionData = null) {
   const index = sessionForms.length;
@@ -1178,10 +1084,8 @@ function removeSessionForm(index) {
     showToast('Event must have at least one session.', 'error');
     return;
   }
-
   sessionForms[index].remove();
   sessionForms.splice(index, 1);
-
   sessionForms.forEach((form, i) => {
     form.querySelector('.session-form-header span').textContent = `Session ${i + 1}`;
     const btn = form.querySelector('.btn-remove-session');
@@ -1196,7 +1100,6 @@ async function handleSubmit(e) {
   const wasEditing = !!editingEventId;
   const eventId = editingEventId || generateId();
   const existingEvent = events.find((event) => event.id === editingEventId);
-
   const eventData = {
     id: eventId,
     title: document.getElementById('eventTitle').value.trim(),
@@ -1250,22 +1153,18 @@ function validateForm() {
       valid = false;
       showToast(`Please fill all required fields for Session ${i + 1}.`, 'error');
     }
-
     if (start.value >= end.value) {
       valid = false;
       end.classList.add('error');
       showToast(`Session ${i + 1}: end time must be after start time.`, 'error');
     }
-
     const maxVal = parseInt(max.value, 10) || 0;
     const regVal = parseInt(reg.value, 10) || 0;
-
     if (maxVal < 1 || maxVal > 500) {
       valid = false;
       max.classList.add('error');
       showToast(`Session ${i + 1}: max participants must be 1-500.`, 'error');
     }
-
     if (regVal > maxVal) {
       valid = false;
       max.classList.add('error');
@@ -1278,11 +1177,9 @@ function validateForm() {
 
 function gatherSessionsData(eventId, existingEvent = null) {
   const existingSessions = existingEvent?.sessions || [];
-
   return sessionForms.map((form, index) => {
     const max = Math.max(1, Math.min(500, parseInt(form.querySelector('.session-max').value, 10) || 50));
     const reg = Math.max(0, Math.min(max, parseInt(form.querySelector('.session-registered').value, 10) || 0));
-
     return {
       id: form.dataset.sessionId || existingSessions[index]?.id || `${eventId}-session-${Date.now()}-${index}`,
       title: form.querySelector('.session-title').value.trim(),
@@ -1301,7 +1198,6 @@ function gatherSessionsData(eventId, existingEvent = null) {
 function editEvent(eventId) {
   const event = events.find((item) => item.id === eventId);
   if (!event) return;
-
   editingEventId = eventId;
   document.getElementById('formTitle').textContent = 'Edit Event';
   document.getElementById('submitBtn').textContent = 'Update Event';
@@ -1324,15 +1220,10 @@ function editEvent(eventId) {
 
 async function deleteEvent(eventId) {
   if (!confirm('Are you sure you want to delete this event?')) return;
-
   try {
     await deleteEventFromSupabase(eventId);
     await loadEvents();
-
-    if (editingEventId === eventId) {
-      resetForm();
-    }
-
+    if (editingEventId === eventId) resetForm();
     showToast('Event deleted.', 'success');
   } catch (error) {
     console.error('Delete failed:', error);
@@ -1354,32 +1245,22 @@ function resetForm() {
   addSessionForm();
 }
 
-function generateId() {
-  return `event-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+function generateId() { return `event-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`; }
+
+function formatDateShort(dateString) {
+  if (!dateString) return '';
+  return new Date(`${dateString}T00:00:00`).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-function formatDate(dateString) {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
-}
+function formatDate(dateString) { return formatDateShort(dateString); }
 
 function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text ?? '';
   return div.innerHTML;
 }
-
-function escapeAttr(text) {
-  return escapeHtml(String(text ?? '')).replace(/"/g, '&quot;');
-}
-
-function escapeJs(text) {
-  return String(text ?? '').replace(/['\\]/g, '\\$&');
-}
+function escapeAttr(text) { return escapeHtml(String(text ?? '')).replace(/"/g, '&quot;'); }
+function escapeJs(text) { return String(text ?? '').replace(/['\\]/g, '\\$&'); }
 
 function exportData() {
   const blob = new Blob([JSON.stringify(events, null, 2)], { type: 'application/json' });
@@ -1394,6 +1275,48 @@ function exportData() {
   showToast('Events exported to JSON.', 'success');
 }
 
+function exportFilteredRegistrationsCsv() {
+  const filtered = getFilteredRegistrations();
+  if (!filtered.length) {
+    showToast('No registrations to export with the current filters.', 'error');
+    return;
+  }
+  const rows = filtered.map((registration) => {
+    const { matchedEvent, matchedSession } = getRegistrationMatchDetails(registration);
+    return {
+      full_name: registration.full_name || '',
+      email: registration.email || '',
+      phone: registration.phone || '',
+      event_title: matchedEvent?.title || '',
+      event_date: matchedEvent?.date || '',
+      session_title: matchedSession?.title || '',
+      session_start: matchedSession?.startTime || '',
+      session_end: matchedSession?.endTime || '',
+      attendance_status: formatRegistrationStatusLabel(registration.attendance_status),
+      payment_status: formatPaymentStatusLabel(registration.payment_status || registration.status || ''),
+      booked_at: registration.created_at || '',
+      age: registration.age || '',
+      gender: formatGenderLabel(registration.gender || ''),
+      allergies: registration.food_allergies || '',
+      medical_conditions: registration.medical_conditions || '',
+      emergency_contact_name: registration.emergency_contact_name || '',
+      emergency_contact_phone: registration.emergency_contact_phone || ''
+    };
+  });
+  const headers = Object.keys(rows[0]);
+  const csv = [headers.join(','), ...rows.map((row) => headers.map((header) => `"${String(row[header] ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `fitness-truck-registrations-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Filtered registrations exported to CSV.', 'success');
+}
+
 function showToast(message, type = 'success') {
   const container = document.getElementById('toastContainer');
   if (!container) return;
@@ -1401,7 +1324,6 @@ function showToast(message, type = 'success') {
   toast.className = `toast ${type}`;
   toast.innerHTML = `<span style="font-size:1.2rem;">${type === 'success' ? '✓' : '!'}</span><span>${escapeHtml(message)}</span>`;
   container.appendChild(toast);
-
   setTimeout(() => {
     toast.style.opacity = '0';
     toast.style.transform = 'translateX(100%)';
@@ -1417,26 +1339,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const passwordInput = document.getElementById('adminPassword');
   const registrationSearchInput = document.getElementById('registrationSearch');
 
-  emailInput?.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') attemptLogin();
-  });
-
-  passwordInput?.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') attemptLogin();
-  });
-
+  emailInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter') attemptLogin(); });
+  passwordInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter') attemptLogin(); });
   registrationSearchInput?.addEventListener('input', handleRegistrationSearch);
-  document.getElementById('eventLocation')?.addEventListener('input', () => {
-    if (!editingEventId) renderEventPhotoPreview();
-  });
-
-  const registrationsSection = document.getElementById('registrationsList')?.parentElement;
-  if (registrationsSection && !document.getElementById('registrationsControls')) {
-    const controls = document.createElement('div');
-    controls.id = 'registrationsControls';
-    registrationsSection.insertBefore(controls, document.getElementById('registrationsSearchSummary') || document.getElementById('registrationsList'));
-  }
-
+  document.getElementById('eventLocation')?.addEventListener('input', () => { if (!editingEventId) renderEventPhotoPreview(); });
   bindEventPhotoControls();
   renderEventPhotoPreview();
 
@@ -1452,6 +1358,8 @@ window.addSessionForm = addSessionForm;
 window.removeSessionForm = removeSessionForm;
 window.resetForm = resetForm;
 window.exportData = exportData;
+window.exportFilteredRegistrationsCsv = exportFilteredRegistrationsCsv;
+window.setQuickRegistrationFilter = setQuickRegistrationFilter;
 window.clearRegistrationSearch = clearRegistrationSearch;
 window.deleteRegistration = deleteRegistration;
 window.saveRegistrationStatus = saveRegistrationStatus;

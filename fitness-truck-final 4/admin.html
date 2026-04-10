@@ -52,8 +52,20 @@
           <div class="events-list" id="eventsList"></div>
 
           <div style="margin-top:32px;">
-            <h2 class="admin-section-title">Registrations</h2>
-            <div class="form-row" style="margin-bottom:16px; align-items:end;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+              <h2 class="admin-section-title">Registrations</h2>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="exportFilteredRegistrationsCsv()">Export filtered CSV</button>
+            </div>
+
+            <div class="stats-bar admin-substats" id="registrationsStatsBar">
+              <div class="stat-card"><div class="stat-value" id="registrationsVisibleCount">0</div><div class="stat-label">Visible</div></div>
+              <div class="stat-card"><div class="stat-value" id="registrationsRegisteredCount">0</div><div class="stat-label">Registered</div></div>
+              <div class="stat-card"><div class="stat-value" id="registrationsCancelledCount">0</div><div class="stat-label">Cancelled</div></div>
+              <div class="stat-card"><div class="stat-value" id="registrationsNoShowCount">0</div><div class="stat-label">No-show</div></div>
+              <div class="stat-card"><div class="stat-value" id="registrationsHasNotesCount">0</div><div class="stat-label">Medical / Allergy</div></div>
+            </div>
+
+            <div class="form-row" style="margin-bottom:12px; align-items:end;">
               <div class="form-group" style="flex:1; margin-bottom:0;">
                 <label for="registrationSearch">Search registrations</label>
                 <input type="text" id="registrationSearch" placeholder="Name, email, phone, event or session">
@@ -62,6 +74,8 @@
                 <button type="button" class="btn btn-secondary" onclick="clearRegistrationSearch()">Clear</button>
               </div>
             </div>
+
+            <div id="registrationsControls"></div>
             <div id="registrationsSearchSummary" style="margin-bottom:12px; font-size:0.95rem; opacity:0.8;"></div>
             <div class="events-list" id="registrationsList">
               <div class="empty-state"><p>No registrations loaded yet.</p></div>
@@ -139,6 +153,6 @@
 
   <div class="toast-container" id="toastContainer"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=16"></script>
+  <script src="admin.js?v=17"></script>
 </body>
 </html>
