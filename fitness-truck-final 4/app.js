@@ -2567,13 +2567,25 @@ async function handlePasswordRecoveryRequestSubmit(event) {
   }
 }
 
+function getResetPasswordUrlParams() {
+  const hash = window.location.hash.replace(/^#/, '');
+  const hashParams = new URLSearchParams(hash);
+  const queryParams = new URLSearchParams(window.location.search);
+  return {
+    accessToken: String(hashParams.get('access_token') || queryParams.get('access_token') || '').trim(),
+    refreshToken: String(hashParams.get('refresh_token') || queryParams.get('refresh_token') || '').trim(),
+    type: String(hashParams.get('type') || queryParams.get('type') || '').trim().toLowerCase(),
+    code: String(queryParams.get('code') || '').trim(),
+    tokenHash: String(queryParams.get('token_hash') || '').trim()
+  };
+}
+
 function setPasswordRecoveryActiveFromUrl() {
   try {
-    const hash = window.location.hash.replace(/^#/, '');
-    const params = new URLSearchParams(hash);
-    const type = String(params.get('type') || '').trim().toLowerCase();
-    const hasRecoveryToken = Boolean(params.get('access_token')) && type === 'recovery';
-    if (hasRecoveryToken) {
+    const params = getResetPasswordUrlParams();
+    const hasRecoveryToken = Boolean(params.accessToken) && params.type === 'recovery';
+    const hasRecoveryCode = Boolean(params.code || params.tokenHash);
+    if (hasRecoveryToken || hasRecoveryCode) {
       state.passwordRecoveryActive = true;
       window.sessionStorage.setItem('ft_password_recovery_active', '1');
       return;
@@ -2582,6 +2594,36 @@ function setPasswordRecoveryActiveFromUrl() {
   } catch (error) {
     state.passwordRecoveryActive = false;
   }
+}
+
+async function initializePasswordRecoverySessionFromUrl() {
+  if (!isResetPasswordPage()) return false;
+
+  try {
+    const params = getResetPasswordUrlParams();
+
+    if (params.accessToken && params.refreshToken && params.type === 'recovery') {
+      const { error } = await supabaseClient.auth.setSession({
+        access_token: params.accessToken,
+        refresh_token: params.refreshToken
+      });
+      if (error) throw error;
+
+      state.passwordRecoveryActive = true;
+      window.sessionStorage.setItem('ft_password_recovery_active', '1');
+
+      if (window.location.hash) {
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.hash = '';
+        window.history.replaceState({}, '', cleanUrl.toString());
+      }
+      return true;
+    }
+  } catch (error) {
+    console.error('Reset password session init error:', error);
+  }
+
+  return false;
 }
 
 function clearPasswordRecoveryState() {
@@ -2643,26 +2685,43 @@ async function handleResetPasswordUpdateSubmit(event) {
 
 async function initResetPasswordPage() {
   if (!isResetPasswordPage()) return;
-  setPasswordRecoveryActiveFromUrl();
-  renderResetPasswordPage();
 
   document.getElementById('resetPasswordRequestForm')?.addEventListener('submit', handlePasswordRecoveryRequestSubmit);
   document.getElementById('resetPasswordUpdateForm')?.addEventListener('submit', handleResetPasswordUpdateSubmit);
 
+  setPasswordRecoveryActiveFromUrl();
+  await initializePasswordRecoverySessionFromUrl();
+
   try {
     const { data, error } = await supabaseClient.auth.getSession();
     if (error) throw error;
-    if (data?.session && state.passwordRecoveryActive) {
+
+    const hasRecoverySession = Boolean(data?.session);
+    state.passwordRecoveryActive = state.passwordRecoveryActive && hasRecoverySession;
+
+    if (hasRecoverySession) {
+      try { window.sessionStorage.setItem('ft_password_recovery_active', '1'); } catch (error) {}
       const notice = document.getElementById('resetPasswordNotice');
       if (notice) {
         notice.hidden = false;
         notice.textContent = t('account.passwordRecoveryReady');
         notice.className = 'auth-notice success';
       }
+    } else {
+      clearPasswordRecoveryState();
+      const notice = document.getElementById('resetPasswordNotice');
+      if (notice) {
+        notice.hidden = false;
+        notice.textContent = t('account.passwordRecoveryInvalid');
+        notice.className = 'auth-notice info';
+      }
     }
   } catch (error) {
     console.error('Reset password session check error:', error);
+    clearPasswordRecoveryState();
   }
+
+  renderResetPasswordPage();
 }
 
 async function logoutCurrentUser() {
